@@ -1,0 +1,131 @@
+"use client";
+
+import ErrorPopup from "@/app/components/Popup/ErrorPopup";
+import { Button } from "@/app/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/app/components/ui/card";
+import { signOut, useSession } from "@/lib/auth-client";
+import { motion } from "framer-motion";
+import { ArrowLeft, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+const containerVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
+
+export default function SignOutPage() {
+  const router = useRouter();
+  const session = useSession();
+
+  if (!session.data?.user) {
+    return (
+      <ErrorPopup
+        message="You are not signed in."
+        closeText="Go Back"
+        redirectTo={"/"}
+        notTransparent
+      />
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-r from-blue-50 via-white to-blue-50 px-4 py-10 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          className="absolute top-20 -left-20 w-72 h-72 bg-blue-200 rounded-full opacity-20 blur-3xl"
+          animate={{
+            y: [0, 50, 0],
+            x: [0, 30, 0],
+          }}
+          transition={{
+            duration: 15,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+        <motion.div
+          className="absolute bottom-20 -right-20 w-96 h-96 bg-emerald-200 rounded-full opacity-20 blur-3xl"
+          animate={{
+            y: [0, -50, 0],
+            x: [0, -30, 0],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+      </div>
+
+      <div className="w-full max-w-md relative z-10">
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={containerVariants}
+          transition={{ duration: 0.35 }}
+        >
+          <Card className="border-2 shadow-2xl backdrop-blur-sm bg-white/95">
+            <CardHeader className="text-center space-y-4 pb-6">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                className="inline-block mx-auto"
+              >
+                <div className="w-16 h-16 bg-linear-to-r from-red-500 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg">
+                  <LogOut className="w-8 h-8 text-white" />
+                </div>
+              </motion.div>
+              <div>
+                <p className="text-xs font-semibold tracking-[0.25em] uppercase text-sky-600 mb-2">
+                  Event Management · LCUP
+                </p>
+                <CardTitle className="text-2xl sm:text-3xl font-bold">
+                  Ready to sign out?
+                </CardTitle>
+                <CardDescription className="text-sm mt-2 max-w-sm mx-auto">
+                  You&apos;ll be signed out from your LCUP Event Management
+                  session. You can always sign back in to continue managing your
+                  reservations.
+                </CardDescription>
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-3">
+              <Button
+                type="button"
+                onClick={() => signOut()}
+                variant="destructive"
+                className="w-full h-12 text-base flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <LogOut className="w-5 h-5" />
+                <span>Sign out</span>
+              </Button>
+
+              <Button
+                type="button"
+                onClick={() => router.back()}
+                variant="outline"
+                className="w-full h-12 text-base flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span>Go back</span>
+              </Button>
+
+              <p className="mt-4 text-[11px] text-center text-gray-500">
+                Thank you for using LCUP Event Management System.
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    </div>
+  );
+}

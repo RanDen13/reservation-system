@@ -1,0 +1,415 @@
+"use client";
+
+import {
+  getAllAmenities,
+  updateEventSpace,
+} from "@/app/components/pages/Spaces/EventSpaceActions";
+import { Button } from "@/app/components/ui/button";
+import { Checkbox } from "@/app/components/ui/checkbox";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/app/components/ui/select";
+import { Textarea } from "@/app/components/ui/textarea";
+import { Amenity, EventSpace } from "@/generated/prisma/browser";
+import { Building2, Upload, X } from "lucide-react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import ModalBase from "../Popup/ModalBase";
+import { usePopup } from "../Popup/PopupProvider";
+import { amenityIcons } from "./AmenityIcon";
+
+const EditEventSpacePopup = ({
+  eventSpace,
+  onClose,
+}: {
+  eventSpace: EventSpace & { amenities?: Amenity[] };
+  onClose: () => void;
+}) => {
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>(
+    eventSpace.amenities?.map((a) => a.id) || []
+  );
+  const [amenities, setAmenities] = useState<Amenity[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [descriptionLength, setDescriptionLength] = useState(0);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageUpdated, setImageUpdated] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const statusPopup = usePopup();
+  const router = useRouter();
+
+  useEffect(() => {
+    const fetchAmenities = async () => {
+      const result = await getAllAmenities();
+      if (result.success && result.data) {
+        setAmenities(result.data);
+      }
+    };
+    fetchAmenities();
+  }, []);
+
+  const handleImageChange = (file: File) => {
+    if (file && file.type.startsWith("image/")) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+        setImageUpdated(true);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      handleImageChange(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    // Manually append the image file if it was updated
+    if (imageUpdated && imageFile) {
+      formData.set("image", imageFile);
+    } else {
+      formData.delete("image");
+    }
+
+    console.log("data:", Object.fromEntries(formData.entries()));
+
+    const confirmed = await statusPopup.showYesNo(
+      `Are you sure you want to update the event space "${eventSpace.name}"? This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    statusPopup.showLoading("Updating event space...");
+    setIsSubmitting(true);
+
+    try {
+      const result = await updateEventSpace(formData);
+
+      if (!result.success) {
+        statusPopup.showError(
+          result.message || "Failed to update event space."
+        );
+        return;
+      }
+
+      statusPopup.showSuccess("Event space updated successfully.");
+      router.refresh();
+      onClose();
+    } catch (error) {
+      statusPopup.showError(
+        "An error occurred while updating the event space."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <ModalBase onClose={onClose}>
+      <form onSubmit={handleSubmit}>
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 border-b">
+            <h2 className="text-2xl font-bold bg-linear-to-r from-sky-600 to-emerald-600 bg-clip-text text-transparent">
+              Edit Event Space
+            </h2>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Form */}
+          <div className="flex-1 overflow-y-auto p-6">
+            <input type="hidden" name="id" value={eventSpace.id} readOnly />
+            <div className="space-y-4">
+              {/* Image Upload */}
+              <div className="space-y-2">
+                <Label>Space Image</Label>
+                <div
+                  className={`relative border-2 border-dashed rounded-lg transition-colors ${
+                    isDragging
+                      ? "border-sky-500 bg-sky-50"
+                      : "border-gray-300 hover:border-gray-400"
+                  }`}
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                >
+                  {imagePreview || eventSpace.image ? (
+                    <div className="relative h-48 w-full group">
+                      <Image
+                        src={
+                          imagePreview ||
+                          `data:image/jpeg;base64,${Buffer.from(
+                            eventSpace.image!
+                          ).toString("base64")}`
+                        }
+                        alt="Preview"
+                        fill
+                        className="object-cover rounded-lg"
+                      />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                        <label className="cursor-pointer">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleImageChange(file);
+                            }}
+                          />
+                          <div className="bg-white rounded-lg px-4 py-2 flex items-center gap-2">
+                            <Upload className="w-4 h-4" />
+                            <span className="text-sm font-medium">
+                              Change Image
+                            </span>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center h-48 cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleImageChange(file);
+                        }}
+                      />
+                      <Upload className="w-12 h-12 text-gray-400 mb-3" />
+                      <p className="text-sm font-semibold text-gray-700">
+                        Click or drag to upload
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        PNG, JPG, GIF, WebP, SVG up to 10MB
+                      </p>
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              {/* Name */}
+              <div className="space-y-2">
+                <Label htmlFor="name">
+                  Space Name <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="name"
+                  name="name"
+                  placeholder="e.g., Conference Room A"
+                  defaultValue={eventSpace.name}
+                  required
+                  minLength={3}
+                  maxLength={100}
+                />
+              </div>
+
+              {/* Location */}
+              <div className="space-y-2">
+                <Label htmlFor="location">
+                  Location <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="location"
+                  name="location"
+                  defaultValue={eventSpace.location}
+                  placeholder="e.g., Building A, 2nd Floor"
+                  required
+                  minLength={3}
+                  maxLength={200}
+                />
+              </div>
+
+              {/* Capacity */}
+              <div className="space-y-2">
+                <Label htmlFor="capacity">
+                  Capacity <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="capacity"
+                  type="number"
+                  name="capacity"
+                  defaultValue={eventSpace.capacity}
+                  placeholder="e.g., 20"
+                  required
+                  min={1}
+                />
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2">
+                <Label htmlFor="description">
+                  Description <span className="text-red-500">*</span>
+                </Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  defaultValue={eventSpace.description || ""}
+                  placeholder="Brief description of the event space"
+                  onChange={(e) => {
+                    setDescriptionLength(e.target.value.length);
+                  }}
+                  required
+                  maxLength={500}
+                  rows={4}
+                  className="resize-none"
+                />
+                <p className="text-xs text-gray-500">
+                  {descriptionLength}/500 characters
+                </p>
+              </div>
+
+              {/* Status */}
+              <div className="space-y-2">
+                <Label htmlFor="status">
+                  Status <span className="text-red-500">*</span>
+                </Label>
+                <Select name="status" defaultValue={eventSpace.status}>
+                  <SelectTrigger id="status" className="w-full">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent className="z-10000">
+                    <SelectItem value="ACTIVE">Active</SelectItem>
+                    <SelectItem value="INACTIVE">Inactive</SelectItem>
+                    <SelectItem value="UNDER_MAINTENANCE">
+                      Under Maintenance
+                    </SelectItem>
+                    <SelectItem value="BOOKED">Booked</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Price Per Hour */}
+              <div className="space-y-2">
+                <Label htmlFor="pricePerHour">
+                  Price Per Hour <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="pricePerHour"
+                  defaultValue={eventSpace.pricePerHour.toFixed(2)}
+                  type="number"
+                  step="0.01"
+                  name="pricePerHour"
+                  placeholder="0.00"
+                  required
+                  min={0}
+                />
+                <p className="text-xs text-gray-500">
+                  Set to 0 for free spaces (students)
+                </p>
+              </div>
+
+              {/* Amenities */}
+              <div className="space-y-2">
+                <Label>Amenities</Label>
+                <div className="border rounded-lg p-4 max-h-48 overflow-y-auto space-y-3">
+                  <input
+                    type="hidden"
+                    name="amenities"
+                    value={JSON.stringify(selectedAmenities)}
+                    readOnly
+                  />
+                  {amenities.length === 0 ? (
+                    <p className="text-sm text-gray-500">
+                      No amenities available
+                    </p>
+                  ) : (
+                    amenities.map((amenity) => (
+                      <div
+                        key={amenity.id}
+                        className="flex items-center space-x-2"
+                      >
+                        <Checkbox
+                          id={`amenity-${amenity.id}`}
+                          checked={selectedAmenities.includes(amenity.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedAmenities([
+                                ...selectedAmenities,
+                                amenity.id,
+                              ]);
+                            } else {
+                              setSelectedAmenities(
+                                selectedAmenities.filter(
+                                  (id) => id !== amenity.id
+                                )
+                              );
+                            }
+                          }}
+                        />
+                        <Label
+                          htmlFor={`amenity-${amenity.id}`}
+                          className="text-sm font-normal cursor-pointer"
+                        >
+                          {amenityIcons[amenity.name] || (
+                            <Building2 className="w-4 h-4" />
+                          )}{" "}
+                          {amenity.name}
+                        </Label>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <p className="text-xs text-gray-500">
+                  {selectedAmenities.length} amenity(ies) selected
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="bg-linear-to-r from-sky-500 to-emerald-500 hover:from-sky-600 hover:to-emerald-600"
+            >
+              {isSubmitting ? "Updating..." : "Update Space"}
+            </Button>
+          </div>
+        </div>
+      </form>
+    </ModalBase>
+  );
+};
+
+export default EditEventSpacePopup;
