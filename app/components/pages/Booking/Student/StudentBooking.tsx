@@ -35,9 +35,12 @@ import {
   CalendarX,
   CheckCircle,
   Clock,
+  Download,
   FileText,
   Filter,
+  Image as ImageIcon,
   MapPin,
+  Paperclip,
   Plus,
   Search,
   Users,
@@ -46,6 +49,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { cancelBooking, getUserBookings } from "../BookingActions";
+import FileViewerModal from "../FileViewerModal";
 import { BookingData } from "../schema";
 
 const StudentBooking = () => {
@@ -56,9 +60,15 @@ const StudentBooking = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [bookings, setBookings] = useState<BookingData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [fileViewer, setFileViewer] = useState<{
+    fileData: Buffer;
+    fileType: "PDF" | "DOCX" | "IMAGE";
+    bookingId: string;
+  } | null>(null);
 
   useEffect(() => {
     fetchBookings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchBookings = async () => {
@@ -71,6 +81,7 @@ const StudentBooking = () => {
         statusPopup.showError(result.message || "Failed to fetch bookings");
       }
     } catch (error) {
+      console.error("Error fetching bookings:", error);
       statusPopup.showError("An error occurred while fetching bookings");
     } finally {
       setIsLoading(false);
@@ -79,7 +90,7 @@ const StudentBooking = () => {
 
   const handleCancelBooking = async (bookingId: string, spaceName: string) => {
     const confirmed = await statusPopup.showYesNo(
-      `Are you sure you want to cancel your booking for ${spaceName}? This action cannot be undone.`
+      `Are you sure you want to cancel your booking for ${spaceName}? This action cannot be undone.`,
     );
     if (!confirmed) return;
 
@@ -87,12 +98,42 @@ const StudentBooking = () => {
     const result = await cancelBooking(bookingId);
     if (result.success) {
       statusPopup.showSuccess(
-        result.message || "Booking cancelled successfully"
+        result.message || "Booking cancelled successfully",
       );
       await fetchBookings();
       router.refresh();
     } else {
       statusPopup.showError(result.message || "Failed to cancel booking");
+    }
+  };
+
+  const handleViewOrDownloadFile = (
+    fileData: Buffer,
+    fileType: "PDF" | "DOCX" | "IMAGE",
+    bookingId: string,
+  ) => {
+    // For PDF and IMAGE, open modal viewer
+    if (fileType === "PDF" || fileType === "IMAGE") {
+      setFileViewer({ fileData, fileType, bookingId });
+    } else if (fileType === "DOCX") {
+      // For DOCX, download directly
+      try {
+        const byteArray = new Uint8Array(Object.values(fileData));
+        const blob = new Blob([byteArray], {
+          type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `my-booking-${bookingId}-requirements.docx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        statusPopup.showError("Failed to download file");
+        console.error("Download error:", error);
+      }
     }
   };
 
@@ -122,7 +163,7 @@ const StudentBooking = () => {
     upcoming: bookings.filter(
       (b) =>
         (b.status === "APPROVED" || b.status === "PENDING") &&
-        new Date(b.date) >= new Date()
+        new Date(b.date) >= new Date(),
     ).length,
   };
 
@@ -163,7 +204,7 @@ const StudentBooking = () => {
           </p>
         </div>
         <Button
-          onClick={() => router.push("/pages/spaces")}
+          onClick={() => router.push("/user/spaces")}
           className="bg-linear-to-r from-sky-500 to-emerald-500 hover:from-sky-600 hover:to-emerald-600"
         >
           <Plus className="w-4 h-4 mr-2" />
@@ -349,10 +390,17 @@ const StudentBooking = () => {
                           {/* Left Section */}
                           <div className="flex-1 space-y-3">
                             <div className="flex items-start justify-between">
-                              <div>
-                                <h3 className="text-xl font-bold text-gray-800">
-                                  {booking.eventSpace?.name || "Unknown Space"}
-                                </h3>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <h3 className="text-xl font-bold text-gray-800">
+                                    {booking.eventSpace?.name ||
+                                      "Unknown Space"}
+                                  </h3>
+                                  {booking.requirementsData &&
+                                    booking.requirementsDataType && (
+                                      <Paperclip className="w-4 h-4 text-blue-600" />
+                                    )}
+                                </div>
                                 <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
                                   <MapPin className="w-4 h-4" />
                                   {booking.eventSpace?.location ||
@@ -397,6 +445,59 @@ const StudentBooking = () => {
                               </p>
                             </div>
 
+                            {booking.requirementsData &&
+                              booking.requirementsDataType && (
+                                <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      {booking.requirementsDataType ===
+                                      "IMAGE" ? (
+                                        <ImageIcon className="w-5 h-5 text-blue-600" />
+                                      ) : (
+                                        <FileText className="w-5 h-5 text-blue-600" />
+                                      )}
+                                      <div>
+                                        <p className="text-sm font-semibold text-blue-900">
+                                          Your Requirements Document
+                                        </p>
+                                        <p className="text-xs text-blue-700">
+                                          {booking.requirementsDataType} file
+                                          attached
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() =>
+                                        handleViewOrDownloadFile(
+                                          Buffer.from(
+                                            booking.requirementsData!,
+                                          ),
+                                          booking.requirementsDataType!,
+                                          booking.id,
+                                        )
+                                      }
+                                      className="shrink-0 border-blue-300 hover:bg-blue-100"
+                                    >
+                                      {booking.requirementsDataType ===
+                                      "DOCX" ? (
+                                        <>
+                                          <Download className="w-4 h-4 mr-2" />
+                                          Download
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Download className="w-4 h-4 mr-2" />
+                                          View
+                                        </>
+                                      )}
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
+
                             {booking.rejectionReason && (
                               <div className="bg-red-50 rounded-lg p-3">
                                 <p className="text-sm text-red-600">
@@ -420,7 +521,7 @@ const StudentBooking = () => {
                               onClick={() =>
                                 handleCancelBooking(
                                   booking.id,
-                                  booking.eventSpace?.name || "this space"
+                                  booking.eventSpace?.name || "this space",
                                 )
                               }
                               variant="destructive"
@@ -451,12 +552,12 @@ const StudentBooking = () => {
                       {activeTab === "all"
                         ? "You haven't made any bookings yet"
                         : activeTab === "upcoming"
-                        ? "You have no upcoming bookings"
-                        : "You have no past bookings"}
+                          ? "You have no upcoming bookings"
+                          : "You have no past bookings"}
                     </p>
                     {activeTab === "all" && (
                       <Button
-                        onClick={() => router.push("/pages/spaces")}
+                        onClick={() => router.push("/user/spaces")}
                         className="mt-4 bg-linear-to-r from-sky-500 to-emerald-500 hover:from-sky-600 hover:to-emerald-600"
                       >
                         <Plus className="w-4 h-4 mr-2" />
@@ -470,6 +571,16 @@ const StudentBooking = () => {
           </TabsContent>
         </Tabs>
       </motion.div>
+
+      {/* File Viewer Modal */}
+      {fileViewer && (
+        <FileViewerModal
+          fileData={fileViewer.fileData}
+          fileType={fileViewer.fileType}
+          bookingId={fileViewer.bookingId}
+          onClose={() => setFileViewer(null)}
+        />
+      )}
     </div>
   );
 };

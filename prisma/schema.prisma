@@ -26,6 +26,12 @@ enum BookingStatus {
   CANCELLED
 }
 
+enum FileType {
+  PDF
+  DOCX
+  IMAGE
+}
+
 model User {
   id            String    @id
   name          String
@@ -93,6 +99,9 @@ model Booking {
   rejectionReason String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+
+  requirementsData     Bytes?
+  requirementsDataType FileType?
 
   @@index([userId])
   @@index([eventSpaceId])

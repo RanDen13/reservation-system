@@ -146,10 +146,14 @@ export async function createEventSpace(
       ? JSON.parse(amenitiesData as string)
       : validatedData.amenities;
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { amenities: _amenities, image, ...restData } = validatedData;
+
     const newSpace = await prisma.eventSpace.create({
       data: {
         id: uuid(),
-        ...validatedData,
+        ...restData,
+        image: image ? Buffer.from(await image) : undefined,
         amenities: amenities
           ? {
               connect: amenities.map((id: string) => ({ id })),

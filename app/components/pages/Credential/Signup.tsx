@@ -11,10 +11,11 @@ import {
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { motion } from "framer-motion";
+import { signUp } from "@/lib/auth-client";
 import { ArrowLeft, Eye, EyeOff, Lock, Mail, User } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { usePopup } from "../../Popup/PopupProvider";
 
 const containerVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -29,13 +30,40 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const router = useRouter();
+  const statusPopup = usePopup();
 
   async function handleSignupSubmit(e: FormEvent) {
     e.preventDefault();
+
+    if (signupPassword !== signupConfirmPassword) {
+      statusPopup.showError("Passwords do not match.");
+      return;
+    }
+
+    if (signupPassword.length < 8) {
+      statusPopup.showError("Password must be at least 8 characters.");
+      return;
+    }
+
     setLoading(true);
-    // Handle signup logic here
-    setTimeout(() => setLoading(false), 1000);
+
+    await signUp.email(
+      {
+        email: signupEmail,
+        password: signupPassword,
+        name: signupName,
+        callbackURL: "/user/dashboard",
+      },
+      {
+        onError: (ctx) => {
+          statusPopup.showError(ctx.error.message || "Signup failed");
+          setLoading(false);
+        },
+        onSuccess: () => {
+          setLoading(false);
+        },
+      }
+    );
   }
 
   return (
@@ -265,13 +293,13 @@ const Signup = () => {
             transition={{ delay: 0.6 }}
             className="mt-6 text-center"
           >
-            <a
+            <Link
               href="/"
               className="text-sm text-gray-600 hover:text-sky-600 transition-colors inline-flex items-center gap-2 font-medium"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Home
-            </a>
+            </Link>
           </motion.div>
         </motion.div>
       </div>

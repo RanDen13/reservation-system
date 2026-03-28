@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from "@/app/components/ui/select";
 import { Textarea } from "@/app/components/ui/textarea";
-import { cn } from "@/lib/utils";
+import { cn, fileToBase64, validateFile } from "@/lib/utils";
 import { format } from "date-fns";
 import {
   AlertCircle,
@@ -34,10 +34,13 @@ import {
   Building2,
   Calendar as CalendarIcon,
   DollarSign,
+  FileText,
   Info,
   MapPin,
   Sparkles,
+  Upload,
   Users,
+  X,
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -54,6 +57,7 @@ const EventSpacePage = ({ id }: { id: string }) => {
   const [startTime, setStartTime] = useState<string>();
   const [endTime, setEndTime] = useState<string>();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const statusPopup = usePopup();
   const router = useRouter();
 
@@ -94,6 +98,31 @@ const EventSpacePage = ({ id }: { id: string }) => {
     };
   }, [startTime, endTime, eventSpace]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setSelectedFile(null);
+      return;
+    }
+
+    const validation = validateFile(file);
+    if (!validation.valid) {
+      statusPopup.showError(validation.error || "Invalid file");
+      e.target.value = "";
+      return;
+    }
+
+    setSelectedFile(file);
+  };
+
+  const removeFile = () => {
+    setSelectedFile(null);
+    const fileInput = document.getElementById(
+      "requirements-file",
+    ) as HTMLInputElement;
+    if (fileInput) fileInput.value = "";
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -113,11 +142,27 @@ const EventSpacePage = ({ id }: { id: string }) => {
     formData.append("startTime", startTime);
     formData.append("endTime", endTime);
 
+    // Handle file upload if present
+    if (selectedFile) {
+      const validation = validateFile(selectedFile);
+      if (validation.valid && validation.fileType) {
+        try {
+          const base64 = await fileToBase64(selectedFile);
+          formData.append("requirementsFile", base64);
+          formData.append("requirementsFileType", validation.fileType);
+        } catch (error) {
+          statusPopup.showError("Failed to process file");
+          setIsSubmitting(false);
+          return;
+        }
+      }
+    }
+
     const confirmed = await statusPopup.showYesNo(
       `Confirm booking for ${eventSpace.name} on ${format(
         selectedDate,
-        "PPP"
-      )} from ${startTime} to ${endTime}?`
+        "PPP",
+      )} from ${startTime} to ${endTime}?`,
     );
 
     if (!confirmed) return;
@@ -134,16 +179,21 @@ const EventSpacePage = ({ id }: { id: string }) => {
       }
 
       statusPopup.showSuccess(
-        "Booking request submitted successfully. Awaiting admin approval."
+        "Booking request submitted successfully. Awaiting admin approval.",
       );
 
       // Reset form
       setSelectedDate(undefined);
       setStartTime(undefined);
       setEndTime(undefined);
+      setSelectedFile(null);
+      const fileInput = document.getElementById(
+        "requirements-file",
+      ) as HTMLInputElement;
+      if (fileInput) fileInput.value = "";
     } catch (error) {
       statusPopup.showError(
-        (error as Error).message || "Failed to create booking."
+        (error as Error).message || "Failed to create booking.",
       );
     } finally {
       setIsSubmitting(false);
@@ -167,7 +217,7 @@ const EventSpacePage = ({ id }: { id: string }) => {
           {eventSpace.image ? (
             <Image
               src={`data:image/jpeg;base64,${Buffer.from(
-                eventSpace.image
+                eventSpace.image,
               ).toString("base64")}`}
               alt={eventSpace.name}
               fill
@@ -184,19 +234,19 @@ const EventSpacePage = ({ id }: { id: string }) => {
                 eventSpace.status === "ACTIVE"
                   ? "bg-emerald-500 text-white"
                   : eventSpace.status === "UNDER_MAINTENANCE"
-                  ? "bg-amber-500 text-white"
-                  : eventSpace.status === "BOOKED"
-                  ? "bg-red-500 text-white"
-                  : "bg-gray-500 text-white"
+                    ? "bg-amber-500 text-white"
+                    : eventSpace.status === "BOOKED"
+                      ? "bg-red-500 text-white"
+                      : "bg-gray-500 text-white"
               }`}
             >
               {eventSpace.status === "ACTIVE"
                 ? "Active"
                 : eventSpace.status === "UNDER_MAINTENANCE"
-                ? "Under Maintenance"
-                : eventSpace.status === "BOOKED"
-                ? "Booked"
-                : "Inactive"}
+                  ? "Under Maintenance"
+                  : eventSpace.status === "BOOKED"
+                    ? "Booked"
+                    : "Inactive"}
             </span>
           </div>
         </div>
@@ -353,7 +403,7 @@ const EventSpacePage = ({ id }: { id: string }) => {
                           variant="outline"
                           className={cn(
                             "w-full h-12 justify-start text-left font-normal",
-                            !selectedDate && "text-muted-foreground"
+                            !selectedDate && "text-muted-foreground",
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
@@ -394,7 +444,7 @@ const EventSpacePage = ({ id }: { id: string }) => {
                               >
                                 {`${hour.toString().padStart(2, "0")}:00`}
                               </SelectItem>
-                            )
+                            ),
                           )}
                         </SelectContent>
                       </Select>
@@ -414,7 +464,7 @@ const EventSpacePage = ({ id }: { id: string }) => {
                               >
                                 {`${hour.toString().padStart(2, "0")}:00`}
                               </SelectItem>
-                            )
+                            ),
                           )}
                         </SelectContent>
                       </Select>
@@ -447,6 +497,68 @@ const EventSpacePage = ({ id }: { id: string }) => {
                     />
                   </div>
 
+                  <div className="space-y-2">
+                    <Label htmlFor="requirements-file">
+                      Requirements Document (Optional)
+                    </Label>
+                    <div className="space-y-2">
+                      <div
+                        className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                          selectedFile
+                            ? "border-emerald-500 bg-emerald-50"
+                            : "border-gray-300 hover:border-sky-400"
+                        }`}
+                      >
+                        <input
+                          id="requirements-file"
+                          type="file"
+                          accept=".pdf,.docx,image/*"
+                          onChange={handleFileChange}
+                          className="hidden"
+                        />
+                        {!selectedFile ? (
+                          <label
+                            htmlFor="requirements-file"
+                            className="cursor-pointer flex flex-col items-center gap-2"
+                          >
+                            <Upload className="w-8 h-8 text-gray-400" />
+                            <div>
+                              <p className="text-sm font-medium text-gray-700">
+                                Click to upload
+                              </p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                PDF, DOCX, or Images (Max 5MB)
+                              </p>
+                            </div>
+                          </label>
+                        ) : (
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <FileText className="w-6 h-6 text-emerald-600" />
+                              <div className="text-left">
+                                <p className="text-sm font-medium text-gray-900">
+                                  {selectedFile.name}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {(selectedFile.size / 1024).toFixed(2)} KB
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={removeFile}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="bg-blue-50 rounded-lg p-4 space-y-2">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-gray-600">Price per hour</span>
@@ -471,8 +583,8 @@ const EventSpacePage = ({ id }: { id: string }) => {
                           {eventSpace.pricePerHour === 0
                             ? "Free"
                             : hours > 0
-                            ? `₱${totalPrice.toFixed(2)}`
-                            : "₱--"}
+                              ? `₱${totalPrice.toFixed(2)}`
+                              : "₱--"}
                         </span>
                       </div>
                     </div>
@@ -507,8 +619,8 @@ const EventSpacePage = ({ id }: { id: string }) => {
                     {eventSpace.status === "UNDER_MAINTENANCE"
                       ? "Under maintenance"
                       : eventSpace.status === "BOOKED"
-                      ? "Currently booked"
-                      : "Inactive"}
+                        ? "Currently booked"
+                        : "Inactive"}
                   </p>
                 </div>
               )}

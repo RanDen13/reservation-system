@@ -537,7 +537,7 @@ export default function Home() {
       >
         <div className="container mx-auto px-4 text-center">
           <p className="text-sm">
-            © 2025 La Consolacion University Philippines. All rights reserved.
+            © 2026 La Consolacion University Philippines. All rights reserved.
           </p>
         </div>
       </motion.footer>

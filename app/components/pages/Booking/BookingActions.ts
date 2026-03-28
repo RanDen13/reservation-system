@@ -3,6 +3,7 @@
 import ActionResult from "@/app/components/ActionResult";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { base64ToBuffer } from "@/lib/utils";
 import { headers } from "next/headers";
 import { v4 as uuid } from "uuid";
 import { prettifyError } from "zod";
@@ -13,7 +14,7 @@ import {
 } from "./schema";
 
 export async function createBooking(
-  data: FormData
+  data: FormData,
 ): Promise<ActionResult<BookingData>> {
   try {
     const session = await auth.api.getSession({
@@ -27,7 +28,7 @@ export async function createBooking(
     }
 
     const validation = await createBookingSchema.safeParseAsync(
-      Object.fromEntries(data)
+      Object.fromEntries(data),
     );
     if (!validation.success) {
       console.error("Validation error:", validation.error);
@@ -117,19 +118,30 @@ export async function createBooking(
 
     const totalPrice = hours * eventSpace.pricePerHour;
 
+    // Prepare booking data
+    const bookingData: any = {
+      id: uuid(),
+      userId: session.user.id,
+      eventSpaceId: validatedData.eventSpaceId,
+      date: new Date(validatedData.date),
+      startTime: validatedData.startTime,
+      endTime: validatedData.endTime,
+      attendees: validatedData.attendees,
+      purpose: validatedData.purpose,
+      totalPrice,
+      status: "PENDING",
+    };
+
+    // Add file data if provided
+    if (validatedData.requirementsFile && validatedData.requirementsFileType) {
+      bookingData.requirementsData = base64ToBuffer(
+        validatedData.requirementsFile,
+      );
+      bookingData.requirementsDataType = validatedData.requirementsFileType;
+    }
+
     const newBooking = await prisma.booking.create({
-      data: {
-        id: uuid(),
-        userId: session.user.id,
-        eventSpaceId: validatedData.eventSpaceId,
-        date: new Date(validatedData.date),
-        startTime: validatedData.startTime,
-        endTime: validatedData.endTime,
-        attendees: validatedData.attendees,
-        purpose: validatedData.purpose,
-        totalPrice,
-        status: "PENDING",
-      },
+      data: bookingData,
       include: {
         user: {
           select: {
@@ -262,7 +274,7 @@ export async function getAllBookings(): Promise<ActionResult<BookingData[]>> {
 }
 
 export async function updateBookingStatus(
-  data: FormData
+  data: FormData,
 ): Promise<ActionResult<void>> {
   try {
     const session = await auth.api.getSession({
@@ -284,7 +296,7 @@ export async function updateBookingStatus(
     }
 
     const validation = await updateBookingStatusSchema.safeParseAsync(
-      Object.fromEntries(data)
+      Object.fromEntries(data),
     );
     if (!validation.success) {
       console.error("Validation error:", validation.error);
