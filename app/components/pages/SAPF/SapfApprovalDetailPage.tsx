@@ -87,6 +87,12 @@ export default function SapfApprovalDetailPage({
               Preview SAPF
             </a>
           </Button>
+          <Button asChild variant="outline">
+            <a href={`/api/sapf/${request.id}/docx`}>
+              <FileDown className="mr-2 h-4 w-4" />
+              Download DOCX
+            </a>
+          </Button>
           {request.status === "APPROVED" && (
             <Button asChild variant="outline">
               <a href={`/api/sapf/${request.id}/pdf`} target="_blank">
