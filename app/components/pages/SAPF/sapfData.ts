@@ -1,0 +1,110 @@
+export const CORE_VALUE_OPTIONS = [
+  "Courage",
+  "Compassion",
+  "Community-Oriented",
+  "Humility",
+  "Interiority",
+  "Missionary Spirit",
+];
+
+export const GRADUATE_ATTRIBUTE_OPTIONS = [
+  "EGA 1: Critical and Creative Thinker",
+  "EGA 2: Competent Catholic Augustinian-Marian Professional",
+  "EGA 3: Socially Responsive Steward",
+  "EGA 4: Transformative Lifelong Learner",
+];
+
+export const SUPPORT_REQUEST_OPTIONS = [
+  "Budget",
+  "Vehicle",
+  "Food/Snacks",
+  "Room/Venue",
+  "Sound System",
+  "Microphone",
+  "LCD Projector",
+  "Chairs and Tables",
+];
+
+function valuesFromRows(rows: any[] | undefined) {
+  return (rows || [])
+    .map((row) => (typeof row === "string" ? row : row?.value))
+    .filter(Boolean);
+}
+
+function hasAnyValue(value: Record<string, any>) {
+  return Object.values(value).some((item) =>
+    Array.isArray(item) ? item.length > 0 : Boolean(item),
+  );
+}
+
+export function getSapfParts(request: any) {
+  const coreValues = valuesFromRows(request.coreValues);
+  const graduateAttributes = valuesFromRows(request.graduateAttributes);
+  const supportRequests = valuesFromRows(request.supportRequests);
+
+  const part1 = {
+    activityTitle: request.title || "",
+    organization: request.organization || "",
+    activityDate: request.startAt || "",
+    modality: request.modality || "",
+    programCourse: request.programCourse || "",
+    venue: request.venue || request.eventSpace?.name || "",
+    department: request.department || "",
+    setting: request.setting || "",
+    personnelInCharge: request.personnelInCharge || "",
+    activityType: request.activityType || "",
+    attire: request.attire || "",
+    scope: request.scope || "",
+    noOfParticipants: request.attendeeCount || "",
+    program: request.program || "",
+    rationale: request.rationale || "",
+    objectives: request.objectives || "",
+    coreValues,
+    graduateAttributes,
+    programFlow: request.programFlow || "",
+    budget: request.budget || "",
+    sourceOfBudget: request.sourceOfBudget || "",
+  };
+
+  const part2 = {
+    supportRequests,
+    budgetDetails: request.budgetDetails || "",
+    vehiclePassengers: request.vehiclePassengers || "",
+    foodPax: request.foodPax || "",
+    roomVenueDetails: request.roomVenueDetails || "",
+    microphoneQty: request.microphoneQty || "",
+    otherSupport: request.otherSupport || "",
+  };
+
+  const part4 = {
+    parentsConsent: request.parentsConsent || "",
+    attachments: request.attachments || "",
+    academicInterruption: request.academicInterruption || "",
+    academicRemarks: request.academicRemarks || "",
+    medicalExam: request.medicalExam || "",
+    reportOfCompliance: request.reportOfCompliance || "",
+    studentPersonnelRatio: request.studentPersonnelRatio || "",
+  };
+
+  return {
+    part1,
+    part2,
+    part3: request.otherDetails || "",
+    part4: hasAnyValue(part4) ? part4 : null,
+  };
+}
+
+export function normalizeSapfRequest<T extends Record<string, any>>(
+  request: T,
+) {
+  const sapf = getSapfParts(request);
+
+  return {
+    ...request,
+    sapf,
+    sapfPart1: sapf.part1,
+    sapfPart2: sapf.part2,
+    sapfPart3: sapf.part3,
+    sapfPart4: sapf.part4,
+  };
+}

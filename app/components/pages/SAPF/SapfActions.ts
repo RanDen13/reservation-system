@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { v4 as uuid } from "uuid";
+import { normalizeSapfRequest } from "./sapfData";
 
 const roleValues = ["OFFICER", "APPROVER", "ADMIN", "SUPER_ADMIN"] as const;
 const approverRoleValues = ["APPROVER", "ADMIN", "SUPER_ADMIN"] as const;
@@ -201,45 +202,111 @@ async function detectConflicts(
 }
 
 function buildSapfPayload(data: FormData) {
-  const supportRequests = data.getAll("supportRequests").map(String);
-  const coreValues = data.getAll("coreValues").map(String);
-  const graduateAttributes = data.getAll("graduateAttributes").map(String);
+  const listField = (key: string) => [
+    ...new Set(data.getAll(key).map(String).filter(Boolean)),
+  ];
+  const supportRequests = listField("supportRequests");
+  const coreValues = listField("coreValues");
+  const graduateAttributes = listField("graduateAttributes");
 
   return {
-    part1: {
-      activityTitle: field(data, "activityTitle"),
-      organization: field(data, "organization"),
-      activityDate: field(data, "activityDate"),
-      modality: field(data, "modality"),
-      programCourse: field(data, "programCourse"),
-      venue: field(data, "venue"),
-      department: field(data, "department"),
-      setting: field(data, "setting"),
-      personnelInCharge: field(data, "personnelInCharge"),
-      activityType: field(data, "activityType"),
-      attire: field(data, "attire"),
-      scope: field(data, "scope"),
-      noOfParticipants: numberField(data, "noOfParticipants", 1),
-      program: field(data, "program"),
-      rationale: field(data, "rationale"),
-      objectives: field(data, "objectives"),
-      coreValues,
-      graduateAttributes,
-      programFlow: field(data, "programFlow"),
-      budget: field(data, "budget"),
-      sourceOfBudget: field(data, "sourceOfBudget"),
-    },
-    part2: {
-      supportRequests,
-      budgetDetails: field(data, "budgetDetails"),
-      vehiclePassengers: field(data, "vehiclePassengers"),
-      foodPax: field(data, "foodPax"),
-      roomVenueDetails: field(data, "roomVenueDetails"),
-      microphoneQty: field(data, "microphoneQty"),
-      otherSupport: field(data, "otherSupport"),
-    },
-    part3: field(data, "otherDetails"),
+    activityTitle: field(data, "activityTitle"),
+    organization: field(data, "organization"),
+    modality: field(data, "modality"),
+    programCourse: field(data, "programCourse"),
+    venue: field(data, "venue"),
+    department: field(data, "department"),
+    setting: field(data, "setting"),
+    personnelInCharge: field(data, "personnelInCharge"),
+    activityType: field(data, "activityType"),
+    attire: field(data, "attire"),
+    scope: field(data, "scope"),
+    noOfParticipants: numberField(data, "noOfParticipants", 1),
+    program: field(data, "program"),
+    rationale: field(data, "rationale"),
+    objectives: field(data, "objectives"),
+    coreValues,
+    graduateAttributes,
+    programFlow: field(data, "programFlow"),
+    budget: field(data, "budget"),
+    sourceOfBudget: field(data, "sourceOfBudget"),
+    supportRequests,
+    budgetDetails: field(data, "budgetDetails"),
+    vehiclePassengers: field(data, "vehiclePassengers"),
+    foodPax: field(data, "foodPax"),
+    roomVenueDetails: field(data, "roomVenueDetails"),
+    microphoneQty: field(data, "microphoneQty"),
+    otherSupport: field(data, "otherSupport"),
+    otherDetails: field(data, "otherDetails"),
   };
+}
+
+function sapfColumnData(sapf: ReturnType<typeof buildSapfPayload>) {
+  return {
+    modality: sapf.modality || null,
+    programCourse: sapf.programCourse || null,
+    venue: sapf.venue || null,
+    setting: sapf.setting || null,
+    personnelInCharge: sapf.personnelInCharge || null,
+    activityType: sapf.activityType || null,
+    attire: sapf.attire || null,
+    scope: sapf.scope || null,
+    program: sapf.program || null,
+    rationale: sapf.rationale || null,
+    objectives: sapf.objectives || null,
+    programFlow: sapf.programFlow || null,
+    budget: sapf.budget || null,
+    sourceOfBudget: sapf.sourceOfBudget || null,
+    budgetDetails: sapf.budgetDetails || null,
+    vehiclePassengers: sapf.vehiclePassengers || null,
+    foodPax: sapf.foodPax || null,
+    roomVenueDetails: sapf.roomVenueDetails || null,
+    microphoneQty: sapf.microphoneQty || null,
+    otherSupport: sapf.otherSupport || null,
+    otherDetails: sapf.otherDetails || null,
+  };
+}
+
+async function replaceSapfListRows(
+  tx: any,
+  requestId: string,
+  sapf: ReturnType<typeof buildSapfPayload>,
+) {
+  await Promise.all([
+    tx.sAPFCoreValue.deleteMany({ where: { requestId } }),
+    tx.sAPFGraduateAttribute.deleteMany({ where: { requestId } }),
+    tx.sAPFSupportRequest.deleteMany({ where: { requestId } }),
+  ]);
+
+  await Promise.all([
+    sapf.coreValues.length
+      ? tx.sAPFCoreValue.createMany({
+          data: sapf.coreValues.map((value) => ({
+            id: uuid(),
+            requestId,
+            value,
+          })),
+        })
+      : Promise.resolve(),
+    sapf.graduateAttributes.length
+      ? tx.sAPFGraduateAttribute.createMany({
+          data: sapf.graduateAttributes.map((value) => ({
+            id: uuid(),
+            requestId,
+            value,
+          })),
+        })
+      : Promise.resolve(),
+    sapf.supportRequests.length
+      ? tx.sAPFSupportRequest.createMany({
+          data: sapf.supportRequests.map((value) => ({
+            id: uuid(),
+            requestId,
+            value,
+          })),
+        })
+      : Promise.resolve(),
+  ]);
 }
 
 async function buildApprovalChain(data: FormData) {
@@ -472,6 +539,18 @@ export async function getSapfWorkspace(): Promise<ActionResult<any>> {
           capacity: true,
         },
       },
+      coreValues: {
+        select: { value: true },
+        orderBy: { createdAt: "asc" as const },
+      },
+      graduateAttributes: {
+        select: { value: true },
+        orderBy: { createdAt: "asc" as const },
+      },
+      supportRequests: {
+        select: { value: true },
+        orderBy: { createdAt: "asc" as const },
+      },
       approvalSteps: {
         include: {
           reviewer: {
@@ -582,7 +661,7 @@ export async function getSapfWorkspace(): Promise<ActionResult<any>> {
           : Promise.resolve([]),
       ]);
 
-    const sanitizedRequests = requests.map((request: any) => ({
+    const sanitizedRequests = requests.map((request: any) => normalizeSapfRequest({
       ...request,
       approvalSteps: request.approvalSteps.map((step: any) => {
         const thread = step.concernThread;
@@ -655,6 +734,18 @@ export async function getSapfRequestById(
           capacity: true,
         },
       },
+      coreValues: {
+        select: { value: true },
+        orderBy: { createdAt: "asc" as const },
+      },
+      graduateAttributes: {
+        select: { value: true },
+        orderBy: { createdAt: "asc" as const },
+      },
+      supportRequests: {
+        select: { value: true },
+        orderBy: { createdAt: "asc" as const },
+      },
       approvalSteps: {
         include: {
           reviewer: {
@@ -722,7 +813,7 @@ export async function getSapfRequestById(
       return { success: false, message: "Request not found." };
     }
 
-    const sanitizedRequest = {
+    const sanitizedRequest = normalizeSapfRequest({
       ...request,
       approvalSteps: request.approvalSteps.map((step: any) => {
         const thread = step.concernThread;
@@ -737,7 +828,7 @@ export async function getSapfRequestById(
           concernThread: canSeeThread ? thread : null,
         };
       }),
-    };
+    });
 
     return {
       success: true,
@@ -834,9 +925,9 @@ export async function saveSapfRequest(
     }
 
     const sapf = buildSapfPayload(data);
-    const title = sapf.part1.activityTitle || "Untitled activity";
-    const organization = sapf.part1.organization || "Unspecified organization";
-    const department = sapf.part1.department || "Unspecified department";
+    const title = sapf.activityTitle || "Untitled activity";
+    const organization = sapf.organization || "Unspecified organization";
+    const department = sapf.department || "Unspecified department";
 
     const existing = requestId
       ? await prisma.sAPFRequest.findUnique({
@@ -864,47 +955,48 @@ export async function saveSapfRequest(
 
     let request;
 
+    const requestData = {
+      eventSpaceId,
+      title,
+      organization,
+      department,
+      attendeeCount,
+      startAt,
+      endAt,
+      conflictWarning: conflict.pendingConflict,
+      ...sapfColumnData(sapf),
+    };
+
     if (!existing) {
-      request = await prisma.sAPFRequest.create({
-        data: {
-          id: uuid(),
-          requestNumber: await nextRequestNumber(),
-          officerId: user.id,
-          eventSpaceId,
-          title,
-          organization,
-          department,
-          attendeeCount,
-          startAt,
-          endAt,
-          status: isSubmit ? ("IN_REVIEW" as any) : ("DRAFT" as any),
-          currentStepOrder: isSubmit ? 1 : null,
-          conflictWarning: conflict.pendingConflict,
-          sapfPart1: sapf.part1,
-          sapfPart2: sapf.part2,
-          sapfPart3: sapf.part3,
-        },
+      const requestNumber = await nextRequestNumber();
+      request = await prisma.$transaction(async (tx) => {
+        const created = await tx.sAPFRequest.create({
+          data: {
+            id: uuid(),
+            requestNumber,
+            officerId: user.id,
+            ...requestData,
+            status: isSubmit ? ("IN_REVIEW" as any) : ("DRAFT" as any),
+            currentStepOrder: isSubmit ? 1 : null,
+          },
+        });
+        await replaceSapfListRows(tx, created.id, sapf);
+        return created;
       });
     } else {
-      request = await prisma.sAPFRequest.update({
-        where: { id: existing.id },
-        data: {
-          eventSpaceId,
-          title,
-          organization,
-          department,
-          attendeeCount,
-          startAt,
-          endAt,
-          status: isSubmit ? ("IN_REVIEW" as any) : existing.status,
-          currentStepOrder: isSubmit
-            ? (existing.currentStepOrder ?? 1)
-            : existing.currentStepOrder,
-          conflictWarning: conflict.pendingConflict,
-          sapfPart1: sapf.part1,
-          sapfPart2: sapf.part2,
-          sapfPart3: sapf.part3,
-        },
+      request = await prisma.$transaction(async (tx) => {
+        const updated = await tx.sAPFRequest.update({
+          where: { id: existing.id },
+          data: {
+            ...requestData,
+            status: isSubmit ? ("IN_REVIEW" as any) : existing.status,
+            currentStepOrder: isSubmit
+              ? (existing.currentStepOrder ?? 1)
+              : existing.currentStepOrder,
+          },
+        });
+        await replaceSapfListRows(tx, updated.id, sapf);
+        return updated;
       });
     }
 
@@ -1152,7 +1244,9 @@ export async function reviewSapfRequest(
             academicRemarks: field(data, "academicRemarks"),
             medicalExam: field(data, "medicalExam"),
             reportOfCompliance: field(data, "reportOfCompliance"),
-            participantPersonnelRatio: field(data, "participantPersonnelRatio"),
+            studentPersonnelRatio:
+              field(data, "studentPersonnelRatio") ||
+              field(data, "participantPersonnelRatio"),
           }
         : undefined;
 
@@ -1213,7 +1307,7 @@ export async function reviewSapfRequest(
           data: {
             status: "IN_REVIEW" as any,
             currentStepOrder: nextStep.stepOrder,
-            ...(part4 ? { sapfPart4: part4 } : {}),
+            ...(part4 || {}),
           },
         });
       } else {
@@ -1224,7 +1318,7 @@ export async function reviewSapfRequest(
             currentStepOrder: null,
             approvedAt: new Date(),
             verificationToken: uuid(),
-            ...(part4 ? { sapfPart4: part4 } : {}),
+            ...(part4 || {}),
           },
         });
         await tx.approvalAction.create({

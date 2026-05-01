@@ -16,6 +16,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { addConcernMessage, reviewSapfRequest } from "./SapfActions";
+import SapfReadonlyDetails from "./SapfReadonlyDetails";
 
 function statusClass(status: string) {
   if (status === "APPROVED") return "bg-emerald-100 text-emerald-700";
@@ -284,10 +285,10 @@ function ReviewControls({
             />
           </div>
           <div>
-            <Label>Participant-Personnel Ratio</Label>
+            <Label>Student-Personnel Ratio</Label>
             <Input
               form="approve-form"
-              name="participantPersonnelRatio"
+              name="studentPersonnelRatio"
               placeholder="e.g. 1:30"
             />
           </div>
@@ -345,48 +346,29 @@ export function RequestDetail({
   showReviewControls?: boolean;
   showConcernThreads?: boolean;
 }) {
+  const activeReviewStep = request.approvalSteps?.find(
+    (item: any) => item.status === "ACTIVE" && item.reviewerId === me?.id,
+  );
+  const hideReadOnlyPart4 =
+    showReviewControls &&
+    me?.role !== "SUPER_ADMIN" &&
+    activeReviewStep?.position === "SDS";
+
   return (
-    <Card className="border">
-      <CardContent className="space-y-5 p-5">
-        <RequestSummary request={request} />
-        <div className="grid gap-4 md:grid-cols-3">
-          <div>
-            <p className="text-xs font-semibold uppercase text-gray-500">
-              Department
-            </p>
-            <p className="text-sm text-gray-800">{request.department}</p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase text-gray-500">
-              Attendees
-            </p>
-            <p className="text-sm text-gray-800">{request.attendeeCount}</p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase text-gray-500">
-              Officer
-            </p>
-            <p className="text-sm text-gray-800">{request.officer?.name}</p>
-          </div>
-        </div>
-        <div className="rounded-lg bg-gray-50 p-4">
-          <p className="text-sm font-semibold">Rationale</p>
-          <p className="mt-1 text-sm text-gray-700">
-            {request.sapfPart1?.rationale || "No rationale provided."}
-          </p>
-          <p className="mt-3 text-sm font-semibold">Objectives</p>
-          <p className="mt-1 text-sm text-gray-700">
-            {request.sapfPart1?.objectives || "No objectives provided."}
-          </p>
-        </div>
-        {showReviewControls && (
-          <ReviewControls request={request} me={me} onRefresh={onRefresh} />
-        )}
-        <Timeline request={request} />
-        {showConcernThreads && (
-          <ConcernThreads request={request} onRefresh={onRefresh} />
-        )}
-      </CardContent>
-    </Card>
+    <div className="space-y-5">
+      <RequestSummary request={request} />
+      <SapfReadonlyDetails request={request} hidePart4={hideReadOnlyPart4} />
+      {showReviewControls && (
+        <ReviewControls request={request} me={me} onRefresh={onRefresh} />
+      )}
+      <Card>
+        <CardContent className="p-5">
+          <Timeline request={request} />
+        </CardContent>
+      </Card>
+      {showConcernThreads && (
+        <ConcernThreads request={request} onRefresh={onRefresh} />
+      )}
+    </div>
   );
 }

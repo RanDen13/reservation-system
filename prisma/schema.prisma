@@ -156,25 +156,88 @@ model SAPFRequest {
   currentStepOrder  Int?
   conflictWarning   Boolean           @default(false)
   rejectionReason   String?
-  sapfPart1         Json
-  sapfPart2         Json
-  sapfPart3         String?
-  sapfPart4         Json?
+  modality          String?
+  programCourse     String?
+  venue             String?
+  setting           String?
+  personnelInCharge String?
+  activityType      String?
+  attire            String?
+  scope             String?
+  program           String?
+  rationale         String?
+  objectives        String?
+  programFlow       String?
+  budget            String?
+  sourceOfBudget    String?
+  budgetDetails     String?
+  vehiclePassengers String?
+  foodPax           String?
+  roomVenueDetails  String?
+  microphoneQty     String?
+  otherSupport      String?
+  otherDetails      String?
+  parentsConsent    String?
+  attachments       String?
+  academicInterruption String?
+  academicRemarks      String?
+  medicalExam          String?
+  reportOfCompliance   String?
+  studentPersonnelRatio String?
   verificationToken String?           @unique
   approvedAt        DateTime?
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
-  approvalSteps   ApprovalStep[]
-  approvalActions ApprovalAction[]
-  notifications   Notification[]
-  concernThreads  ConcernThread[]
+  coreValues          SAPFCoreValue[]
+  graduateAttributes  SAPFGraduateAttribute[]
+  supportRequests     SAPFSupportRequest[]
+  approvalSteps       ApprovalStep[]
+  approvalActions     ApprovalAction[]
+  notifications       Notification[]
+  concernThreads      ConcernThread[]
 
   @@index([officerId])
   @@index([eventSpaceId])
   @@index([status])
   @@index([startAt])
   @@map("sapf_request")
+}
+
+model SAPFCoreValue {
+  id        String      @id
+  requestId String
+  request   SAPFRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  value     String
+  createdAt DateTime    @default(now())
+
+  @@unique([requestId, value])
+  @@index([requestId])
+  @@map("sapf_core_value")
+}
+
+model SAPFGraduateAttribute {
+  id        String      @id
+  requestId String
+  request   SAPFRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  value     String
+  createdAt DateTime    @default(now())
+
+  @@unique([requestId, value])
+  @@index([requestId])
+  @@map("sapf_graduate_attribute")
+}
+
+model SAPFSupportRequest {
+  id        String      @id
+  requestId String
+  request   SAPFRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  value     String
+  createdAt DateTime    @default(now())
+
+  @@unique([requestId, value])
+  @@index([requestId])
+  @@map("sapf_support_request")
 }
 
 model ApprovalStep {

@@ -10,9 +10,10 @@ import {
   CardTitle,
 } from "@/app/components/ui/card";
 import { History, RefreshCcw } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { getSapfWorkspace } from "./SapfActions";
-import { RequestDetail } from "./SapfRequestDetail";
+import { RequestSummary } from "./SapfRequestDetail";
 
 const historyStatuses = new Set(["APPROVED", "REJECTED", "CANCELLED"]);
 
@@ -86,14 +87,14 @@ export default function SapfBookingsPage() {
             <p className="text-sm text-gray-500">No historical requests yet.</p>
           ) : (
             historyRequests.map((request: any) => (
-              <RequestDetail
-                key={request.id}
-                request={request}
-                me={workspace.me}
-                onRefresh={refresh}
-                showReviewControls={false}
-                showConcernThreads={false}
-              />
+              <div key={request.id} className="space-y-3">
+                <RequestSummary request={request} showPdf={false} />
+                <div className="flex justify-end">
+                  <Button asChild variant="outline">
+                    <Link href={`/user/bookings/${request.id}`}>View</Link>
+                  </Button>
+                </div>
+              </div>
             ))
           )}
         </CardContent>
