@@ -31,6 +31,7 @@ import {
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createVenueBlock, getSapfWorkspace } from "./SapfActions";
+import { RequestSummary } from "./SapfRequestDetail";
 
 const activeStatuses = new Set([
   "DRAFT",
@@ -168,6 +169,10 @@ export default function SapfDashboard() {
       ),
     };
   }, [workspace]);
+  const currentRequests = useMemo(() => {
+    const requests = workspace?.requests || [];
+    return requests.filter((request: any) => activeStatuses.has(request.status));
+  }, [workspace]);
 
   if (loading && !workspace) {
     return (
@@ -188,6 +193,10 @@ export default function SapfDashboard() {
     ),
   );
   const waitingApprovalCount = reviewerCurrent.length;
+  const requestHref = (requestId: string) =>
+    workspace.me.role === "OFFICER"
+      ? `/user/bookings/${requestId}`
+      : `/user/approvals/${requestId}`;
 
   return (
     <div className="space-y-8 p-4 lg:p-8">
@@ -285,6 +294,37 @@ export default function SapfDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Current progress
+          </CardTitle>
+          <CardDescription>
+            {currentRequests.length} active request
+            {currentRequests.length === 1 ? "" : "s"} in the approval flow.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {currentRequests.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              No active SAPF requests right now.
+            </p>
+          ) : (
+            currentRequests.map((request: any) => (
+              <div key={request.id} className="space-y-3">
+                <RequestSummary request={request} showPdf={false} />
+                <div className="flex justify-end">
+                  <Button asChild variant="outline">
+                    <Link href={requestHref(request.id)}>View</Link>
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
 
       {workspace.notifications.length > 0 && (
         <Card>

@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import ModalBase from "../../Popup/ModalBase";
+import ApprovalProgressTimeline from "./ApprovalProgressTimeline";
 import { addConcernMessage, reviewSapfRequest } from "./SapfActions";
 import SapfReadonlyDetails from "./SapfReadonlyDetails";
 
@@ -57,18 +58,20 @@ export function RequestSummary({
   showBadges = true,
   showConflict = true,
   showPdf = true,
+  showProgress = true,
 }: {
   request: any;
   showBadges?: boolean;
   showConflict?: boolean;
   showPdf?: boolean;
+  showProgress?: boolean;
 }) {
   const waitingSince = request.approvalSteps?.find(
     (step: any) => step.status === "ACTIVE",
   )?.updatedAt;
 
   return (
-    <div className="rounded-lg border bg-white p-4">
+    <div className="space-y-4 rounded-lg border bg-white p-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <p className="font-mono text-sm font-semibold text-gray-500">
@@ -112,6 +115,9 @@ export function RequestSummary({
           )}
         </div>
       </div>
+      {showProgress && (
+        <ApprovalProgressTimeline request={request} compact />
+      )}
     </div>
   );
 }
