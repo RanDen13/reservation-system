@@ -156,36 +156,10 @@ model SAPFRequest {
   currentStepOrder  Int?
   conflictWarning   Boolean           @default(false)
   rejectionReason   String?
-  modality          String?
-  programCourse     String?
-  setting           String?
-  personnelInCharge String?
-  activityType      String?
-  attire            String?
-  scope             String?
-  program           String?
-  rationale         String?
-  objectives        String?
-  coreValues        String?
-  graduateAttributes String?
-  programFlow       String?
-  budget            String?
-  sourceOfBudget    String?
-  supportRequests   String?
-  budgetDetails     String?
-  vehiclePassengers String?
-  foodPax           String?
-  roomVenueDetails  String?
-  microphoneQty     String?
-  otherSupport      String?
-  otherDetails      String?
-  parentsConsent            String?
-  attachments               String?
-  academicInterruption      String?
-  academicRemarks           String?
-  medicalExam               String?
-  reportOfCompliance        String?
-  participantPersonnelRatio String?
+  sapfPart1         Json
+  sapfPart2         Json
+  sapfPart3         String?
+  sapfPart4         Json?
   verificationToken String?           @unique
   approvedAt        DateTime?
   createdAt         DateTime          @default(now())

@@ -92,7 +92,6 @@ export default function SapfBookingsPage() {
                 me={workspace.me}
                 onRefresh={refresh}
                 showReviewControls={false}
-                showTimeline={false}
                 showConcernThreads={false}
               />
             ))

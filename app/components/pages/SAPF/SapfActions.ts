@@ -67,18 +67,6 @@ function numberField(data: FormData, key: string, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function nullIfEmpty(value: string) {
-  const trimmed = value.trim();
-  return trimmed ? trimmed : null;
-}
-
-function serializeList(values: string[]) {
-  return values
-    .map((value) => value.trim())
-    .filter(Boolean)
-    .join("|");
-}
-
 function localDateTime(date: string, time: string) {
   return new Date(`${date}T${time}:00`);
 }
@@ -235,14 +223,14 @@ function buildSapfPayload(data: FormData) {
       program: field(data, "program"),
       rationale: field(data, "rationale"),
       objectives: field(data, "objectives"),
-      coreValues: serializeList(coreValues),
-      graduateAttributes: serializeList(graduateAttributes),
+      coreValues,
+      graduateAttributes,
       programFlow: field(data, "programFlow"),
       budget: field(data, "budget"),
       sourceOfBudget: field(data, "sourceOfBudget"),
     },
     part2: {
-      supportRequests: serializeList(supportRequests),
+      supportRequests,
       budgetDetails: field(data, "budgetDetails"),
       vehiclePassengers: field(data, "vehiclePassengers"),
       foodPax: field(data, "foodPax"),
@@ -849,31 +837,6 @@ export async function saveSapfRequest(
     const title = sapf.part1.activityTitle || "Untitled activity";
     const organization = sapf.part1.organization || "Unspecified organization";
     const department = sapf.part1.department || "Unspecified department";
-    const sapfData = {
-      modality: nullIfEmpty(sapf.part1.modality),
-      programCourse: nullIfEmpty(sapf.part1.programCourse),
-      setting: nullIfEmpty(sapf.part1.setting),
-      personnelInCharge: nullIfEmpty(sapf.part1.personnelInCharge),
-      activityType: nullIfEmpty(sapf.part1.activityType),
-      attire: nullIfEmpty(sapf.part1.attire),
-      scope: nullIfEmpty(sapf.part1.scope),
-      program: nullIfEmpty(sapf.part1.program),
-      rationale: nullIfEmpty(sapf.part1.rationale),
-      objectives: nullIfEmpty(sapf.part1.objectives),
-      coreValues: nullIfEmpty(sapf.part1.coreValues),
-      graduateAttributes: nullIfEmpty(sapf.part1.graduateAttributes),
-      programFlow: nullIfEmpty(sapf.part1.programFlow),
-      budget: nullIfEmpty(sapf.part1.budget),
-      sourceOfBudget: nullIfEmpty(sapf.part1.sourceOfBudget),
-      supportRequests: nullIfEmpty(sapf.part2.supportRequests),
-      budgetDetails: nullIfEmpty(sapf.part2.budgetDetails),
-      vehiclePassengers: nullIfEmpty(sapf.part2.vehiclePassengers),
-      foodPax: nullIfEmpty(sapf.part2.foodPax),
-      roomVenueDetails: nullIfEmpty(sapf.part2.roomVenueDetails),
-      microphoneQty: nullIfEmpty(sapf.part2.microphoneQty),
-      otherSupport: nullIfEmpty(sapf.part2.otherSupport),
-      otherDetails: nullIfEmpty(sapf.part3),
-    };
 
     const existing = requestId
       ? await prisma.sAPFRequest.findUnique({
@@ -917,7 +880,9 @@ export async function saveSapfRequest(
           status: isSubmit ? ("IN_REVIEW" as any) : ("DRAFT" as any),
           currentStepOrder: isSubmit ? 1 : null,
           conflictWarning: conflict.pendingConflict,
-          ...sapfData,
+          sapfPart1: sapf.part1,
+          sapfPart2: sapf.part2,
+          sapfPart3: sapf.part3,
         },
       });
     } else {
@@ -936,7 +901,9 @@ export async function saveSapfRequest(
             ? (existing.currentStepOrder ?? 1)
             : existing.currentStepOrder,
           conflictWarning: conflict.pendingConflict,
-          ...sapfData,
+          sapfPart1: sapf.part1,
+          sapfPart2: sapf.part2,
+          sapfPart3: sapf.part3,
         },
       });
     }
@@ -1246,17 +1213,7 @@ export async function reviewSapfRequest(
           data: {
             status: "IN_REVIEW" as any,
             currentStepOrder: nextStep.stepOrder,
-            ...(part4
-              ? {
-                  parentsConsent: part4.parentsConsent,
-                  attachments: part4.attachments,
-                  academicInterruption: part4.academicInterruption,
-                  academicRemarks: part4.academicRemarks,
-                  medicalExam: part4.medicalExam,
-                  reportOfCompliance: part4.reportOfCompliance,
-                  participantPersonnelRatio: part4.participantPersonnelRatio,
-                }
-              : {}),
+            ...(part4 ? { sapfPart4: part4 } : {}),
           },
         });
       } else {
@@ -1267,17 +1224,7 @@ export async function reviewSapfRequest(
             currentStepOrder: null,
             approvedAt: new Date(),
             verificationToken: uuid(),
-            ...(part4
-              ? {
-                  parentsConsent: part4.parentsConsent,
-                  attachments: part4.attachments,
-                  academicInterruption: part4.academicInterruption,
-                  academicRemarks: part4.academicRemarks,
-                  medicalExam: part4.medicalExam,
-                  reportOfCompliance: part4.reportOfCompliance,
-                  participantPersonnelRatio: part4.participantPersonnelRatio,
-                }
-              : {}),
+            ...(part4 ? { sapfPart4: part4 } : {}),
           },
         });
         await tx.approvalAction.create({

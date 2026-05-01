@@ -89,7 +89,6 @@ export async function GET(
     );
   }
 
-  const sapfData = sapf as any;
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([612, 792]);
   const font = await pdf.embedFont(StandardFonts.Helvetica);
@@ -126,13 +125,17 @@ export async function GET(
   y -= 8;
 
   draw("Rationale", 12, true);
-  for (const line of wrap(String(sapf.rationale || "N/A"))) {
+  for (const line of wrap(
+    String((sapf.sapfPart1 as any)?.rationale || "N/A"),
+  )) {
     draw(line, 9);
   }
   y -= 4;
 
   draw("Objectives", 12, true);
-  for (const line of wrap(String(sapf.objectives || "N/A"))) {
+  for (const line of wrap(
+    String((sapf.sapfPart1 as any)?.objectives || "N/A"),
+  )) {
     draw(line, 9);
   }
   y -= 8;
@@ -147,24 +150,17 @@ export async function GET(
     );
   }
 
-  if (
-    sapf.parentsConsent ||
-    sapf.attachments ||
-    sapf.academicInterruption ||
-    sapf.academicRemarks ||
-    sapf.medicalExam ||
-    sapf.reportOfCompliance ||
-    sapf.participantPersonnelRatio
-  ) {
+  if (sapf.sapfPart4) {
     y -= 8;
     draw("SDS Office Clearance", 12, true);
-    draw(`Parent Consent: ${sapf.parentsConsent || "N/A"}`, 9);
-    draw(`Attachments: ${sapf.attachments || "N/A"}`, 9);
-    draw(`Academic Interruption: ${sapf.academicInterruption || "N/A"}`, 9);
-    draw(`Medical Exam: ${sapf.medicalExam || "N/A"}`, 9);
-    draw(`Report of Compliance: ${sapf.reportOfCompliance || "N/A"}`, 9);
+    const part4 = sapf.sapfPart4 as any;
+    draw(`Parent Consent: ${part4.parentsConsent || "N/A"}`, 9);
+    draw(`Attachments: ${part4.attachments || "N/A"}`, 9);
+    draw(`Academic Interruption: ${part4.academicInterruption || "N/A"}`, 9);
+    draw(`Medical Exam: ${part4.medicalExam || "N/A"}`, 9);
+    draw(`Report of Compliance: ${part4.reportOfCompliance || "N/A"}`, 9);
     draw(
-      `Participant-Personnel Ratio: ${sapf.participantPersonnelRatio || "N/A"}`,
+      `Participant-Personnel Ratio: ${part4.participantPersonnelRatio || "N/A"}`,
       9,
     );
   }

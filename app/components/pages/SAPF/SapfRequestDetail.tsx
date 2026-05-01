@@ -35,14 +35,6 @@ function formatDateRange(request: any) {
   )} to ${format(new Date(request.endAt), "h:mm a")}`;
 }
 
-function formatList(value?: string) {
-  return value?.split("|").filter(Boolean) ?? [];
-}
-
-function formatValue(value: string | undefined | null, fallback = "N/A") {
-  return value?.trim() || fallback;
-}
-
 export function RequestSummary({
   request,
   showBadges = true,
@@ -345,314 +337,52 @@ export function RequestDetail({
   me,
   onRefresh,
   showReviewControls = true,
-  showTimeline = true,
   showConcernThreads = true,
 }: {
   request: any;
   me: any;
   onRefresh: () => Promise<void>;
   showReviewControls?: boolean;
-  showTimeline?: boolean;
   showConcernThreads?: boolean;
 }) {
-  const supportRequests = formatList(request.supportRequests);
-  const coreValues = formatList(request.coreValues);
-  const graduateAttributes = formatList(request.graduateAttributes);
-  const hasSdsClearance =
-    request.parentsConsent ||
-    request.attachments ||
-    request.academicInterruption ||
-    request.academicRemarks ||
-    request.medicalExam ||
-    request.reportOfCompliance ||
-    request.participantPersonnelRatio;
-
   return (
     <Card className="border">
       <CardContent className="space-y-5 p-5">
         <RequestSummary request={request} />
-
         <div className="grid gap-4 md:grid-cols-3">
           <div>
             <p className="text-xs font-semibold uppercase text-gray-500">
               Department
             </p>
-            <p className="text-sm text-gray-800">
-              {formatValue(request.department)}
-            </p>
+            <p className="text-sm text-gray-800">{request.department}</p>
           </div>
           <div>
             <p className="text-xs font-semibold uppercase text-gray-500">
               Attendees
             </p>
-            <p className="text-sm text-gray-800">
-              {request.attendeeCount || "N/A"}
-            </p>
+            <p className="text-sm text-gray-800">{request.attendeeCount}</p>
           </div>
           <div>
             <p className="text-xs font-semibold uppercase text-gray-500">
               Officer
             </p>
-            <p className="text-sm text-gray-800">
-              {formatValue(request.officer?.name)}
-            </p>
+            <p className="text-sm text-gray-800">{request.officer?.name}</p>
           </div>
         </div>
-
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-lg border bg-gray-50 p-4">
-            <p className="text-xs font-semibold uppercase text-gray-500">
-              Modality
-            </p>
-            <p className="mt-1 text-sm text-gray-800">
-              {formatValue(request.modality)}
-            </p>
-          </div>
-          <div className="rounded-lg border bg-gray-50 p-4">
-            <p className="text-xs font-semibold uppercase text-gray-500">
-              Setting
-            </p>
-            <p className="mt-1 text-sm text-gray-800">
-              {formatValue(request.setting)}
-            </p>
-          </div>
-          <div className="rounded-lg border bg-gray-50 p-4">
-            <p className="text-xs font-semibold uppercase text-gray-500">
-              Activity Type
-            </p>
-            <p className="mt-1 text-sm text-gray-800">
-              {formatValue(request.activityType)}
-            </p>
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-lg border bg-gray-50 p-4">
-            <p className="text-xs font-semibold uppercase text-gray-500">
-              Program / Course
-            </p>
-            <p className="mt-1 text-sm text-gray-800">
-              {formatValue(request.programCourse)}
-            </p>
-          </div>
-          <div className="rounded-lg border bg-gray-50 p-4">
-            <p className="text-xs font-semibold uppercase text-gray-500">
-              Scope
-            </p>
-            <p className="mt-1 text-sm text-gray-800">
-              {formatValue(request.scope)}
-            </p>
-          </div>
-        </div>
-
         <div className="rounded-lg bg-gray-50 p-4">
-          <p className="text-sm font-semibold text-gray-700">
-            Activity details
+          <p className="text-sm font-semibold">Rationale</p>
+          <p className="mt-1 text-sm text-gray-700">
+            {request.sapfPart1?.rationale || "No rationale provided."}
           </p>
-          <div className="mt-3 grid gap-4 md:grid-cols-2">
-            <div>
-              <p className="text-xs text-gray-500">Program</p>
-              <p className="text-sm text-gray-800">
-                {formatValue(request.program)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Attire</p>
-              <p className="text-sm text-gray-800">
-                {formatValue(request.attire)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Personnel In Charge</p>
-              <p className="text-sm text-gray-800">
-                {formatValue(request.personnelInCharge)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Budget</p>
-              <p className="text-sm text-gray-800">
-                {formatValue(request.budget)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Source of Budget</p>
-              <p className="text-sm text-gray-800">
-                {formatValue(request.sourceOfBudget)}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <div>
-              <p className="text-sm font-semibold">Rationale</p>
-              <p className="mt-1 text-sm text-gray-700">
-                {formatValue(request.rationale, "No rationale provided.")}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm font-semibold">Objectives</p>
-              <p className="mt-1 text-sm text-gray-700">
-                {formatValue(request.objectives, "No objectives provided.")}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-lg border bg-gray-50 p-4">
-            <p className="text-xs font-semibold uppercase text-gray-500">
-              Core Values
-            </p>
-            <div className="mt-2 space-y-1 text-sm text-gray-700">
-              {coreValues.length > 0 ? (
-                coreValues.map((item: string) => <p key={item}>{item}</p>)
-              ) : (
-                <p>N/A</p>
-              )}
-            </div>
-          </div>
-          <div className="rounded-lg border bg-gray-50 p-4">
-            <p className="text-xs font-semibold uppercase text-gray-500">
-              Graduate Attributes
-            </p>
-            <div className="mt-2 space-y-1 text-sm text-gray-700">
-              {graduateAttributes.length > 0 ? (
-                graduateAttributes.map((item: string) => (
-                  <p key={item}>{item}</p>
-                ))
-              ) : (
-                <p>N/A</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-lg border bg-gray-50 p-4">
-          <p className="text-sm font-semibold text-gray-700">School support</p>
-          <div className="mt-3 grid gap-4 md:grid-cols-2">
-            <div>
-              <p className="text-xs text-gray-500">Support requests</p>
-              <div className="mt-2 space-y-1 text-sm text-gray-700">
-                {supportRequests.length > 0 ? (
-                  supportRequests.map((item: string) => (
-                    <p key={item}>{item}</p>
-                  ))
-                ) : (
-                  <p>N/A</p>
-                )}
-              </div>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Budget details</p>
-              <p className="mt-1 text-sm text-gray-700">
-                {formatValue(request.budgetDetails)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Vehicle passengers</p>
-              <p className="mt-1 text-sm text-gray-700">
-                {formatValue(request.vehiclePassengers)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Food pax</p>
-              <p className="mt-1 text-sm text-gray-700">
-                {formatValue(request.foodPax)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Room/venue details</p>
-              <p className="mt-1 text-sm text-gray-700">
-                {formatValue(request.roomVenueDetails)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Microphone qty</p>
-              <p className="mt-1 text-sm text-gray-700">
-                {formatValue(request.microphoneQty)}
-              </p>
-            </div>
-            <div className="md:col-span-2">
-              <p className="text-xs text-gray-500">Other support</p>
-              <p className="mt-1 text-sm text-gray-700">
-                {formatValue(request.otherSupport)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-lg border bg-gray-50 p-4">
-          <p className="text-sm font-semibold text-gray-700">
-            Additional information
-          </p>
-          <p className="mt-2 text-sm text-gray-700">
-            {formatValue(
-              request.otherDetails,
-              "No additional details provided.",
-            )}
+          <p className="mt-3 text-sm font-semibold">Objectives</p>
+          <p className="mt-1 text-sm text-gray-700">
+            {request.sapfPart1?.objectives || "No objectives provided."}
           </p>
         </div>
-
-        {hasSdsClearance && (
-          <div className="rounded-lg border bg-white p-4 shadow-sm">
-            <p className="text-sm font-semibold text-gray-700">
-              SDS Office Clearance
-            </p>
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <div>
-                <p className="text-xs text-gray-500">Parent's Consent</p>
-                <p className="mt-1 text-sm text-gray-800">
-                  {formatValue(request.parentsConsent)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Attachments</p>
-                <p className="mt-1 text-sm text-gray-800">
-                  {formatValue(request.attachments)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Academic Interruption</p>
-                <p className="mt-1 text-sm text-gray-800">
-                  {formatValue(request.academicInterruption)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Academic Remarks</p>
-                <p className="mt-1 text-sm text-gray-800">
-                  {formatValue(request.academicRemarks)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Medical Exam</p>
-                <p className="mt-1 text-sm text-gray-800">
-                  {formatValue(request.medicalExam)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Report of Compliance</p>
-                <p className="mt-1 text-sm text-gray-800">
-                  {formatValue(request.reportOfCompliance)}
-                </p>
-              </div>
-              <div className="md:col-span-2">
-                <p className="text-xs text-gray-500">
-                  Participant-Personnel Ratio
-                </p>
-                <p className="mt-1 text-sm text-gray-800">
-                  {formatValue(request.participantPersonnelRatio)}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
         {showReviewControls && (
           <ReviewControls request={request} me={me} onRefresh={onRefresh} />
         )}
-
-        {showTimeline && <Timeline request={request} />}
-
+        <Timeline request={request} />
         {showConcernThreads && (
           <ConcernThreads request={request} onRefresh={onRefresh} />
         )}
