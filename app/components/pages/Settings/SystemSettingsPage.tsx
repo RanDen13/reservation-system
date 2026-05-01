@@ -56,21 +56,30 @@ export default function SystemSettingsPage({
       <Card>
         <CardHeader>
           <CardTitle>Email Configuration</CardTitle>
-          <CardDescription>Defaults to Google SMTP.</CardDescription>
+          <CardDescription>
+            Defaults to Google SMTP. Sender details control the From line.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form action={handleSubmit} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground md:col-span-2">
+                SMTP User/Password authenticate with your mail provider. Sender
+                Email/Name show to recipients in the From field.
+              </div>
               <div>
-                <Label>SMTP Host</Label>
+                <Label htmlFor="smtpHost">SMTP Host</Label>
                 <Input
+                  id="smtpHost"
                   name="smtpHost"
+                  placeholder="smtp.gmail.com"
                   defaultValue={initialSettings.smtpHost}
                 />
               </div>
               <div>
-                <Label>SMTP Port</Label>
+                <Label htmlFor="smtpPort">SMTP Port</Label>
                 <Input
+                  id="smtpPort"
                   name="smtpPort"
                   type="number"
                   min={1}
@@ -79,34 +88,55 @@ export default function SystemSettingsPage({
                 />
               </div>
               <div>
-                <Label>SMTP User</Label>
+                <Label htmlFor="smtpUser">SMTP User (full email)</Label>
                 <Input
+                  id="smtpUser"
                   name="smtpUser"
+                  placeholder="name@lcu.edu.ph"
+                  autoComplete="username"
                   defaultValue={initialSettings.smtpUser}
                 />
+                <p className="text-xs text-muted-foreground">
+                  The login account for SMTP authentication.
+                </p>
               </div>
               <div>
-                <Label>SMTP Password</Label>
+                <Label htmlFor="smtpPass">SMTP Password (app password)</Label>
                 <Input
+                  id="smtpPass"
                   name="smtpPass"
                   type="password"
+                  autoComplete="current-password"
                   defaultValue={initialSettings.smtpPass}
                 />
               </div>
               <div>
-                <Label>Sender Email</Label>
+                <Label htmlFor="senderEmail">Sender Email (From address)</Label>
                 <Input
+                  id="senderEmail"
                   name="senderEmail"
                   type="email"
+                  placeholder="name@lcu.edu.ph"
+                  autoComplete="email"
                   defaultValue={initialSettings.senderEmail}
                 />
+                <p className="text-xs text-muted-foreground">
+                  The From address shown to recipients. Often the same as SMTP
+                  user.
+                </p>
               </div>
               <div>
-                <Label>Sender Name</Label>
+                <Label htmlFor="senderName">Sender Name (From name)</Label>
                 <Input
+                  id="senderName"
                   name="senderName"
+                  placeholder="LCUP Venue Reservation"
+                  autoComplete="name"
                   defaultValue={initialSettings.senderName}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Display name shown to recipients.
+                </p>
               </div>
             </div>
             <div className="flex justify-end">

@@ -115,6 +115,7 @@ export async function updateSystemSettings(
     const smtpPass = field(data, "smtpPass");
     const senderEmail = field(data, "senderEmail");
     const senderName = field(data, "senderName", "LCUP Venue Reservation");
+    const resolvedSenderEmail = senderEmail || smtpUser;
 
     if (!smtpHost) {
       return { success: false, message: "SMTP host is required." };
@@ -128,7 +129,7 @@ export async function updateSystemSettings(
     if (!smtpPass) {
       return { success: false, message: "SMTP password is required." };
     }
-    if (!senderEmail) {
+    if (!resolvedSenderEmail) {
       return { success: false, message: "Sender email is required." };
     }
     if (!senderName) {
@@ -143,7 +144,7 @@ export async function updateSystemSettings(
         smtpPort,
         smtpUser,
         smtpPass,
-        senderEmail,
+        senderEmail: resolvedSenderEmail,
         senderName,
       },
       update: {
@@ -151,7 +152,7 @@ export async function updateSystemSettings(
         smtpPort,
         smtpUser,
         smtpPass,
-        senderEmail,
+        senderEmail: resolvedSenderEmail,
         senderName,
       },
     });
