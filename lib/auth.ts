@@ -49,9 +49,9 @@ export const auth = betterAuth({
         const formattedCode = formatMagicCode(token);
         const sent = await sendEmail(
           email,
-          "Your LCUP SAPF magic code",
+          "Your LCUP Venue Reservation magic code",
           [
-            "Use this magic code to sign in to LCUP SAPF:",
+            "Use this magic code to sign in to LCUP Venue Reservation:",
             "",
             formattedCode,
             "",

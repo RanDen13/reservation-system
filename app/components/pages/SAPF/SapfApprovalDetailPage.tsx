@@ -84,7 +84,7 @@ export default function SapfApprovalDetailPage({
           <Button asChild variant="outline">
             <a href={`/api/sapf/${request.id}/preview`} target="_blank">
               <FileDown className="mr-2 h-4 w-4" />
-              Preview SAPF
+              Preview Reservation
             </a>
           </Button>
           <Button asChild variant="outline">
@@ -97,7 +97,7 @@ export default function SapfApprovalDetailPage({
             <Button asChild variant="outline">
               <a href={`/api/sapf/${request.id}/pdf`} target="_blank">
                 <FileDown className="mr-2 h-4 w-4" />
-                View SAPF PDF
+                View Reservation PDF
               </a>
             </Button>
           )}

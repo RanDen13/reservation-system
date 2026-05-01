@@ -147,7 +147,8 @@ export default function SapfBookingsPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-950">Bookings</h1>
           <p className="text-gray-600">
-            Pending reviews, followed requests, and old SAPF records.
+            Pending reviews, followed requests, and old venue reservation
+            records.
           </p>
         </div>
         <Button onClick={refresh} variant="outline" disabled={loading}>

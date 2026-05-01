@@ -61,14 +61,16 @@ export default function SapfBookingDetailPage({
             <h1 className="text-3xl font-bold text-gray-950">
               Booking Details
             </h1>
-            <p className="text-gray-600">Read-only SAPF reservation record.</p>
+            <p className="text-gray-600">
+              Read-only LCUP Venue Reservation record.
+            </p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline">
             <a href={`/api/sapf/${request.id}/preview`} target="_blank">
               <FileDown className="mr-2 h-4 w-4" />
-              Preview SAPF
+              Preview Reservation
             </a>
           </Button>
           <Button asChild variant="outline">
@@ -81,7 +83,7 @@ export default function SapfBookingDetailPage({
             <Button asChild variant="outline">
               <a href={`/api/sapf/${request.id}/pdf`} target="_blank">
                 <FileDown className="mr-2 h-4 w-4" />
-                View SAPF PDF
+                View Reservation PDF
               </a>
             </Button>
           )}

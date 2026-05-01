@@ -43,7 +43,7 @@ export async function GET(
 
   if (!sapf || sapf.status !== "APPROVED" || !sapf.verificationToken) {
     return NextResponse.json(
-      { message: "Approved SAPF not found." },
+      { message: "Approved reservation not found." },
       { status: 404 },
     );
   }
@@ -59,7 +59,7 @@ export async function GET(
   return new NextResponse(new Uint8Array(bytes), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${sapf.requestNumber}-approved-sapf.pdf"`,
+      "Content-Disposition": `attachment; filename="${sapf.requestNumber}-approved-reservation.pdf"`,
     },
   });
 }

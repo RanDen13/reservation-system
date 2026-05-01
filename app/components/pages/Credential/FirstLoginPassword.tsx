@@ -56,7 +56,7 @@ export default function FirstLoginPassword({ name, email }: FirstLoginPasswordPr
       return;
     }
 
-    popup.showSuccess("Password created. Welcome to LCUP SAPF.");
+    popup.showSuccess("Password created. Welcome to LCUP Venue Reservation.");
     router.push("/user/dashboard");
   }
 
@@ -77,7 +77,7 @@ export default function FirstLoginPassword({ name, email }: FirstLoginPasswordPr
           <CardTitle className="text-3xl">Create Your Password</CardTitle>
           <CardDescription>
             {name ? `Welcome, ${name}. ` : ""}
-            Finish setting up {email || "your LCUP SAPF account"}.
+            Finish setting up {email || "your LCUP Venue Reservation account"}.
           </CardDescription>
         </CardHeader>
         <CardContent>

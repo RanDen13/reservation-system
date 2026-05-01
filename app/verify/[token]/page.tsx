@@ -37,7 +37,7 @@ const page = async ({ params }: { params: Promise<{ token: string }> }) => {
               Verification Failed
             </CardTitle>
             <CardDescription>
-              This QR token does not match an approved SAPF reservation.
+              This QR token does not match an approved LCUP Venue Reservation.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -50,7 +50,7 @@ const page = async ({ params }: { params: Promise<{ token: string }> }) => {
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <Badge className="mb-2 w-fit bg-emerald-100 text-emerald-700">
-            Verified Approved SAPF
+            Verified Approved Reservation
           </Badge>
           <CardTitle className="flex items-center gap-2 text-2xl">
             <CheckCircle className="h-6 w-6 text-emerald-600" />

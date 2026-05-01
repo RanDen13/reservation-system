@@ -91,7 +91,7 @@ export async function GET(
   return new NextResponse(new Uint8Array(bytes), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="${sapf.requestNumber}-sapf-preview.pdf"`,
+      "Content-Disposition": `inline; filename="${sapf.requestNumber}-reservation-preview.pdf"`,
     },
   });
 }

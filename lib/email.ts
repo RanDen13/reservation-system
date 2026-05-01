@@ -15,7 +15,7 @@ export async function sendEmail(to: string, subject: string, text: string) {
   const user = process.env.SMTP_USER || process.env.SENDER_EMAIL;
   const pass = process.env.SMTP_PASSWORD || process.env.SENDER_PASSWORD;
   const senderEmail = process.env.SENDER_EMAIL || user;
-  const senderName = process.env.SENDER_NAME || "LCUP SAPF";
+  const senderName = process.env.SENDER_NAME || "LCUP Venue Reservation";
 
   if (!host || !port || !user || !pass || !senderEmail) {
     if (process.env.NODE_ENV !== "production") {

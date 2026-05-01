@@ -79,7 +79,9 @@ export default function Sidebar({
               <Building2 className="h-6 w-6" />
             </div>
             <div>
-              <h2 className="text-lg font-bold">LCUP SAPF</h2>
+              <h2 className="text-base font-bold leading-tight">
+                LCUP Venue Reservation
+              </h2>
               <p className="text-xs capitalize text-gray-500">
                 {userRole.replaceAll("_", " ").toLowerCase()}
               </p>

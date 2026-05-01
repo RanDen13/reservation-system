@@ -109,7 +109,7 @@ export function RequestSummary({
             <a href={`/api/sapf/${request.id}/pdf`} target="_blank">
               <Button size="sm" variant="outline">
                 <FileDown className="mr-2 h-4 w-4" />
-                SAPF PDF
+                Reservation PDF
               </Button>
             </a>
           )}

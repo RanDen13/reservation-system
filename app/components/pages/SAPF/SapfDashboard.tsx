@@ -177,7 +177,7 @@ export default function SapfDashboard() {
   if (loading && !workspace) {
     return (
       <div className="p-8">
-        <p className="text-gray-600">Loading SAPF workspace...</p>
+        <p className="text-gray-600">Loading reservation workspace...</p>
       </div>
     );
   }
@@ -203,7 +203,7 @@ export default function SapfDashboard() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-950">
-            SAPF Reservation Workspace
+            LCUP Venue Reservation Workspace
           </h1>
           <p className="text-gray-600">
             Signed in as {workspace.me.name} -{" "}
@@ -309,7 +309,7 @@ export default function SapfDashboard() {
         <CardContent className="space-y-4">
           {currentRequests.length === 0 ? (
             <p className="text-sm text-gray-500">
-              No active SAPF requests right now.
+              No active venue reservation requests right now.
             </p>
           ) : (
             currentRequests.map((request: any) => (

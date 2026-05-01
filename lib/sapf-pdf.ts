@@ -98,7 +98,7 @@ async function convertDocxToPdf(docxBytes: Buffer) {
     return await readFile(pdfPath);
   } catch (error) {
     throw new Error(
-      "Failed to convert SAPF DOCX to PDF. In Linux/Docker, docx2pdf-converter requires unoconv and LibreOffice Writer.",
+      "Failed to convert the reservation DOCX to PDF. In Linux/Docker, docx2pdf-converter requires unoconv and LibreOffice Writer.",
       { cause: error },
     );
   } finally {
@@ -122,7 +122,7 @@ async function appendVerificationPage({
   const qrData = await QRCode.toDataURL(verifyUrl, { margin: 1, width: 220 });
   const qrImage = await pdf.embedPng(qrData);
 
-  verifyPage.drawText("SAPF Approval Verification", {
+  verifyPage.drawText("LCUP Venue Reservation Verification", {
     x: 48,
     y: 720,
     size: 18,

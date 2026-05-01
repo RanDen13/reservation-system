@@ -62,7 +62,7 @@ const EventSpaceSkeleton = () => {
           </Card>
         </div>
 
-        {/* Right Column - SAPF Form */}
+        {/* Right Column - Reservation Form */}
         <div className="lg:col-span-1">
           <Card className="border-2">
             <CardHeader>

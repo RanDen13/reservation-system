@@ -75,7 +75,7 @@ function SapfForm({
       popup.showError(result.message);
       return;
     }
-    popup.showSuccess(result.message || "SAPF saved.");
+    popup.showSuccess(result.message || "Reservation saved.");
     onSaved();
   };
 
@@ -311,7 +311,7 @@ function SapfForm({
         </Button>
         <Button type="submit" name="intent" value="submit" className="bg-emerald-600 hover:bg-emerald-700">
           <Send className="mr-2 h-4 w-4" />
-          Submit SAPF
+          Submit Reservation
         </Button>
       </div>
     </form>
@@ -406,7 +406,7 @@ const EventSpacePage = ({ id }: { id: string }) => {
         <TabsList className="grid w-full grid-cols-3 md:w-[520px]">
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="calendar">Calendar</TabsTrigger>
-          <TabsTrigger value="sapf">SAPF Form</TabsTrigger>
+          <TabsTrigger value="sapf">Reservation Form</TabsTrigger>
         </TabsList>
 
         <TabsContent value="details" className="mt-4">

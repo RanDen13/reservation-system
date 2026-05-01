@@ -91,7 +91,7 @@ export async function GET(
     headers: {
       "Content-Type":
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "Content-Disposition": `attachment; filename="${sapf.requestNumber}-sapf.docx"`,
+      "Content-Disposition": `attachment; filename="${sapf.requestNumber}-reservation.docx"`,
     },
   });
 }

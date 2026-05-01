@@ -37,7 +37,8 @@ export default function OfficerSpaces({
       <div>
         <h1 className="text-3xl font-bold text-gray-950">Browse Venues</h1>
         <p className="mt-2 text-gray-600">
-          Open a venue to review details, check the calendar, and start a SAPF.
+          Open a venue to review details, check the calendar, and start a
+          reservation.
         </p>
       </div>
 

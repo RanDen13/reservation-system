@@ -903,7 +903,7 @@ export async function saveSapfRequest(
     if (!user || !requireRole(user.role, ["OFFICER"])) {
       return {
         success: false,
-        message: "Only officers can submit SAPF requests.",
+        message: "Only officers can submit venue reservation requests.",
       };
     }
 
@@ -983,7 +983,7 @@ export async function saveSapfRequest(
     if (existing && existing.officerId !== user.id) {
       return {
         success: false,
-        message: "You can only edit your own SAPF requests.",
+        message: "You can only edit your own venue reservation requests.",
       };
     }
 
@@ -1094,7 +1094,7 @@ export async function saveSapfRequest(
       if (firstStep) {
         await createNotification(
           firstStep.reviewerId,
-          "SAPF request needs review",
+          "Reservation request needs review",
           `${request.requestNumber} - ${request.title} is waiting for your approval.`,
           "APPROVAL",
           request.id,
@@ -1119,15 +1119,16 @@ export async function saveSapfRequest(
       data: jsonSafe(request),
       message: isSubmit
         ? conflict.pendingConflict
-          ? "SAPF submitted with a pending-slot warning."
-          : "SAPF submitted successfully."
+          ? "Reservation submitted with a pending-slot warning."
+          : "Reservation submitted successfully."
         : "Draft saved.",
     };
   } catch (error) {
-    console.error("SAPF save failed:", error);
+    console.error("Reservation save failed:", error);
     return {
       success: false,
-      message: (error as Error).message || "Failed to save SAPF request.",
+      message:
+        (error as Error).message || "Failed to save venue reservation request.",
     };
   }
 }
@@ -1174,7 +1175,7 @@ export async function reviewSapfRequest(
     });
 
     if (!request) {
-      return { success: false, message: "SAPF request not found." };
+      return { success: false, message: "Venue reservation request not found." };
     }
 
     const step = request.approvalSteps.find((item) => item.id === stepId);
@@ -1221,7 +1222,7 @@ export async function reviewSapfRequest(
 
       await createNotification(
         request.officerId,
-        "SAPF request rejected",
+        "Reservation request rejected",
         `${request.requestNumber} was rejected: ${comment}`,
         "REJECTION",
         request.id,
@@ -1266,7 +1267,7 @@ export async function reviewSapfRequest(
 
       await createNotification(
         request.officerId,
-        "SAPF returned for revision",
+        "Reservation returned for revision",
         `${request.requestNumber} was returned by ${step.label}: ${comment}`,
         "REVISION",
         request.id,
@@ -1475,10 +1476,10 @@ export async function reviewSapfRequest(
 
     await createNotification(
       request.officerId,
-      nextStep ? "SAPF step approved" : "SAPF fully approved",
+      nextStep ? "Reservation step approved" : "Reservation fully approved",
       nextStep
         ? `${step.label} approved ${request.requestNumber}.`
-        : `${request.requestNumber} is fully approved. Download the approved SAPF with QR code.`,
+        : `${request.requestNumber} is fully approved. Download the approved reservation with QR code.`,
       nextStep ? "APPROVAL" : "FINAL",
       request.id,
     );
@@ -1486,7 +1487,7 @@ export async function reviewSapfRequest(
     if (nextStep) {
       await createNotification(
         nextStep.reviewerId,
-        "SAPF request needs review",
+        "Reservation request needs review",
         `${request.requestNumber} - ${request.title} is waiting for your approval.`,
         "APPROVAL",
         request.id,
@@ -1531,7 +1532,7 @@ export async function addConcernMessage(
     });
 
     if (!request) {
-      return { success: false, message: "SAPF request not found." };
+      return { success: false, message: "Venue reservation request not found." };
     }
     const step = request.approvalSteps.find((item) => item.id === stepId);
     if (!step) {

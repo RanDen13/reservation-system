@@ -186,7 +186,7 @@ const Login = () => {
                   Welcome Back
                 </CardTitle>
                 <CardDescription className="text-base mt-2">
-                  Sign in to access your LCUP SAPF account
+                  Sign in to access your LCUP Venue Reservation account
                 </CardDescription>
               </div>
             </CardHeader>
