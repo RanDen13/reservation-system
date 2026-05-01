@@ -57,7 +57,7 @@ const navItems: NavItem[] = [
   },
   {
     label: "Public Calendar",
-    href: "/calendar",
+    href: "/user/calendar",
     icon: <CalendarDays className="h-5 w-5" />,
   },
 ];
