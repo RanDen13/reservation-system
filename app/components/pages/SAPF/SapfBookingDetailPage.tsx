@@ -87,6 +87,17 @@ export default function SapfBookingDetailPage({
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          {me?.role === "OFFICER" &&
+            ["DRAFT", "RETURNED_FOR_REVISION"].includes(request.status) &&
+            request.eventSpace?.id && (
+              <Button asChild variant="outline">
+                <Link
+                  href={`/user/spaces/${request.eventSpace.id}?requestId=${request.id}`}
+                >
+                  Edit and Resubmit
+                </Link>
+              </Button>
+            )}
           <Button asChild variant="outline">
             <a href={`/api/sapf/${request.id}/preview`} target="_blank">
               <FileDown className="mr-2 h-4 w-4" />
@@ -99,14 +110,6 @@ export default function SapfBookingDetailPage({
               Download DOCX
             </a>
           </Button>
-          {request.status === "APPROVED" && (
-            <Button asChild variant="outline">
-              <a href={`/api/sapf/${request.id}/pdf`} target="_blank">
-                <FileDown className="mr-2 h-4 w-4" />
-                View Reservation PDF
-              </a>
-            </Button>
-          )}
           {canCancel && (
             <Button
               onClick={handleCancel}

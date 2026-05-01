@@ -189,43 +189,58 @@ export function ConcernThreads({
         <MessageSquare className="h-4 w-4" />
         Private concern threads
       </p>
-      {visibleSteps.map((step: any) => (
-        <div key={step.id} className="rounded-lg border p-3">
-          <div className="mb-3 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold">{step.label}</p>
-              <p className="text-xs text-muted-foreground">
-                Private between officer and {step.reviewer?.name}
-              </p>
-            </div>
-            <Badge variant="outline">{step.concernThread.status}</Badge>
-          </div>
-          <div className="max-h-56 space-y-2 overflow-y-auto rounded-md bg-muted p-3">
-            {step.concernThread.messages.map((message: any) => (
-              <div
-                key={message.id}
-                className="rounded-md bg-card p-2 shadow-sm"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs font-semibold text-foreground">
-                    {message.author?.name}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {format(new Date(message.createdAt), "MMM d, h:mm a")}
-                  </p>
-                </div>
-                <p className="mt-1 text-sm text-foreground">{message.body}</p>
+      {visibleSteps.map((step: any) => {
+        const threadStatusLabel =
+          step.status === "ACTIVE" || step.status === "RETURNED"
+            ? step.concernThread.status === "RESOLVED"
+              ? "Closed"
+              : "Active"
+            : "Closed";
+
+        return (
+          <div key={step.id} className="rounded-lg border p-3">
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold">{step.label}</p>
+                <p className="text-xs text-muted-foreground">
+                  Private between officer and {step.reviewer?.name}
+                </p>
               </div>
-            ))}
+              <Badge variant="outline">{threadStatusLabel}</Badge>
+            </div>
+            <div className="max-h-56 space-y-2 overflow-y-auto rounded-md bg-muted p-3">
+              {step.concernThread.messages.map((message: any) => (
+                <div
+                  key={message.id}
+                  className="rounded-md bg-card p-2 shadow-sm"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-semibold text-foreground">
+                      {message.author?.name}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {format(new Date(message.createdAt), "MMM d, h:mm a")}
+                    </p>
+                  </div>
+                  <p className="mt-1 text-sm text-foreground">{message.body}</p>
+                </div>
+              ))}
+            </div>
+            {step.status === "ACTIVE" || step.status === "RETURNED" ? (
+              <form action={handleMessage} className="mt-3 flex gap-2">
+                <input type="hidden" name="requestId" value={request.id} />
+                <input type="hidden" name="stepId" value={step.id} />
+                <Input name="body" placeholder="Reply to this concern" />
+                <Button type="submit">Send</Button>
+              </form>
+            ) : (
+              <p className="mt-3 text-xs text-muted-foreground">
+                This concern thread is closed.
+              </p>
+            )}
           </div>
-          <form action={handleMessage} className="mt-3 flex gap-2">
-            <input type="hidden" name="requestId" value={request.id} />
-            <input type="hidden" name="stepId" value={step.id} />
-            <Input name="body" placeholder="Reply to this concern" />
-            <Button type="submit">Send</Button>
-          </form>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

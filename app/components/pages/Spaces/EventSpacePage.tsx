@@ -42,9 +42,13 @@ import {
   Users,
 } from "lucide-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { getApproverOptions, saveSapfRequest } from "../SAPF/SapfActions";
+import {
+  getApproverOptions,
+  getSapfRequestById,
+  saveSapfRequest,
+} from "../SAPF/SapfActions";
 import { getEventSpaceById } from "./EventSpaceActions";
 import EventSpaceSkeleton from "./EventSpaceSkeleton";
 import { EventSpaceData } from "./schema";
@@ -69,15 +73,42 @@ function SapfForm({
   eventSpace,
   approvers,
   onSaved,
+  initialRequest,
 }: {
   eventSpace: EventSpaceData;
   approvers: Record<string, any[]>;
   onSaved: () => void;
+  initialRequest?: any;
 }) {
   const popup = usePopup();
+  const router = useRouter();
   const [selectedDate, setSelectedDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const isEditing = Boolean(initialRequest);
+  const lockApprovalChain = initialRequest?.status === "RETURNED_FOR_REVISION";
+  const formKey = initialRequest?.id || "new";
+  const part1 = initialRequest?.sapfPart1 || {};
+  const part2 = initialRequest?.sapfPart2 || {};
+  const part3 = initialRequest?.sapfPart3 || "";
+  const selectedCoreValues = new Set<string>(
+    Array.isArray(part1.coreValues) ? part1.coreValues : [],
+  );
+  const selectedGraduateAttributes = new Set<string>(
+    Array.isArray(part1.graduateAttributes) ? part1.graduateAttributes : [],
+  );
+  const selectedSupportRequests = new Set<string>(
+    Array.isArray(part2.supportRequests) ? part2.supportRequests : [],
+  );
+  const selectedAdviserId =
+    initialRequest?.approvalSteps?.find(
+      (step: any) => step.position === "ADVISER",
+    )?.reviewerId || "";
+  const selectedAdditionalSignatories = new Set<string>(
+    (initialRequest?.approvalSteps || [])
+      .filter((step: any) => step.position === "ADDITIONAL_SIGNATORY")
+      .map((step: any) => step.reviewerId),
+  );
   const earliestBookingDate = useMemo(
     () => addCalendarDays(new Date(), MIN_BOOKING_ADVANCE_DAYS),
     [],
@@ -85,10 +116,25 @@ function SapfForm({
   const minimumBookingDate = toDateInputValue(earliestBookingDate);
   const earliestBookingDateLabel = format(earliestBookingDate, "MMM d, yyyy");
 
+  useEffect(() => {
+    if (!initialRequest) return;
+    const startAt = new Date(initialRequest.startAt);
+    const endAt = new Date(initialRequest.endAt);
+
+    if (!Number.isNaN(startAt.getTime())) {
+      setSelectedDate(format(startAt, "yyyy-MM-dd"));
+      setStartTime(format(startAt, "HH:mm"));
+    }
+    if (!Number.isNaN(endAt.getTime())) {
+      setEndTime(format(endAt, "HH:mm"));
+    }
+  }, [initialRequest]);
+
   const handleSave = async (formData: FormData) => {
     const activityDate = String(formData.get("activityDate") ?? "");
     const selectedStartTime = String(formData.get("startTime") ?? "");
     const selectedEndTime = String(formData.get("endTime") ?? "");
+    const intent = String(formData.get("intent") ?? "draft");
 
     if (activityDate && activityDate < minimumBookingDate) {
       popup.showError(
@@ -113,12 +159,19 @@ function SapfForm({
       return;
     }
     popup.showSuccess(result.message || "Reservation saved.");
+    if (isEditing && intent === "submit" && initialRequest?.id) {
+      router.push(`/user/bookings/${initialRequest.id}`);
+      return;
+    }
     onSaved();
   };
 
   return (
-    <form action={handleSave} className="space-y-6">
+    <form key={formKey} action={handleSave} className="space-y-6">
       <input type="hidden" name="eventSpaceId" value={eventSpace.id} />
+      {initialRequest?.id && (
+        <input type="hidden" name="requestId" value={initialRequest.id} />
+      )}
 
       <Card>
         <CardHeader>
@@ -186,23 +239,41 @@ function SapfForm({
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div>
             <Label>Activity Title</Label>
-            <Input name="activityTitle" required />
+            <Input
+              name="activityTitle"
+              required
+              defaultValue={part1.activityTitle || ""}
+            />
           </div>
           <div>
             <Label>Organization</Label>
-            <Input name="organization" required />
+            <Input
+              name="organization"
+              required
+              defaultValue={part1.organization || ""}
+            />
           </div>
           <div>
             <Label>Department</Label>
-            <Input name="department" required />
+            <Input
+              name="department"
+              required
+              defaultValue={part1.department || ""}
+            />
           </div>
           <div>
             <Label>Program/Course</Label>
-            <Input name="programCourse" />
+            <Input
+              name="programCourse"
+              defaultValue={part1.programCourse || ""}
+            />
           </div>
           <div>
             <Label>Modality</Label>
-            <Select name="modality" defaultValue="Face-to-face">
+            <Select
+              name="modality"
+              defaultValue={part1.modality || "Face-to-face"}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -215,7 +286,7 @@ function SapfForm({
           </div>
           <div>
             <Label>Setting</Label>
-            <Select name="setting" defaultValue="In-Campus">
+            <Select name="setting" defaultValue={part1.setting || "In-Campus"}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -227,11 +298,17 @@ function SapfForm({
           </div>
           <div>
             <Label>Personnel-In-Charge</Label>
-            <Input name="personnelInCharge" />
+            <Input
+              name="personnelInCharge"
+              defaultValue={part1.personnelInCharge || ""}
+            />
           </div>
           <div>
             <Label>Activity Type</Label>
-            <Select name="activityType" defaultValue="Co-Curricular">
+            <Select
+              name="activityType"
+              defaultValue={part1.activityType || "Co-Curricular"}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -245,11 +322,11 @@ function SapfForm({
           </div>
           <div>
             <Label>Attire</Label>
-            <Input name="attire" />
+            <Input name="attire" defaultValue={part1.attire || ""} />
           </div>
           <div>
             <Label>Scope</Label>
-            <Select name="scope" defaultValue="Organizational">
+            <Select name="scope" defaultValue={part1.scope || "Organizational"}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -269,6 +346,7 @@ function SapfForm({
               min="1"
               max={eventSpace.capacity}
               required
+              defaultValue={part1.noOfParticipants || ""}
             />
           </div>
           <div>
@@ -276,15 +354,26 @@ function SapfForm({
             <Input
               name="program"
               placeholder="Seminar, General Assembly, Competition..."
+              defaultValue={part1.program || ""}
             />
           </div>
           <div className="md:col-span-2">
             <Label>Rationale</Label>
-            <Textarea name="rationale" rows={4} required />
+            <Textarea
+              name="rationale"
+              rows={4}
+              required
+              defaultValue={part1.rationale || ""}
+            />
           </div>
           <div className="md:col-span-2">
             <Label>Objective/s</Label>
-            <Textarea name="objectives" rows={4} required />
+            <Textarea
+              name="objectives"
+              rows={4}
+              required
+              defaultValue={part1.objectives || ""}
+            />
           </div>
           <div className="md:col-span-2">
             <Label>Applicable Augustinian Core Values</Label>
@@ -298,7 +387,12 @@ function SapfForm({
                 "Missionary Spirit",
               ].map((value) => (
                 <label key={value} className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" name="coreValues" value={value} />
+                  <input
+                    type="checkbox"
+                    name="coreValues"
+                    value={value}
+                    defaultChecked={selectedCoreValues.has(value)}
+                  />
                   {value}
                 </label>
               ))}
@@ -318,6 +412,7 @@ function SapfForm({
                     type="checkbox"
                     name="graduateAttributes"
                     value={value}
+                    defaultChecked={selectedGraduateAttributes.has(value)}
                   />
                   {value}
                 </label>
@@ -326,15 +421,22 @@ function SapfForm({
           </div>
           <div className="md:col-span-2">
             <Label>Program Flow</Label>
-            <Textarea name="programFlow" rows={3} />
+            <Textarea
+              name="programFlow"
+              rows={3}
+              defaultValue={part1.programFlow || ""}
+            />
           </div>
           <div>
             <Label>Budget</Label>
-            <Input name="budget" />
+            <Input name="budget" defaultValue={part1.budget || ""} />
           </div>
           <div>
             <Label>Source of Budget</Label>
-            <Input name="sourceOfBudget" />
+            <Input
+              name="sourceOfBudget"
+              defaultValue={part1.sourceOfBudget || ""}
+            />
           </div>
         </CardContent>
       </Card>
@@ -355,16 +457,45 @@ function SapfForm({
             "Chairs and Tables",
           ].map((value) => (
             <label key={value} className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="supportRequests" value={value} />
+              <input
+                type="checkbox"
+                name="supportRequests"
+                value={value}
+                defaultChecked={selectedSupportRequests.has(value)}
+              />
               {value}
             </label>
           ))}
-          <Input name="budgetDetails" placeholder="Budget details" />
-          <Input name="vehiclePassengers" placeholder="Vehicle passengers" />
-          <Input name="foodPax" placeholder="Food/snacks pax" />
-          <Input name="roomVenueDetails" placeholder="Room/venue details" />
-          <Input name="microphoneQty" placeholder="Microphone quantity" />
-          <Input name="otherSupport" placeholder="Other support requests" />
+          <Input
+            name="budgetDetails"
+            placeholder="Budget details"
+            defaultValue={part2.budgetDetails || ""}
+          />
+          <Input
+            name="vehiclePassengers"
+            placeholder="Vehicle passengers"
+            defaultValue={part2.vehiclePassengers || ""}
+          />
+          <Input
+            name="foodPax"
+            placeholder="Food/snacks pax"
+            defaultValue={part2.foodPax || ""}
+          />
+          <Input
+            name="roomVenueDetails"
+            placeholder="Room/venue details"
+            defaultValue={part2.roomVenueDetails || ""}
+          />
+          <Input
+            name="microphoneQty"
+            placeholder="Microphone quantity"
+            defaultValue={part2.microphoneQty || ""}
+          />
+          <Input
+            name="otherSupport"
+            placeholder="Other support requests"
+            defaultValue={part2.otherSupport || ""}
+          />
         </CardContent>
       </Card>
 
@@ -377,6 +508,7 @@ function SapfForm({
             name="otherDetails"
             rows={5}
             placeholder="Other details to be filled by the proposing organization"
+            defaultValue={part3 || ""}
           />
         </CardContent>
       </Card>
@@ -391,8 +523,13 @@ function SapfForm({
         <CardContent className="space-y-4">
           <div>
             <Label>Adviser</Label>
-            <Select name="adviserId" required>
-              <SelectTrigger>
+            <Select
+              name="adviserId"
+              required
+              disabled={lockApprovalChain}
+              defaultValue={selectedAdviserId}
+            >
+              <SelectTrigger disabled={lockApprovalChain}>
                 <SelectValue placeholder="Select adviser" />
               </SelectTrigger>
               <SelectContent>
@@ -417,6 +554,10 @@ function SapfForm({
                       type="checkbox"
                       name="additionalSignatoryIds"
                       value={user.id}
+                      disabled={lockApprovalChain}
+                      defaultChecked={selectedAdditionalSignatories.has(
+                        user.id,
+                      )}
                     />
                     {user.name}
                   </label>
@@ -456,16 +597,22 @@ const EventSpacePage = ({
   const [loading, setLoading] = useState(true);
   const [eventSpace, setEventSpace] = useState<EventSpaceData | null>(null);
   const [approvers, setApprovers] = useState<Record<string, any[]>>({});
+  const [editingRequest, setEditingRequest] = useState<any>(null);
   const statusPopup = usePopup();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestId = searchParams.get("requestId") || "";
   const normalizedRole = userRole as AppRole | undefined;
   const canCreateReservation = normalizedRole === "OFFICER";
 
   const refresh = async () => {
     setLoading(true);
-    const [spaceResult, approverResult] = await Promise.all([
+    const [spaceResult, approverResult, requestResult] = await Promise.all([
       getEventSpaceById(id),
       canCreateReservation ? getApproverOptions() : Promise.resolve(null),
+      requestId && canCreateReservation
+        ? getSapfRequestById(requestId)
+        : Promise.resolve(null),
     ]);
     if (!spaceResult.success) {
       statusPopup.showError(spaceResult.message || "Failed to fetch venue.");
@@ -474,13 +621,34 @@ const EventSpacePage = ({
     }
     setEventSpace(spaceResult.data || null);
     if (approverResult?.success) setApprovers(approverResult.data || {});
+
+    if (!requestId || !canCreateReservation) {
+      setEditingRequest(null);
+    } else if (requestResult?.success) {
+      const request = requestResult.data?.request;
+      if (!request) {
+        statusPopup.showError("Request not found.");
+        setEditingRequest(null);
+      } else if (request.eventSpaceId !== id) {
+        statusPopup.showError("Request does not match this venue.");
+        setEditingRequest(null);
+      } else if (!["RETURNED_FOR_REVISION", "DRAFT"].includes(request.status)) {
+        statusPopup.showError("This request can no longer be edited.");
+        setEditingRequest(null);
+      } else {
+        setEditingRequest(request);
+      }
+    } else if (requestResult && !requestResult.success) {
+      statusPopup.showError(requestResult.message || "Failed to load request.");
+      setEditingRequest(null);
+    }
     setLoading(false);
   };
 
   useEffect(() => {
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [id, requestId]);
 
   const calendarItems = useMemo<VenueCalendarItem[]>(() => {
     if (!eventSpace) return [];
@@ -555,12 +723,12 @@ const EventSpacePage = ({
         <p className="mt-2 text-muted-foreground">{eventSpace.description}</p>
       </div>
 
-      <Tabs defaultValue="details">
+      <Tabs defaultValue={editingRequest ? "sapf" : "details"}>
         <TabsList
           className={`grid w-full ${
             canCreateReservation
-              ? "grid-cols-3 md:w-[520px]"
-              : "grid-cols-2 md:w-[360px]"
+              ? "grid-cols-3 md:w-130"
+              : "grid-cols-2 md:w-90"
           }`}
         >
           <TabsTrigger value="details">Details</TabsTrigger>
@@ -614,6 +782,12 @@ const EventSpacePage = ({
 
         {canCreateReservation && (
           <TabsContent value="sapf" className="mt-4">
+            {editingRequest && (
+              <div className="mb-4 rounded-lg border border-orange-500/30 bg-orange-500/10 p-4 text-sm text-orange-900 dark:text-orange-100">
+                Editing returned request #{editingRequest.requestNumber}. Update
+                the details and resubmit to continue the approval flow.
+              </div>
+            )}
             <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-100">
               Pending conflicts will warn you but still allow submission.
               Approved reservations and venue blocks cannot be submitted over.
@@ -622,6 +796,7 @@ const EventSpacePage = ({
               eventSpace={eventSpace}
               approvers={approvers}
               onSaved={refresh}
+              initialRequest={editingRequest}
             />
           </TabsContent>
         )}

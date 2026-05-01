@@ -139,6 +139,10 @@ function hasOverlap(
   return candidateStart < endAt && candidateEnd > startAt;
 }
 
+function canMessageConcernThread(stepStatus: string) {
+  return ["ACTIVE", "RETURNED"].includes(stepStatus);
+}
+
 async function nextRequestNumber() {
   const year = new Date().getFullYear();
   const count = await prisma.sAPFRequest.count({
@@ -730,9 +734,8 @@ export async function getSapfWorkspace(): Promise<ActionResult<any>> {
           const thread = step.concernThread;
           const canSeeThread =
             !thread ||
-            role === "SUPER_ADMIN" ||
-            thread.officerId === user.id ||
-            thread.reviewerId === user.id;
+            (role !== "SUPER_ADMIN" &&
+              (thread.officerId === user.id || thread.reviewerId === user.id));
 
           return {
             ...step,
@@ -887,9 +890,8 @@ export async function getSapfRequestById(
         const thread = step.concernThread;
         const canSeeThread =
           !thread ||
-          role === "SUPER_ADMIN" ||
-          thread.officerId === user.id ||
-          thread.reviewerId === user.id;
+          (role !== "SUPER_ADMIN" &&
+            (thread.officerId === user.id || thread.reviewerId === user.id));
 
         return {
           ...step,
@@ -1352,6 +1354,10 @@ export async function reviewSapfRequest(
           where: { id: step.id },
           data: { status: "REJECTED" as any, comment, actedAt: new Date() },
         });
+        await tx.concernThread.updateMany({
+          where: { approvalStepId: step.id },
+          data: { status: "RESOLVED" as any },
+        });
         await tx.sAPFRequest.update({
           where: { id: request.id },
           data: {
@@ -1388,6 +1394,10 @@ export async function reviewSapfRequest(
         await tx.approvalStep.update({
           where: { id: step.id },
           data: { status: "RETURNED" as any, comment, actedAt: new Date() },
+        });
+        await tx.concernThread.updateMany({
+          where: { id: thread.id },
+          data: { status: "OPEN" as any },
         });
         await tx.sAPFRequest.update({
           where: { id: request.id },
@@ -1565,6 +1575,10 @@ export async function reviewSapfRequest(
           actedAt: new Date(),
         },
       });
+      await tx.concernThread.updateMany({
+        where: { approvalStepId: step.id },
+        data: { status: "RESOLVED" as any },
+      });
       await tx.approvalAction.create({
         data: {
           id: uuid(),
@@ -1678,7 +1692,15 @@ export async function addConcernMessage(
     const request = await prisma.sAPFRequest.findUnique({
       where: { id: requestId },
       include: {
-        approvalSteps: true,
+        approvalSteps: {
+          include: {
+            concernThread: {
+              select: {
+                status: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -1694,14 +1716,17 @@ export async function addConcernMessage(
     }
 
     const role = normalizeRole(user.role);
+    const isOfficer = request.officerId === user.id;
+    const isReviewer = step.reviewerId === user.id;
     const canMessage =
-      role === "SUPER_ADMIN" ||
-      request.officerId === user.id ||
-      step.reviewerId === user.id;
+      role !== "SUPER_ADMIN" &&
+      (isOfficer || isReviewer) &&
+      canMessageConcernThread(step.status) &&
+      (step.concernThread?.status ?? "OPEN") !== "RESOLVED";
     if (!canMessage) {
       return {
         success: false,
-        message: "You cannot access this private concern thread.",
+        message: "This concern thread is closed.",
       };
     }
 
@@ -1726,10 +1751,9 @@ export async function addConcernMessage(
       },
     });
 
-    const notificationTargets =
-      role === "SUPER_ADMIN"
-        ? [request.officerId, step.reviewerId]
-        : [request.officerId === user.id ? step.reviewerId : request.officerId];
+    const notificationTargets = [
+      isOfficer ? step.reviewerId : request.officerId,
+    ];
 
     await Promise.all(
       notificationTargets

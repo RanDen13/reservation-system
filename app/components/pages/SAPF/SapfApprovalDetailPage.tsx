@@ -62,6 +62,7 @@ export default function SapfApprovalDetailPage({
   const hasThreads = request.approvalSteps?.some(
     (step: any) => step.concernThread,
   );
+  const showChat = hasThreads && me?.role !== "SUPER_ADMIN";
 
   return (
     <div className="space-y-6 p-4 lg:p-8">
@@ -95,14 +96,6 @@ export default function SapfApprovalDetailPage({
               Download DOCX
             </a>
           </Button>
-          {request.status === "APPROVED" && (
-            <Button asChild variant="outline">
-              <a href={`/api/sapf/${request.id}/pdf`} target="_blank">
-                <FileDown className="mr-2 h-4 w-4" />
-                View Reservation PDF
-              </a>
-            </Button>
-          )}
           <Button onClick={refresh} variant="outline" disabled={loading}>
             <RefreshCcw className="mr-2 h-4 w-4" />
             Refresh
@@ -111,9 +104,13 @@ export default function SapfApprovalDetailPage({
       </div>
 
       <Tabs defaultValue="details" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 md:w-[320px]">
+        <TabsList
+          className={`grid w-full ${
+            showChat ? "grid-cols-2 md:w-[320px]" : "grid-cols-1 md:w-45"
+          }`}
+        >
           <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="chat">Chat</TabsTrigger>
+          {showChat && <TabsTrigger value="chat">Chat</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="details" className="space-y-4">
@@ -125,25 +122,21 @@ export default function SapfApprovalDetailPage({
           />
         </TabsContent>
 
-        <TabsContent value="chat">
-          <Card>
-            <CardHeader>
-              <CardTitle>Concern Threads</CardTitle>
-              <CardDescription>
-                Private discussion between officer and reviewer.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {hasThreads ? (
+        {showChat && (
+          <TabsContent value="chat">
+            <Card>
+              <CardHeader>
+                <CardTitle>Concern Threads</CardTitle>
+                <CardDescription>
+                  Private discussion between officer and reviewer.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
                 <ConcernThreads request={request} onRefresh={refresh} />
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No concern threads yet.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
