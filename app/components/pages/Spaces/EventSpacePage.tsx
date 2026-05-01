@@ -50,6 +50,8 @@ import { getEventSpaceById } from "./EventSpaceActions";
 import EventSpaceSkeleton from "./EventSpaceSkeleton";
 import { EventSpaceData } from "./schema";
 
+type AppRole = "OFFICER" | "APPROVER" | "ADMIN" | "SUPER_ADMIN";
+
 function statusClass(status: string) {
   if (status === "APPROVED") return "bg-emerald-100 text-emerald-700";
   if (status === "RETURNED_FOR_REVISION") return "bg-orange-100 text-orange-700";
@@ -318,18 +320,26 @@ function SapfForm({
   );
 }
 
-const EventSpacePage = ({ id }: { id: string }) => {
+const EventSpacePage = ({
+  id,
+  userRole,
+}: {
+  id: string;
+  userRole?: string;
+}) => {
   const [loading, setLoading] = useState(true);
   const [eventSpace, setEventSpace] = useState<EventSpaceData | null>(null);
   const [approvers, setApprovers] = useState<Record<string, any[]>>({});
   const statusPopup = usePopup();
   const router = useRouter();
+  const normalizedRole = userRole as AppRole | undefined;
+  const canCreateReservation = normalizedRole === "OFFICER";
 
   const refresh = async () => {
     setLoading(true);
     const [spaceResult, approverResult] = await Promise.all([
       getEventSpaceById(id),
-      getApproverOptions(),
+      canCreateReservation ? getApproverOptions() : Promise.resolve(null),
     ]);
     if (!spaceResult.success) {
       statusPopup.showError(spaceResult.message || "Failed to fetch venue.");
@@ -337,7 +347,7 @@ const EventSpacePage = ({ id }: { id: string }) => {
       return;
     }
     setEventSpace(spaceResult.data || null);
-    if (approverResult.success) setApprovers(approverResult.data || {});
+    if (approverResult?.success) setApprovers(approverResult.data || {});
     setLoading(false);
   };
 
@@ -403,10 +413,18 @@ const EventSpacePage = ({ id }: { id: string }) => {
       </div>
 
       <Tabs defaultValue="details">
-        <TabsList className="grid w-full grid-cols-3 md:w-[520px]">
+        <TabsList
+          className={`grid w-full ${
+            canCreateReservation
+              ? "grid-cols-3 md:w-[520px]"
+              : "grid-cols-2 md:w-[360px]"
+          }`}
+        >
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="calendar">Calendar</TabsTrigger>
-          <TabsTrigger value="sapf">Reservation Form</TabsTrigger>
+          {canCreateReservation && (
+            <TabsTrigger value="sapf">Reservation Form</TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="details" className="mt-4">
@@ -474,12 +492,19 @@ const EventSpacePage = ({ id }: { id: string }) => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="sapf" className="mt-4">
-          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-            Pending conflicts will warn you but still allow submission. Approved reservations and venue blocks cannot be submitted over.
-          </div>
-          <SapfForm eventSpace={eventSpace} approvers={approvers} onSaved={refresh} />
-        </TabsContent>
+        {canCreateReservation && (
+          <TabsContent value="sapf" className="mt-4">
+            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+              Pending conflicts will warn you but still allow submission.
+              Approved reservations and venue blocks cannot be submitted over.
+            </div>
+            <SapfForm
+              eventSpace={eventSpace}
+              approvers={approvers}
+              onSaved={refresh}
+            />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
