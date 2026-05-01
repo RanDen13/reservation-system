@@ -50,8 +50,8 @@ export default function VenueCalendarView({
     <div className="mx-auto max-w-7xl space-y-8">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-950">{title}</h1>
-          <p className="mt-2 text-gray-600">{description}</p>
+          <h1 className="text-3xl font-bold text-foreground">{title}</h1>
+          <p className="mt-2 text-muted-foreground">{description}</p>
         </div>
         {actionHref && actionLabel && (
           <Button asChild variant="outline">
@@ -63,14 +63,18 @@ export default function VenueCalendarView({
       <Card>
         <CardHeader>
           <CardTitle>Search & Filter</CardTitle>
-          <CardDescription>Find venues that match your activity.</CardDescription>
+          <CardDescription>
+            Find venues that match your activity.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="calendar-search">Search by venue or location</Label>
+              <Label htmlFor="calendar-search">
+                Search by venue or location
+              </Label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="calendar-search"
                   placeholder="e.g., Auditorium"
@@ -83,7 +87,7 @@ export default function VenueCalendarView({
             <div className="space-y-2">
               <Label htmlFor="calendar-capacity">Minimum capacity</Label>
               <div className="relative">
-                <Users className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                <Users className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="calendar-capacity"
                   type="number"
@@ -108,16 +112,22 @@ export default function VenueCalendarView({
             {globalBlocks.map((block) => (
               <div
                 key={block.id}
-                className="rounded-lg border border-violet-200 bg-violet-50 p-4"
+                className="rounded-lg border border-violet-500/30 bg-violet-500/10 p-4"
               >
-                <p className="font-semibold text-violet-950">{block.title}</p>
+                <p className="font-semibold text-violet-950 dark:text-violet-100">
+                  {block.title}
+                </p>
                 {block.reason && (
-                  <p className="text-sm text-violet-800">{block.reason}</p>
+                  <p className="text-sm text-violet-800 dark:text-violet-200">
+                    {block.reason}
+                  </p>
                 )}
-                <p className="mt-2 flex items-center gap-2 text-sm text-violet-900">
+                <p className="mt-2 flex items-center gap-2 text-sm text-violet-900 dark:text-violet-100">
                   <Clock className="h-4 w-4" />
-                  {format(new Date(block.startAt), "MMM d, yyyy h:mm a")} to{" "}
-                  {format(new Date(block.endAt), "h:mm a")}
+                  {format(
+                    new Date(block.startAt),
+                    "MMM d, yyyy h:mm a",
+                  )} to {format(new Date(block.endAt), "h:mm a")}
                 </p>
               </div>
             ))}
@@ -125,7 +135,7 @@ export default function VenueCalendarView({
         </Card>
       )}
 
-      <p className="text-gray-600">
+      <p className="text-muted-foreground">
         Showing <span className="font-semibold">{filteredVenues.length}</span>{" "}
         of {venues.length} venues
       </p>
@@ -142,11 +152,11 @@ export default function VenueCalendarView({
 
       {filteredVenues.length === 0 && (
         <div className="py-12 text-center">
-          <Building2 className="mx-auto mb-4 h-16 w-16 text-gray-400" />
-          <h3 className="mb-2 text-xl font-semibold text-gray-700">
+          <Building2 className="mx-auto mb-4 h-16 w-16 text-muted-foreground" />
+          <h3 className="mb-2 text-xl font-semibold text-foreground">
             No venues found
           </h3>
-          <p className="text-gray-500">Try adjusting your filters.</p>
+          <p className="text-muted-foreground">Try adjusting your filters.</p>
         </div>
       )}
     </div>

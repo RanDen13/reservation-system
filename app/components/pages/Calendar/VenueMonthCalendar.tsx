@@ -33,15 +33,15 @@ export type VenueCalendarItem = {
 
 function statusClass(item: VenueCalendarItem) {
   if (item.scope === "UNIVERSITY") {
-    return "border-violet-200 bg-violet-50 text-violet-700";
+    return "border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-200";
   }
   if (item.status === "APPROVED" || item.status === "BOOKED") {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    return "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200";
   }
   if (item.status === "BLOCKED") {
-    return "border-red-200 bg-red-50 text-red-700";
+    return "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-200";
   }
-  return "border-amber-200 bg-amber-50 text-amber-700";
+  return "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-200";
 }
 
 function asDate(value: Date | string) {
@@ -65,7 +65,9 @@ export default function VenueMonthCalendar({
   description?: string;
   compact?: boolean;
 }) {
-  const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
+  const [visibleMonth, setVisibleMonth] = useState(() =>
+    startOfMonth(new Date()),
+  );
 
   const calendarDays = useMemo(() => {
     const start = startOfWeek(startOfMonth(visibleMonth));
@@ -82,8 +84,7 @@ export default function VenueMonthCalendar({
           endAt: asDate(item.endAt),
         }))
         .sort(
-          (a, b) =>
-            asDate(a.startAt).getTime() - asDate(b.startAt).getTime(),
+          (a, b) => asDate(a.startAt).getTime() - asDate(b.startAt).getTime(),
         ),
     [items],
   );
@@ -95,11 +96,11 @@ export default function VenueMonthCalendar({
   );
 
   return (
-    <div className="overflow-hidden rounded-lg border bg-white shadow-sm">
+    <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
       <div className="flex flex-col gap-4 border-b p-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-lg border bg-white shadow-xs">
-            <span className="text-[11px] font-bold uppercase text-gray-500">
+          <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-lg border bg-card shadow-xs">
+            <span className="text-[11px] font-bold uppercase text-muted-foreground">
               {format(visibleMonth, "MMM")}
             </span>
             <span className="text-xl font-bold text-violet-700">
@@ -107,16 +108,16 @@ export default function VenueMonthCalendar({
             </span>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               {title}
             </p>
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-xl font-bold text-gray-950">
+              <h3 className="text-xl font-bold text-foreground">
                 {format(visibleMonth, "MMMM yyyy")}
               </h3>
               <Badge variant="outline">Month</Badge>
             </div>
-            <p className="text-sm text-gray-600">{description}</p>
+            <p className="text-sm text-muted-foreground">{description}</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -151,7 +152,7 @@ export default function VenueMonthCalendar({
         </div>
       </div>
 
-      <div className="grid grid-cols-7 border-b bg-gray-50 text-center text-xs font-semibold text-gray-500">
+      <div className="grid grid-cols-7 border-b bg-muted/40 text-center text-xs font-semibold text-muted-foreground">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
           <div key={day} className="border-r py-2 last:border-r-0">
             {day}
@@ -161,7 +162,9 @@ export default function VenueMonthCalendar({
 
       <div className="grid grid-cols-7">
         {calendarDays.map((day) => {
-          const dayItems = monthItems.filter((item) => itemTouchesDay(item, day));
+          const dayItems = monthItems.filter((item) =>
+            itemTouchesDay(item, day),
+          );
           const visibleItems = dayItems.slice(0, compact ? 2 : 3);
           const hiddenCount = dayItems.length - visibleItems.length;
 
@@ -169,10 +172,11 @@ export default function VenueMonthCalendar({
             <div
               key={day.toISOString()}
               className={cn(
-                "min-h-28 border-r border-b bg-white p-2 last:border-r-0",
+                "min-h-28 border-r border-b bg-card p-2 last:border-r-0",
                 compact ? "min-h-24" : "lg:min-h-36",
-                !isSameMonth(day, visibleMonth) && "bg-gray-50 text-gray-400",
-                isToday(day) && "bg-blue-50/50",
+                !isSameMonth(day, visibleMonth) &&
+                  "bg-muted/30 text-muted-foreground/70",
+                isToday(day) && "bg-blue-500/10",
               )}
             >
               <div className="mb-2 flex items-center justify-between">
@@ -210,7 +214,7 @@ export default function VenueMonthCalendar({
                   </div>
                 ))}
                 {hiddenCount > 0 && (
-                  <p className="px-1 text-[11px] font-semibold text-gray-500">
+                  <p className="px-1 text-[11px] font-semibold text-muted-foreground">
                     {hiddenCount} more...
                   </p>
                 )}
@@ -220,7 +224,7 @@ export default function VenueMonthCalendar({
         })}
       </div>
 
-      <div className="flex flex-wrap gap-2 border-t bg-gray-50 p-3">
+      <div className="flex flex-wrap gap-2 border-t bg-muted/40 p-3">
         {[
           { label: "Pending", className: "bg-amber-500" },
           { label: "Booked", className: "bg-emerald-500" },
@@ -229,13 +233,13 @@ export default function VenueMonthCalendar({
         ].map((item) => (
           <span
             key={item.label}
-            className="inline-flex items-center gap-2 text-xs font-medium text-gray-600"
+            className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground"
           >
             <span className={cn("h-2.5 w-2.5 rounded-full", item.className)} />
             {item.label}
           </span>
         ))}
-        <span className="ml-auto text-xs text-gray-500">
+        <span className="ml-auto text-xs text-muted-foreground">
           {visibleMonthItems.length} item
           {visibleMonthItems.length === 1 ? "" : "s"} this month
         </span>

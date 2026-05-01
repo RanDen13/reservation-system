@@ -17,7 +17,7 @@ const sizeMap = {
 
 const DefaultLoading = ({
   size = "xl",
-  color = "text-sky-500",
+  color = "text-primary",
   className = "",
   message,
 }: DefaultLoadingProps) => {
@@ -31,7 +31,9 @@ const DefaultLoading = ({
       >
         <Loader2 className={`${sizeMap[size]} ${color}`} />
       </motion.div>
-      <p className="text-gray-700 font-medium">{message || "Loading..."}</p>
+      <p className="text-muted-foreground font-medium">
+        {message || "Loading..."}
+      </p>
     </div>
   );
 };

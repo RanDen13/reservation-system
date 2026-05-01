@@ -38,7 +38,7 @@ export default function SapfBookingDetailPage({
   if (loading && !payload) {
     return (
       <div className="p-8">
-        <p className="text-gray-600">Loading booking...</p>
+        <p className="text-muted-foreground">Loading booking...</p>
       </div>
     );
   }
@@ -78,10 +78,10 @@ export default function SapfBookingDetailPage({
             </Link>
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-950">
+            <h1 className="text-3xl font-bold text-foreground">
               Booking Details
             </h1>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               Read-only LCUP Venue Reservation record.
             </p>
           </div>
@@ -108,7 +108,11 @@ export default function SapfBookingDetailPage({
             </Button>
           )}
           {canCancel && (
-            <Button onClick={handleCancel} variant="destructive" disabled={loading}>
+            <Button
+              onClick={handleCancel}
+              variant="destructive"
+              disabled={loading}
+            >
               <XCircle className="mr-2 h-4 w-4" />
               Cancel Reservation
             </Button>

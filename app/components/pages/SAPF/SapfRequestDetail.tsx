@@ -36,16 +36,18 @@ function formatFileSize(bytes: number) {
 }
 
 function statusClass(status: string) {
-  if (status === "APPROVED") return "bg-emerald-100 text-emerald-700";
-  if (status === "REJECTED") return "bg-red-100 text-red-700";
+  if (status === "APPROVED")
+    return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400";
+  if (status === "REJECTED")
+    return "bg-red-500/15 text-red-700 dark:text-red-400";
   if (status === "CANCELLED" || status === "SKIPPED")
-    return "bg-gray-100 text-gray-700";
+    return "bg-muted text-muted-foreground";
   if (status === "RETURNED_FOR_REVISION" || status === "RETURNED")
-    return "bg-orange-100 text-orange-700";
+    return "bg-orange-500/15 text-orange-700 dark:text-orange-400";
   if (status === "ACTIVE" || status === "IN_REVIEW")
-    return "bg-blue-100 text-blue-700";
-  if (status === "DRAFT") return "bg-gray-100 text-gray-700";
-  return "bg-amber-100 text-amber-700";
+    return "bg-blue-500/15 text-blue-700 dark:text-blue-400";
+  if (status === "DRAFT") return "bg-muted text-muted-foreground";
+  return "bg-amber-500/15 text-amber-700 dark:text-amber-400";
 }
 
 function formatDateRange(request: any) {
@@ -73,22 +75,24 @@ export function RequestSummary({
   )?.updatedAt;
 
   return (
-    <div className="space-y-4 rounded-lg border bg-white p-4">
+    <div className="space-y-4 rounded-lg border bg-card p-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
-          <p className="font-mono text-sm font-semibold text-gray-500">
+          <p className="font-mono text-sm font-semibold text-muted-foreground">
             #{request.requestNumber}
           </p>
-          <h3 className="text-lg font-bold text-gray-900">{request.title}</h3>
-          <p className="text-sm text-gray-600">{request.organization}</p>
-          <p className="mt-2 text-sm text-gray-700">
+          <h3 className="text-lg font-bold text-foreground">{request.title}</h3>
+          <p className="text-sm text-muted-foreground">
+            {request.organization}
+          </p>
+          <p className="mt-2 text-sm text-foreground">
             {request.eventSpace?.name} - {formatDateRange(request)}
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Submitted: {format(new Date(request.createdAt), "MMM d, yyyy")}
           </p>
           {waitingSince && (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted-foreground">
               Waiting since:{" "}
               {formatDistanceToNow(new Date(waitingSince), {
                 addSuffix: false,
@@ -103,7 +107,7 @@ export function RequestSummary({
             </Badge>
           )}
           {showConflict && request.conflictWarning && (
-            <Badge className="bg-amber-100 text-amber-700">
+            <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400">
               Pending conflict
             </Badge>
           )}
@@ -117,9 +121,7 @@ export function RequestSummary({
           )}
         </div>
       </div>
-      {showProgress && (
-        <ApprovalProgressTimeline request={request} compact />
-      )}
+      {showProgress && <ApprovalProgressTimeline request={request} compact />}
     </div>
   );
 }
@@ -127,20 +129,24 @@ export function RequestSummary({
 function Timeline({ request }: { request: any }) {
   return (
     <div className="space-y-2">
-      <p className="text-sm font-semibold text-gray-700">Approval chain</p>
+      <p className="text-sm font-semibold text-foreground">Approval chain</p>
       <div className="grid gap-2 md:grid-cols-2">
         {request.approvalSteps?.map((step: any) => (
           <div
             key={step.id}
-            className="flex items-start justify-between gap-3 rounded-lg border bg-gray-50 p-3"
+            className="flex items-start justify-between gap-3 rounded-lg border bg-muted p-3"
           >
             <div>
               <p className="text-sm font-semibold">
                 {step.stepOrder}. {step.label}
               </p>
-              <p className="text-xs text-gray-600">{step.reviewer?.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {step.reviewer?.name}
+              </p>
               {step.comment && (
-                <p className="mt-1 text-xs text-gray-700">{step.comment}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {step.comment}
+                </p>
               )}
             </div>
             <Badge className={statusClass(step.status)}>
@@ -179,7 +185,7 @@ export function ConcernThreads({
 
   return (
     <div className="space-y-3">
-      <p className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+      <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
         <MessageSquare className="h-4 w-4" />
         Private concern threads
       </p>
@@ -188,27 +194,27 @@ export function ConcernThreads({
           <div className="mb-3 flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold">{step.label}</p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Private between officer and {step.reviewer?.name}
               </p>
             </div>
             <Badge variant="outline">{step.concernThread.status}</Badge>
           </div>
-          <div className="max-h-56 space-y-2 overflow-y-auto rounded-md bg-gray-50 p-3">
+          <div className="max-h-56 space-y-2 overflow-y-auto rounded-md bg-muted p-3">
             {step.concernThread.messages.map((message: any) => (
               <div
                 key={message.id}
-                className="rounded-md bg-white p-2 shadow-sm"
+                className="rounded-md bg-card p-2 shadow-sm"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs font-semibold text-gray-700">
+                  <p className="text-xs font-semibold text-foreground">
                     {message.author?.name}
                   </p>
-                  <p className="text-[11px] text-gray-500">
+                  <p className="text-[11px] text-muted-foreground">
                     {format(new Date(message.createdAt), "MMM d, h:mm a")}
                   </p>
                 </div>
-                <p className="mt-1 text-sm text-gray-700">{message.body}</p>
+                <p className="mt-1 text-sm text-foreground">{message.body}</p>
               </div>
             ))}
           </div>
@@ -295,27 +301,27 @@ function ReviewControls({
 
   const yesNoField = (name: string, label: string) => (
     <div className="space-y-2">
-      <p className="text-sm font-semibold text-gray-950">{label}</p>
+      <p className="text-sm font-semibold text-foreground">{label}</p>
       <div className="flex flex-wrap gap-4">
-        <label className="inline-flex items-center gap-2 text-sm text-gray-900">
+        <label className="inline-flex items-center gap-2 text-sm text-foreground">
           <input
             form={approveFormId}
             type="radio"
             name={name}
             value="true"
             required
-            className="h-4 w-4 accent-blue-700"
+            className="h-4 w-4 accent-primary"
           />
           Yes
         </label>
-        <label className="inline-flex items-center gap-2 text-sm text-gray-900">
+        <label className="inline-flex items-center gap-2 text-sm text-foreground">
           <input
             form={approveFormId}
             type="radio"
             name={name}
             value="false"
             required
-            className="h-4 w-4 accent-blue-700"
+            className="h-4 w-4 accent-primary"
           />
           No
         </label>
@@ -324,27 +330,27 @@ function ReviewControls({
   );
 
   return (
-    <div className="space-y-4 rounded-lg border bg-blue-50 p-4">
+    <div className="space-y-4 rounded-lg border bg-muted p-4">
       <div>
-        <p className="font-semibold text-blue-950">Your active review</p>
-        <p className="text-sm text-blue-800">{step.label}</p>
+        <p className="font-semibold text-foreground">Your active review</p>
+        <p className="text-sm text-muted-foreground">{step.label}</p>
       </div>
 
       {step.position === "SDS" && (
         <div className="grid gap-3">
           <div className="grid gap-3">
             <div className="grid gap-3 md:grid-cols-2">
-              <div className="rounded-md border bg-white p-3 shadow-xs">
+              <div className="rounded-md border bg-card p-3 shadow-xs">
                 {yesNoField("parentsConsent", "Parent's Consent Form")}
               </div>
-              <div className="rounded-md border bg-white p-3 shadow-xs">
+              <div className="rounded-md border bg-card p-3 shadow-xs">
                 <div className="space-y-2">
-                  <p className="flex items-center gap-2 text-sm font-semibold text-gray-950">
+                  <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
                     <Paperclip className="h-4 w-4" />
                     Attachments
                   </p>
                   <div className="flex flex-wrap gap-4">
-                    <label className="inline-flex items-center gap-2 text-sm text-gray-900">
+                    <label className="inline-flex items-center gap-2 text-sm text-foreground">
                       <input
                         form={approveFormId}
                         type="radio"
@@ -355,11 +361,11 @@ function ReviewControls({
                         onChange={(event) =>
                           setHasAttachments(event.target.value)
                         }
-                        className="h-4 w-4 accent-blue-700"
+                        className="h-4 w-4 accent-primary"
                       />
                       Yes
                     </label>
-                    <label className="inline-flex items-center gap-2 text-sm text-gray-900">
+                    <label className="inline-flex items-center gap-2 text-sm text-foreground">
                       <input
                         form={approveFormId}
                         type="radio"
@@ -373,7 +379,7 @@ function ReviewControls({
                           setAttachmentNames([]);
                           setAttachmentInputKey((key) => key + 1);
                         }}
-                        className="h-4 w-4 accent-blue-700"
+                        className="h-4 w-4 accent-primary"
                       />
                       No
                     </label>
@@ -397,17 +403,19 @@ function ReviewControls({
                         ),
                       );
                     }}
-                    className="bg-white"
+                    className="bg-background"
                   />
                   <div
                     className={`text-xs ${
-                      attachmentLimitExceeded ? "text-red-600" : "text-gray-600"
+                      attachmentLimitExceeded
+                        ? "text-red-600"
+                        : "text-muted-foreground"
                     }`}
                   >
                     {formatFileSize(attachmentTotal)} / 25 MB
                   </div>
                   {attachmentNames.length > 0 && (
-                    <ul className="space-y-1 text-xs text-gray-700">
+                    <ul className="space-y-1 text-xs text-muted-foreground">
                       {attachmentNames.map((name) => (
                         <li key={name}>{name}</li>
                       ))}
@@ -417,7 +425,7 @@ function ReviewControls({
               </div>
             </div>
             <div className="grid gap-3 md:grid-cols-2">
-              <div className="rounded-md border bg-white p-3 shadow-xs">
+              <div className="rounded-md border bg-card p-3 shadow-xs">
                 <div className="space-y-3">
                   {yesNoField(
                     "academicInterruption",
@@ -434,15 +442,15 @@ function ReviewControls({
                   </div>
                 </div>
               </div>
-              <div className="rounded-md border bg-white p-3 shadow-xs">
+              <div className="rounded-md border bg-card p-3 shadow-xs">
                 {yesNoField("medicalExam", "Medical Exam Request")}
               </div>
             </div>
             <div className="grid gap-3 md:grid-cols-[2fr_1fr]">
-              <div className="rounded-md border bg-white p-3 shadow-xs">
+              <div className="rounded-md border bg-card p-3 shadow-xs">
                 {yesNoField("reportOfCompliance", "Report of Compliance")}
               </div>
-              <div className="rounded-md border bg-white p-3 shadow-xs">
+              <div className="rounded-md border bg-card p-3 shadow-xs">
                 <Label>Student-Personnel Ratio</Label>
                 <Input
                   form={approveFormId}
@@ -468,7 +476,7 @@ function ReviewControls({
         <Button
           type="button"
           variant="outline"
-          className="w-full bg-white"
+          className="w-full"
           onClick={() => setSelectedAction("return")}
         >
           <RefreshCcw className="mr-2 h-4 w-4" />

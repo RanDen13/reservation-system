@@ -2,8 +2,8 @@
 
 import CreateEventSpacePopup from "@/app/components/EventSpace/CreateEventSpacePopup";
 import EventSpaceCard from "@/app/components/EventSpace/EventSpaceCard";
-import { usePopup } from "@/app/components/Popup/PopupProvider";
 import { createVenueBlock } from "@/app/components/pages/SAPF/SapfActions";
+import { usePopup } from "@/app/components/Popup/PopupProvider";
 import { Button } from "@/app/components/ui/button";
 import {
   Card,
@@ -15,7 +15,14 @@ import {
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { motion } from "framer-motion";
-import { Building2, Calendar, CalendarX, Plus, Search, Users } from "lucide-react";
+import {
+  Building2,
+  Calendar,
+  CalendarX,
+  Plus,
+  Search,
+  Users,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { EventSpaceData } from "../schema";
@@ -68,7 +75,7 @@ export default function AdminSpaces({
           <h1 className="text-3xl font-bold bg-linear-to-r from-sky-600 to-emerald-600 bg-clip-text text-transparent">
             Manage Event Spaces
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-muted-foreground mt-2">
             Add, edit, or remove event spaces from the system
           </p>
         </div>
@@ -96,7 +103,7 @@ export default function AdminSpaces({
               </div>
               <div>
                 <h3 className="text-2xl font-bold">{eventSpaces.length}</h3>
-                <p className="text-sm text-gray-600">Total Spaces</p>
+                <p className="text-sm text-muted-foreground">Total Spaces</p>
               </div>
             </div>
           </CardContent>
@@ -112,7 +119,7 @@ export default function AdminSpaces({
                 <h3 className="text-2xl font-bold">
                   {eventSpaces.filter((s) => s.status === "ACTIVE").length}
                 </h3>
-                <p className="text-sm text-gray-600">Active Spaces</p>
+                <p className="text-sm text-muted-foreground">Active Spaces</p>
               </div>
             </div>
           </CardContent>
@@ -126,9 +133,14 @@ export default function AdminSpaces({
               </div>
               <div>
                 <h3 className="text-2xl font-bold">
-                  {eventSpaces.filter((s) => s.status === "UNDER_MAINTENANCE").length}
+                  {
+                    eventSpaces.filter((s) => s.status === "UNDER_MAINTENANCE")
+                      .length
+                  }
                 </h3>
-                <p className="text-sm text-gray-600">Under Maintenance</p>
+                <p className="text-sm text-muted-foreground">
+                  Under Maintenance
+                </p>
               </div>
             </div>
           </CardContent>
@@ -195,7 +207,7 @@ export default function AdminSpaces({
               <div className="space-y-2">
                 <Label htmlFor="search">Search by name</Label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input
                     id="search"
                     type="text"
@@ -209,7 +221,7 @@ export default function AdminSpaces({
               <div className="space-y-2">
                 <Label htmlFor="capacity">Minimum capacity</Label>
                 <div className="relative">
-                  <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input
                     id="capacity"
                     type="number"
@@ -227,7 +239,7 @@ export default function AdminSpaces({
 
       {/* Results Count */}
       <div className="flex items-center justify-between">
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           Showing <span className="font-semibold">{filteredSpaces.length}</span>{" "}
           of {eventSpaces.length} spaces
         </p>
@@ -259,11 +271,11 @@ export default function AdminSpaces({
           animate={{ opacity: 1 }}
           className="text-center py-12"
         >
-          <Building2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">
+          <Building2 className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-foreground mb-2">
             No spaces found
           </h3>
-          <p className="text-gray-500">
+          <p className="text-muted-foreground">
             Try adjusting your search filters to find more results
           </p>
         </motion.div>

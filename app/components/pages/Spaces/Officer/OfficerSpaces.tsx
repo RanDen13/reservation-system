@@ -38,8 +38,8 @@ export default function OfficerSpaces({
   return (
     <div className="space-y-8 p-4 lg:p-8">
       <div>
-        <h1 className="text-3xl font-bold text-gray-950">Browse Venues</h1>
-        <p className="mt-2 text-gray-600">
+        <h1 className="text-3xl font-bold text-foreground">Browse Venues</h1>
+        <p className="mt-2 text-muted-foreground">
           Open a venue to review details, check the calendar, and start a
           reservation.
         </p>
@@ -48,14 +48,16 @@ export default function OfficerSpaces({
       <Card>
         <CardHeader>
           <CardTitle>Search & Filter</CardTitle>
-          <CardDescription>Find venues that match your activity.</CardDescription>
+          <CardDescription>
+            Find venues that match your activity.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="search">Search by name</Label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="search"
                   type="text"
@@ -69,7 +71,7 @@ export default function OfficerSpaces({
             <div className="space-y-2">
               <Label htmlFor="capacity">Minimum capacity</Label>
               <div className="relative">
-                <Users className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                <Users className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="capacity"
                   type="number"
@@ -86,7 +88,7 @@ export default function OfficerSpaces({
 
       <UniversityWideBlocks blocks={globalBlocks} />
 
-      <p className="text-gray-600">
+      <p className="text-muted-foreground">
         Showing <span className="font-semibold">{filteredSpaces.length}</span>{" "}
         of {eventSpaces.length} venues
       </p>
@@ -99,11 +101,11 @@ export default function OfficerSpaces({
 
       {filteredSpaces.length === 0 && (
         <div className="py-12 text-center">
-          <Building2 className="mx-auto mb-4 h-16 w-16 text-gray-400" />
-          <h3 className="mb-2 text-xl font-semibold text-gray-700">
+          <Building2 className="mx-auto mb-4 h-16 w-16 text-muted-foreground" />
+          <h3 className="mb-2 text-xl font-semibold text-foreground">
             No venues found
           </h3>
-          <p className="text-gray-500">Try adjusting your filters.</p>
+          <p className="text-muted-foreground">Try adjusting your filters.</p>
         </div>
       )}
     </div>

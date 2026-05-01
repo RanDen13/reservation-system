@@ -11,7 +11,9 @@ const LoadingPopup = ({ message }: { message?: string }) => {
         <CardContent className="pt-6">
           <div className="flex flex-col items-center justify-center gap-3">
             <DefaultLoading size="lg" message={message} />
-            {!message && <p className="text-xs text-gray-500">Please wait…</p>}
+            {!message && (
+              <p className="text-xs text-muted-foreground">Please wait…</p>
+            )}
           </div>
         </CardContent>
       </Card>

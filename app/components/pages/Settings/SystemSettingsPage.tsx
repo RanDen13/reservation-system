@@ -47,8 +47,8 @@ export default function SystemSettingsPage({
   return (
     <div className="space-y-6 p-4 lg:p-8">
       <div>
-        <h1 className="text-3xl font-bold text-gray-950">System Settings</h1>
-        <p className="text-gray-600">
+        <h1 className="text-3xl font-bold text-foreground">System Settings</h1>
+        <p className="text-muted-foreground">
           Manage SMTP settings used for magic code emails.
         </p>
       </div>

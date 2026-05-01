@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/app/components/ui/select";
 import { format } from "date-fns";
-import { Plus, RefreshCcw, Users } from "lucide-react";
+import { Plus, RefreshCcw, UserPlus, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   createManagedAccount,
@@ -183,8 +183,8 @@ function AccountRow({
   return (
     <tr className="border-t">
       <td className="px-4 py-3">
-        <p className="text-sm font-semibold text-gray-900">{user.name}</p>
-        <p className="text-xs text-gray-500">{user.email}</p>
+        <p className="text-sm font-semibold text-foreground">{user.name}</p>
+        <p className="text-xs text-muted-foreground">{user.email}</p>
       </td>
       <td className="px-4 py-3">
         <Select
@@ -227,7 +227,7 @@ function AccountRow({
       <td className="px-4 py-3">
         <StatusBadge status={user.status} />
       </td>
-      <td className="px-4 py-3 text-sm text-gray-600">
+      <td className="px-4 py-3 text-sm text-muted-foreground">
         {format(new Date(user.createdAt), "MMM d, yyyy")}
       </td>
       <td className="px-4 py-3">
@@ -301,7 +301,7 @@ export default function SapfAccountsPage() {
   if (loading && !workspace) {
     return (
       <div className="p-8">
-        <p className="text-gray-600">Loading accounts...</p>
+        <p className="text-muted-foreground">Loading accounts...</p>
       </div>
     );
   }
@@ -312,8 +312,8 @@ export default function SapfAccountsPage() {
     <div className="space-y-8 p-4 lg:p-8">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-950">Accounts</h1>
-          <p className="text-gray-600">
+          <h1 className="text-3xl font-bold text-foreground">Accounts</h1>
+          <p className="text-muted-foreground">
             Manage user accounts, roles, and approver positions.
           </p>
         </div>
@@ -342,7 +342,7 @@ export default function SapfAccountsPage() {
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+            <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 text-left">Account</th>
                 <th className="px-4 py-3 text-left">Role</th>
@@ -369,27 +369,49 @@ export default function SapfAccountsPage() {
       {showCreate && (
         <ModalBase onClose={() => setShowCreate(false)}>
           <Card className="w-full max-w-lg">
-            <CardHeader>
-              <CardTitle>Create account</CardTitle>
+            <CardHeader className="space-y-1">
+              <CardTitle className="flex items-center gap-2">
+                <UserPlus className="h-5 w-5 text-primary" />
+                Create account
+              </CardTitle>
               <CardDescription>
                 New users receive a magic code and set their password on first
                 login.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form action={handleCreate} className="space-y-4">
-                <div>
-                  <Label>Name</Label>
-                  <Input name="name" required />
+              <form action={handleCreate} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="create-name">
+                    Name <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="create-name"
+                    name="name"
+                    placeholder="e.g., Juan Dela Cruz"
+                    autoComplete="name"
+                    required
+                  />
                 </div>
-                <div>
-                  <Label>Email</Label>
-                  <Input name="email" type="email" required />
+                <div className="space-y-2">
+                  <Label htmlFor="create-email">
+                    Email <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="create-email"
+                    name="email"
+                    type="email"
+                    placeholder="e.g., juan@lcu.edu.ph"
+                    autoComplete="email"
+                    required
+                  />
                 </div>
-                <div>
-                  <Label>Role</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="create-role">
+                    Role <span className="text-destructive">*</span>
+                  </Label>
                   <Select name="role" defaultValue="OFFICER">
-                    <SelectTrigger>
+                    <SelectTrigger id="create-role" className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -400,8 +422,12 @@ export default function SapfAccountsPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Roles control access to approvals, settings, and system
+                    actions.
+                  </p>
                 </div>
-                <div className="flex flex-wrap justify-end gap-2">
+                <div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end">
                   <Button
                     type="button"
                     variant="outline"

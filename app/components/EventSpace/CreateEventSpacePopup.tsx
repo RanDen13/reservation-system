@@ -87,7 +87,7 @@ const CreateEventSpacePopup = ({ onClose }: { onClose: () => void }) => {
     const confirmed = await statusPopup.showYesNo(
       `Are you sure you want to create the event space "${
         formData.get("name") || "Unnamed Space"
-      }"?`
+      }"?`,
     );
 
     if (!confirmed) return;
@@ -100,7 +100,7 @@ const CreateEventSpacePopup = ({ onClose }: { onClose: () => void }) => {
 
       if (!result.success) {
         statusPopup.showError(
-          result.message || "Failed to create event space."
+          result.message || "Failed to create event space.",
         );
         return;
       }
@@ -110,7 +110,7 @@ const CreateEventSpacePopup = ({ onClose }: { onClose: () => void }) => {
       onClose();
     } catch {
       statusPopup.showError(
-        "An error occurred while creating the event space."
+        "An error occurred while creating the event space.",
       );
     } finally {
       setIsSubmitting(false);
@@ -120,7 +120,7 @@ const CreateEventSpacePopup = ({ onClose }: { onClose: () => void }) => {
   return (
     <ModalBase onClose={onClose}>
       <form onSubmit={handleSubmit}>
-        <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="bg-card text-card-foreground rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b">
             <h2 className="text-2xl font-bold bg-linear-to-r from-sky-600 to-emerald-600 bg-clip-text text-transparent">
@@ -128,7 +128,7 @@ const CreateEventSpacePopup = ({ onClose }: { onClose: () => void }) => {
             </h2>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-muted rounded-lg transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -143,8 +143,8 @@ const CreateEventSpacePopup = ({ onClose }: { onClose: () => void }) => {
                 <div
                   className={`relative border-2 border-dashed rounded-lg transition-colors ${
                     isDragging
-                      ? "border-sky-500 bg-sky-50"
-                      : "border-gray-300 hover:border-gray-400"
+                      ? "border-sky-500/60 bg-sky-500/10"
+                      : "border-border hover:border-foreground/20"
                   }`}
                   onDrop={handleDrop}
                   onDragOver={handleDragOver}
@@ -169,7 +169,7 @@ const CreateEventSpacePopup = ({ onClose }: { onClose: () => void }) => {
                               if (file) handleImageChange(file);
                             }}
                           />
-                          <div className="bg-white rounded-lg px-4 py-2 flex items-center gap-2">
+                          <div className="bg-card text-foreground rounded-lg px-4 py-2 flex items-center gap-2">
                             <Upload className="w-4 h-4" />
                             <span className="text-sm font-medium">
                               Change Image
@@ -189,11 +189,11 @@ const CreateEventSpacePopup = ({ onClose }: { onClose: () => void }) => {
                           if (file) handleImageChange(file);
                         }}
                       />
-                      <Upload className="w-12 h-12 text-gray-400 mb-3" />
-                      <p className="text-sm font-semibold text-gray-700">
+                      <Upload className="w-12 h-12 text-muted-foreground mb-3" />
+                      <p className="text-sm font-semibold text-foreground">
                         Click or drag to upload
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         PNG, JPG, GIF, WebP, SVG up to 10MB
                       </p>
                     </label>
@@ -263,7 +263,7 @@ const CreateEventSpacePopup = ({ onClose }: { onClose: () => void }) => {
                   rows={4}
                   className="resize-none"
                 />
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   {descriptionLength}/500 characters
                 </p>
               </div>
@@ -301,7 +301,7 @@ const CreateEventSpacePopup = ({ onClose }: { onClose: () => void }) => {
                   required
                   min={0}
                 />
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   Set to 0 for free officer reservations
                 </p>
               </div>
@@ -309,7 +309,7 @@ const CreateEventSpacePopup = ({ onClose }: { onClose: () => void }) => {
               {/* Amenities */}
               <div className="space-y-2">
                 <Label>Amenities</Label>
-                <div className="border rounded-lg p-4 max-h-48 overflow-y-auto space-y-3">
+                <div className="border border-border bg-muted/20 rounded-lg p-4 max-h-48 overflow-y-auto space-y-3">
                   <input
                     type="hidden"
                     name="amenities"
@@ -317,7 +317,7 @@ const CreateEventSpacePopup = ({ onClose }: { onClose: () => void }) => {
                     readOnly
                   />
                   {amenities.length === 0 ? (
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       No amenities available
                     </p>
                   ) : (
@@ -338,8 +338,8 @@ const CreateEventSpacePopup = ({ onClose }: { onClose: () => void }) => {
                             } else {
                               setSelectedAmenities(
                                 selectedAmenities.filter(
-                                  (id) => id !== amenity.id
-                                )
+                                  (id) => id !== amenity.id,
+                                ),
                               );
                             }
                           }}
@@ -357,7 +357,7 @@ const CreateEventSpacePopup = ({ onClose }: { onClose: () => void }) => {
                     ))
                   )}
                 </div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   {selectedAmenities.length} amenity(ies) selected
                 </p>
               </div>
@@ -365,7 +365,7 @@ const CreateEventSpacePopup = ({ onClose }: { onClose: () => void }) => {
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50">
+          <div className="flex items-center justify-end gap-3 p-6 border-t bg-muted/40">
             <Button
               type="button"
               variant="outline"

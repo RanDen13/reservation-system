@@ -2,10 +2,7 @@ import VenueMonthCalendar, {
   VenueCalendarItem,
 } from "@/app/components/pages/Calendar/VenueMonthCalendar";
 import { Button } from "@/app/components/ui/button";
-import {
-  Card,
-  CardContent,
-} from "@/app/components/ui/card";
+import { Card, CardContent } from "@/app/components/ui/card";
 import { getVenueCalendarData } from "@/lib/venue-calendar-data";
 import { ArrowLeft, Building2, MapPin, Users } from "lucide-react";
 import Image from "next/image";
@@ -23,7 +20,10 @@ function calendarItems(venue: any, globalBlocks: any[]): VenueCalendarItem[] {
       subtitle: null,
       startAt: request.startAt,
       endAt: request.endAt,
-      status: request.status === "APPROVED" ? ("BOOKED" as const) : ("PENDING" as const),
+      status:
+        request.status === "APPROVED"
+          ? ("BOOKED" as const)
+          : ("PENDING" as const),
       scope: "VENUE" as const,
     })),
     ...(venue.venueBlocks || []).map((block: any) => ({
@@ -59,7 +59,7 @@ const page = async ({ params }: { params: Promise<{ id: string }> }) => {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 p-4 lg:p-8">
+    <main className="min-h-screen bg-background p-4 lg:p-8">
       <div className="mx-auto max-w-7xl space-y-6">
         <Button asChild variant="outline">
           <Link href="/calendar">
@@ -68,7 +68,7 @@ const page = async ({ params }: { params: Promise<{ id: string }> }) => {
           </Link>
         </Button>
 
-        <div className="relative h-64 overflow-hidden rounded-lg bg-gray-100">
+        <div className="relative h-64 overflow-hidden rounded-lg bg-muted">
           {venue.image ? (
             <Image
               src={`data:image/jpeg;base64,${Buffer.from(venue.image).toString("base64")}`}
@@ -78,14 +78,14 @@ const page = async ({ params }: { params: Promise<{ id: string }> }) => {
             />
           ) : (
             <div className="flex h-full items-center justify-center">
-              <Building2 className="h-20 w-20 text-gray-400" />
+              <Building2 className="h-20 w-20 text-muted-foreground" />
             </div>
           )}
         </div>
 
         <div>
-          <h1 className="text-3xl font-bold text-gray-950">{venue.name}</h1>
-          <p className="mt-2 text-gray-600">{venue.description}</p>
+          <h1 className="text-3xl font-bold text-foreground">{venue.name}</h1>
+          <p className="mt-2 text-muted-foreground">{venue.description}</p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
@@ -93,7 +93,7 @@ const page = async ({ params }: { params: Promise<{ id: string }> }) => {
             <CardContent className="flex items-center gap-3 p-5">
               <MapPin className="h-8 w-8 text-blue-600" />
               <div>
-                <p className="text-sm text-gray-500">Location</p>
+                <p className="text-sm text-muted-foreground">Location</p>
                 <p className="font-semibold">{venue.location}</p>
               </div>
             </CardContent>
@@ -102,7 +102,7 @@ const page = async ({ params }: { params: Promise<{ id: string }> }) => {
             <CardContent className="flex items-center gap-3 p-5">
               <Users className="h-8 w-8 text-emerald-600" />
               <div>
-                <p className="text-sm text-gray-500">Capacity</p>
+                <p className="text-sm text-muted-foreground">Capacity</p>
                 <p className="font-semibold">{venue.capacity} people</p>
               </div>
             </CardContent>

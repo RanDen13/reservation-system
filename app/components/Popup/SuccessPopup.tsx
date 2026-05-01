@@ -18,18 +18,18 @@ const SuccessPopup = ({
 }: SuccessScreenProps) => {
   return (
     <ModalBase>
-      <Card className="max-w-md w-full shadow-2xl border-2 border-emerald-200">
+      <Card className="max-w-md w-full shadow-lg border border-emerald-200/50 bg-card">
         <CardContent className="pt-6">
           <div className="flex flex-col items-center text-center gap-4">
-            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-emerald-50 border-2 border-emerald-200">
-              <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-200/50">
+              <CheckCircle2 className="w-8 h-8 text-emerald-500" />
             </div>
             <div className="space-y-2">
-              <p className="text-sm font-bold text-emerald-600 uppercase tracking-wider">
+              <p className="text-sm font-bold text-emerald-500 uppercase tracking-wider">
                 Success
               </p>
               {message && (
-                <p className="text-sm text-gray-700 wrap-break-words max-w-xs">
+                <p className="text-sm text-muted-foreground wrap-break-words max-w-xs">
                   {message}
                 </p>
               )}
@@ -38,7 +38,7 @@ const SuccessPopup = ({
               {redirectTo ? (
                 <Link href={redirectTo} className="w-full">
                   <Button
-                    className="w-full bg-linear-to-r from-sky-500 to-emerald-500 hover:from-sky-600 hover:to-emerald-600"
+                    className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                     onClick={onClose}
                   >
                     Close
@@ -46,7 +46,7 @@ const SuccessPopup = ({
                 </Link>
               ) : (
                 <Button
-                  className="w-full bg-linear-to-r from-sky-500 to-emerald-500 hover:from-sky-600 hover:to-emerald-600"
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                   onClick={onClose}
                 >
                   Close

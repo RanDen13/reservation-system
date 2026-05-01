@@ -171,13 +171,17 @@ export default function SapfDashboard() {
   }, [workspace]);
   const currentRequests = useMemo(() => {
     const requests = workspace?.requests || [];
-    return requests.filter((request: any) => activeStatuses.has(request.status));
+    return requests.filter((request: any) =>
+      activeStatuses.has(request.status),
+    );
   }, [workspace]);
 
   if (loading && !workspace) {
     return (
       <div className="p-8">
-        <p className="text-gray-600">Loading reservation workspace...</p>
+        <p className="text-muted-foreground">
+          Loading reservation workspace...
+        </p>
       </div>
     );
   }
@@ -202,10 +206,10 @@ export default function SapfDashboard() {
     <div className="space-y-8 p-4 lg:p-8">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-950">
+          <h1 className="text-3xl font-bold text-foreground">
             LCUP Venue Reservation Workspace
           </h1>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Signed in as {workspace.me.name} -{" "}
             {workspace.me.role.replaceAll("_", " ")}
           </p>
@@ -222,16 +226,16 @@ export default function SapfDashboard() {
             <Clock className="h-8 w-8 text-blue-600" />
             <div>
               <p className="text-2xl font-bold">{stats.current}</p>
-              <p className="text-sm text-gray-600">Current</p>
+              <p className="text-sm text-muted-foreground">Current</p>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="flex items-center gap-4 p-5">
-            <History className="h-8 w-8 text-gray-600" />
+            <History className="h-8 w-8 text-muted-foreground" />
             <div>
               <p className="text-2xl font-bold">{stats.history}</p>
-              <p className="text-sm text-gray-600">History</p>
+              <p className="text-sm text-muted-foreground">History</p>
             </div>
           </CardContent>
         </Card>
@@ -240,7 +244,7 @@ export default function SapfDashboard() {
             <CheckCircle className="h-8 w-8 text-emerald-600" />
             <div>
               <p className="text-2xl font-bold">{stats.approved}</p>
-              <p className="text-sm text-gray-600">Approved</p>
+              <p className="text-sm text-muted-foreground">Approved</p>
             </div>
           </CardContent>
         </Card>
@@ -249,7 +253,7 @@ export default function SapfDashboard() {
             <MessageSquare className="h-8 w-8 text-orange-600" />
             <div>
               <p className="text-2xl font-bold">{stats.conversations}</p>
-              <p className="text-sm text-gray-600">Private threads</p>
+              <p className="text-sm text-muted-foreground">Private threads</p>
             </div>
           </CardContent>
         </Card>
@@ -308,7 +312,7 @@ export default function SapfDashboard() {
         </CardHeader>
         <CardContent className="space-y-4">
           {currentRequests.length === 0 ? (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted-foreground">
               No active venue reservation requests right now.
             </p>
           ) : (
@@ -338,8 +342,10 @@ export default function SapfDashboard() {
             {workspace.notifications.map((notification: any) => (
               <div key={notification.id} className="rounded-lg border p-3">
                 <p className="text-sm font-semibold">{notification.title}</p>
-                <p className="text-sm text-gray-600">{notification.body}</p>
-                <p className="mt-1 text-xs text-gray-400">
+                <p className="text-sm text-muted-foreground">
+                  {notification.body}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
                   {format(new Date(notification.createdAt), "MMM d, h:mm a")}
                 </p>
                 <div className="mt-3">

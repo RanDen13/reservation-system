@@ -1,11 +1,11 @@
 "use client";
 
-import ErrorPopup from "@/app/components/Popup/ErrorPopup";
-import { usePopup } from "@/app/components/Popup/PopupProvider";
-import { Button } from "@/app/components/ui/button";
 import VenueMonthCalendar, {
   VenueCalendarItem,
 } from "@/app/components/pages/Calendar/VenueMonthCalendar";
+import ErrorPopup from "@/app/components/Popup/ErrorPopup";
+import { usePopup } from "@/app/components/Popup/PopupProvider";
+import { Button } from "@/app/components/ui/button";
 import {
   Card,
   CardContent,
@@ -44,10 +44,7 @@ import {
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import {
-  getApproverOptions,
-  saveSapfRequest,
-} from "../SAPF/SapfActions";
+import { getApproverOptions, saveSapfRequest } from "../SAPF/SapfActions";
 import { getEventSpaceById } from "./EventSpaceActions";
 import EventSpaceSkeleton from "./EventSpaceSkeleton";
 import { EventSpaceData } from "./schema";
@@ -134,7 +131,7 @@ function SapfForm({
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
-          <div className="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900 md:col-span-3">
+          <div className="flex items-start gap-2 rounded-md border border-blue-500/30 bg-blue-500/10 p-3 text-sm text-blue-900 dark:text-blue-100 md:col-span-3">
             <Info className="mt-0.5 h-4 w-4 shrink-0" />
             <p>
               Reservations can only be booked at least 30 days in advance.
@@ -206,7 +203,9 @@ function SapfForm({
           <div>
             <Label>Modality</Label>
             <Select name="modality" defaultValue="Face-to-face">
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Face-to-face">Face-to-face</SelectItem>
                 <SelectItem value="Online">Online</SelectItem>
@@ -217,7 +216,9 @@ function SapfForm({
           <div>
             <Label>Setting</Label>
             <Select name="setting" defaultValue="In-Campus">
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="In-Campus">In-Campus</SelectItem>
                 <SelectItem value="Off-Campus">Off-Campus</SelectItem>
@@ -231,10 +232,14 @@ function SapfForm({
           <div>
             <Label>Activity Type</Label>
             <Select name="activityType" defaultValue="Co-Curricular">
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Co-Curricular">Co-Curricular</SelectItem>
-                <SelectItem value="Extra-Curricular">Extra-Curricular</SelectItem>
+                <SelectItem value="Extra-Curricular">
+                  Extra-Curricular
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -245,7 +250,9 @@ function SapfForm({
           <div>
             <Label>Scope</Label>
             <Select name="scope" defaultValue="Organizational">
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Organizational">Organizational</SelectItem>
                 <SelectItem value="Institutional">Institutional</SelectItem>
@@ -256,11 +263,20 @@ function SapfForm({
           </div>
           <div>
             <Label>No. of Participants</Label>
-            <Input name="noOfParticipants" type="number" min="1" max={eventSpace.capacity} required />
+            <Input
+              name="noOfParticipants"
+              type="number"
+              min="1"
+              max={eventSpace.capacity}
+              required
+            />
           </div>
           <div>
             <Label>Program</Label>
-            <Input name="program" placeholder="Seminar, General Assembly, Competition..." />
+            <Input
+              name="program"
+              placeholder="Seminar, General Assembly, Competition..."
+            />
           </div>
           <div className="md:col-span-2">
             <Label>Rationale</Label>
@@ -273,7 +289,14 @@ function SapfForm({
           <div className="md:col-span-2">
             <Label>Applicable Augustinian Core Values</Label>
             <div className="mt-2 grid gap-2 sm:grid-cols-3">
-              {["Courage", "Compassion", "Community-Oriented", "Humility", "Interiority", "Missionary Spirit"].map((value) => (
+              {[
+                "Courage",
+                "Compassion",
+                "Community-Oriented",
+                "Humility",
+                "Interiority",
+                "Missionary Spirit",
+              ].map((value) => (
                 <label key={value} className="flex items-center gap-2 text-sm">
                   <input type="checkbox" name="coreValues" value={value} />
                   {value}
@@ -284,9 +307,18 @@ function SapfForm({
           <div className="md:col-span-2">
             <Label>Expected Graduate Attributes</Label>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
-              {["EGA 1: Critical and Creative Thinker", "EGA 2: Competent Catholic Augustinian-Marian Professional", "EGA 3: Socially Responsive Steward", "EGA 4: Transformative Lifelong Learner"].map((value) => (
+              {[
+                "EGA 1: Critical and Creative Thinker",
+                "EGA 2: Competent Catholic Augustinian-Marian Professional",
+                "EGA 3: Socially Responsive Steward",
+                "EGA 4: Transformative Lifelong Learner",
+              ].map((value) => (
                 <label key={value} className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" name="graduateAttributes" value={value} />
+                  <input
+                    type="checkbox"
+                    name="graduateAttributes"
+                    value={value}
+                  />
                   {value}
                 </label>
               ))}
@@ -312,7 +344,16 @@ function SapfForm({
           <CardTitle>Part 2: School Support</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
-          {["Budget", "Vehicle", "Food/Snacks", "Room/Venue", "Sound System", "Microphone", "LCD Projector", "Chairs and Tables"].map((value) => (
+          {[
+            "Budget",
+            "Vehicle",
+            "Food/Snacks",
+            "Room/Venue",
+            "Sound System",
+            "Microphone",
+            "LCD Projector",
+            "Chairs and Tables",
+          ].map((value) => (
             <label key={value} className="flex items-center gap-2 text-sm">
               <input type="checkbox" name="supportRequests" value={value} />
               {value}
@@ -332,14 +373,20 @@ function SapfForm({
           <CardTitle>Part 3: Additional Information</CardTitle>
         </CardHeader>
         <CardContent>
-          <Textarea name="otherDetails" rows={5} placeholder="Other details to be filled by the proposing organization" />
+          <Textarea
+            name="otherDetails"
+            rows={5}
+            placeholder="Other details to be filled by the proposing organization"
+          />
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
           <CardTitle>Approval Chain</CardTitle>
-          <CardDescription>Select the adviser and any optional additional signatories.</CardDescription>
+          <CardDescription>
+            Select the adviser and any optional additional signatories.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
@@ -362,8 +409,15 @@ function SapfForm({
               <Label>Additional Signatories</Label>
               <div className="mt-2 grid gap-2 md:grid-cols-2">
                 {approvers.ADDITIONAL_SIGNATORY.map((user) => (
-                  <label key={user.id} className="flex items-center gap-2 rounded-md border p-2 text-sm">
-                    <input type="checkbox" name="additionalSignatoryIds" value={user.id} />
+                  <label
+                    key={user.id}
+                    className="flex items-center gap-2 rounded-md border p-2 text-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      name="additionalSignatoryIds"
+                      value={user.id}
+                    />
                     {user.name}
                   </label>
                 ))}
@@ -378,7 +432,12 @@ function SapfForm({
           <Save className="mr-2 h-4 w-4" />
           Save Draft
         </Button>
-        <Button type="submit" name="intent" value="submit" className="bg-emerald-600 hover:bg-emerald-700">
+        <Button
+          type="submit"
+          name="intent"
+          value="submit"
+          className="bg-emerald-600 hover:bg-emerald-700"
+        >
           <Send className="mr-2 h-4 w-4" />
           Submit Reservation
         </Button>
@@ -432,7 +491,10 @@ const EventSpacePage = ({
         subtitle: request.organization,
         startAt: request.startAt,
         endAt: request.endAt,
-        status: request.status === "APPROVED" ? ("BOOKED" as const) : ("PENDING" as const),
+        status:
+          request.status === "APPROVED"
+            ? ("BOOKED" as const)
+            : ("PENDING" as const),
         scope: "VENUE" as const,
       })),
       ...(eventSpace.venueBlocks || []).map((block) => ({
@@ -454,14 +516,15 @@ const EventSpacePage = ({
         scope: "UNIVERSITY" as const,
       })),
     ].sort(
-      (a, b) =>
-        new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),
+      (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),
     );
   }, [eventSpace]);
 
   if (loading) return <EventSpaceSkeleton />;
   if (!eventSpace)
-    return <ErrorPopup message="Venue not found." onClose={() => router.back()} />;
+    return (
+      <ErrorPopup message="Venue not found." onClose={() => router.back()} />
+    );
 
   return (
     <div className="space-y-6 p-4 lg:p-8">
@@ -470,7 +533,7 @@ const EventSpacePage = ({
         Back
       </Button>
 
-      <div className="relative h-64 overflow-hidden rounded-lg bg-gray-100">
+      <div className="relative h-64 overflow-hidden rounded-lg bg-muted">
         {eventSpace.image ? (
           <Image
             src={`data:image/jpeg;base64,${Buffer.from(eventSpace.image).toString("base64")}`}
@@ -480,14 +543,16 @@ const EventSpacePage = ({
           />
         ) : (
           <div className="flex h-full items-center justify-center">
-            <Building2 className="h-20 w-20 text-gray-400" />
+            <Building2 className="h-20 w-20 text-muted-foreground" />
           </div>
         )}
       </div>
 
       <div>
-        <h1 className="text-3xl font-bold text-gray-950">{eventSpace.name}</h1>
-        <p className="mt-2 text-gray-600">{eventSpace.description}</p>
+        <h1 className="text-3xl font-bold text-foreground">
+          {eventSpace.name}
+        </h1>
+        <p className="mt-2 text-muted-foreground">{eventSpace.description}</p>
       </div>
 
       <Tabs defaultValue="details">
@@ -511,7 +576,7 @@ const EventSpacePage = ({
               <CardContent className="flex items-center gap-3 p-5">
                 <MapPin className="h-8 w-8 text-blue-600" />
                 <div>
-                  <p className="text-sm text-gray-500">Location</p>
+                  <p className="text-sm text-muted-foreground">Location</p>
                   <p className="font-semibold">{eventSpace.location}</p>
                 </div>
               </CardContent>
@@ -520,7 +585,7 @@ const EventSpacePage = ({
               <CardContent className="flex items-center gap-3 p-5">
                 <Users className="h-8 w-8 text-emerald-600" />
                 <div>
-                  <p className="text-sm text-gray-500">Capacity</p>
+                  <p className="text-sm text-muted-foreground">Capacity</p>
                   <p className="font-semibold">{eventSpace.capacity} people</p>
                 </div>
               </CardContent>
@@ -529,8 +594,10 @@ const EventSpacePage = ({
               <CardContent className="flex items-center gap-3 p-5">
                 <CheckCircle className="h-8 w-8 text-emerald-600" />
                 <div>
-                  <p className="text-sm text-gray-500">Status</p>
-                  <p className="font-semibold">{eventSpace.status.replaceAll("_", " ")}</p>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <p className="font-semibold">
+                    {eventSpace.status.replaceAll("_", " ")}
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -547,7 +614,7 @@ const EventSpacePage = ({
 
         {canCreateReservation && (
           <TabsContent value="sapf" className="mt-4">
-            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-100">
               Pending conflicts will warn you but still allow submission.
               Approved reservations and venue blocks cannot be submitted over.
             </div>

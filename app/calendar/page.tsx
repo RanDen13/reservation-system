@@ -12,7 +12,7 @@ const page = async () => {
   ]);
 
   return (
-    <main className="min-h-screen bg-gray-50 p-4 lg:p-8">
+    <main className="min-h-screen bg-background p-4 lg:p-8">
       <VenueCalendarView
         venues={calendarData.venues}
         globalBlocks={calendarData.globalBlocks}

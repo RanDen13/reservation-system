@@ -50,7 +50,7 @@ export default function SapfApprovalDetailPage({
   if (loading && !payload) {
     return (
       <div className="p-8">
-        <p className="text-gray-600">Loading approval...</p>
+        <p className="text-muted-foreground">Loading approval...</p>
       </div>
     );
   }
@@ -74,10 +74,12 @@ export default function SapfApprovalDetailPage({
             </Link>
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-950">
+            <h1 className="text-3xl font-bold text-foreground">
               Approval Details
             </h1>
-            <p className="text-gray-600">Review and action this request.</p>
+            <p className="text-muted-foreground">
+              Review and action this request.
+            </p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -135,7 +137,9 @@ export default function SapfApprovalDetailPage({
               {hasThreads ? (
                 <ConcernThreads request={request} onRefresh={refresh} />
               ) : (
-                <p className="text-sm text-gray-500">No concern threads yet.</p>
+                <p className="text-sm text-muted-foreground">
+                  No concern threads yet.
+                </p>
               )}
             </CardContent>
           </Card>

@@ -40,7 +40,7 @@ export default function EventSpaceCard({
 
   const handleDelete = async () => {
     const confirmed = await statusPopup.showYesNo(
-      `Are you sure you want to delete the event space "${name}"? This action cannot be undone.`
+      `Are you sure you want to delete the event space "${name}"? This action cannot be undone.`,
     );
 
     if (!confirmed) return;
@@ -59,11 +59,11 @@ export default function EventSpaceCard({
     <>
       <Card className="overflow-hidden hover:shadow-xl transition-all h-full flex flex-col">
         {/* Image */}
-        <div className="relative h-48 bg-linear-to-br from-sky-100 to-emerald-100">
+        <div className="relative h-48 bg-linear-to-br from-sky-500/15 to-emerald-500/15">
           {eventSpace.image ? (
             <Image
               src={`data:image/jpeg;base64,${Buffer.from(
-                eventSpace.image
+                eventSpace.image,
               ).toString("base64")}`}
               alt={name}
               fill
@@ -71,7 +71,7 @@ export default function EventSpaceCard({
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
-              <Building2 className="w-16 h-16 text-gray-400" />
+              <Building2 className="w-16 h-16 text-muted-foreground" />
             </div>
           )}
           <div className="absolute top-3 right-3">
@@ -80,15 +80,15 @@ export default function EventSpaceCard({
                 status === "ACTIVE"
                   ? "bg-emerald-500 text-white"
                   : status === "UNDER_MAINTENANCE"
-                  ? "bg-amber-500 text-white"
-                  : "bg-gray-500 text-white"
+                    ? "bg-amber-500 text-white"
+                    : "bg-muted text-muted-foreground"
               }`}
             >
               {status === "ACTIVE"
                 ? "Active"
                 : status === "UNDER_MAINTENANCE"
-                ? "Maintenance"
-                : "Inactive"}
+                  ? "Maintenance"
+                  : "Inactive"}
             </span>
           </div>
         </div>
@@ -97,20 +97,20 @@ export default function EventSpaceCard({
         <CardContent className="p-6 flex-1 flex flex-col">
           <div className="flex-1">
             <h3 className="font-bold text-xl mb-2">{name}</h3>
-            <p className="text-sm text-gray-600 mb-4">{description}</p>
+            <p className="text-sm text-muted-foreground mb-4">{description}</p>
 
             {/* Location & Capacity */}
             <div className="space-y-2 mb-4">
-              <div className="flex items-center gap-2 text-sm text-gray-700">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="w-4 h-4 text-sky-600" />
                 <span>{location}</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-700">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Users className="w-4 h-4 text-sky-600" />
                 <span>Capacity: {capacity} people</span>
               </div>
               {showAdminActions && (
-                <div className="flex items-center gap-2 text-sm text-gray-700">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Calendar className="w-4 h-4 text-sky-600" />
                   <span>Managed by super admin</span>
                 </div>
@@ -120,14 +120,14 @@ export default function EventSpaceCard({
             {/* Amenities */}
             {amenities.length > 0 && (
               <div className="mb-4">
-                <p className="text-xs font-semibold text-gray-500 mb-2">
+                <p className="text-xs font-semibold text-muted-foreground mb-2">
                   AMENITIES
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {amenities.slice(0, 3).map((amenity) => (
                     <span
                       key={amenity.id}
-                      className="px-2 py-1 bg-gray-100 rounded-md text-xs flex items-center gap-1"
+                      className="px-2 py-1 bg-muted rounded-md text-xs flex items-center gap-1"
                     >
                       {amenityIcons[amenity.name] || (
                         <Building2 className="w-4 h-4" />
@@ -136,7 +136,7 @@ export default function EventSpaceCard({
                     </span>
                   ))}
                   {amenities.length > 3 && (
-                    <span className="px-2 py-1 bg-gray-100 rounded-md text-xs">
+                    <span className="px-2 py-1 bg-muted rounded-md text-xs">
                       +{amenities.length - 3} more
                     </span>
                   )}
@@ -145,7 +145,7 @@ export default function EventSpaceCard({
             )}
 
             {/* Price */}
-            <p className="text-sm font-semibold text-emerald-600 mb-4">
+            <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 mb-4">
               {pricePerHour === 0
                 ? "Free for officers"
                 : `₱${pricePerHour.toFixed(2)}/hour`}

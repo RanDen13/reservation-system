@@ -59,7 +59,9 @@ export default function SapfApprovalsPage() {
   const followableRequests = useMemo(() => {
     if (!workspace) return [];
 
-    const activeIds = new Set(reviewerCurrent.map((request: any) => request.id));
+    const activeIds = new Set(
+      reviewerCurrent.map((request: any) => request.id),
+    );
     return workspace.requests.filter((request: any) => {
       const isInApprovalChain =
         workspace.me.role === "SUPER_ADMIN" ||
@@ -78,7 +80,7 @@ export default function SapfApprovalsPage() {
   if (loading && !workspace) {
     return (
       <div className="p-8">
-        <p className="text-gray-600">Loading approvals...</p>
+        <p className="text-muted-foreground">Loading approvals...</p>
       </div>
     );
   }
@@ -89,8 +91,10 @@ export default function SapfApprovalsPage() {
     <div className="space-y-8 p-4 lg:p-8">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-950">Approvals</h1>
-          <p className="text-gray-600">Requests waiting for your approval.</p>
+          <h1 className="text-3xl font-bold text-foreground">Approvals</h1>
+          <p className="text-muted-foreground">
+            Requests waiting for your approval.
+          </p>
         </div>
         <Button onClick={refresh} variant="outline" disabled={loading}>
           <RefreshCcw className="mr-2 h-4 w-4" />
@@ -126,7 +130,7 @@ export default function SapfApprovalsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {reviewerCurrent.length === 0 ? (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   No active assigned reviews.
                 </p>
               ) : (
@@ -162,7 +166,7 @@ export default function SapfApprovalsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {followableRequests.length === 0 ? (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   No other assigned requests to follow.
                 </p>
               ) : (

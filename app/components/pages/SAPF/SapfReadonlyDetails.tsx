@@ -39,8 +39,8 @@ function ReadOnlyField({
 }) {
   return (
     <div className={className}>
-      <p className="text-sm font-medium text-gray-700">{label}</p>
-      <div className="mt-1 min-h-10 rounded-md border bg-gray-50 px-3 py-2 text-sm text-gray-900">
+      <p className="text-sm font-medium text-muted-foreground">{label}</p>
+      <div className="mt-1 min-h-10 rounded-md border bg-muted px-3 py-2 text-sm text-foreground">
         {valueOrDash(value)}
       </div>
     </div>
@@ -58,9 +58,9 @@ function ReadOnlyLongField({
 }) {
   return (
     <div className="md:col-span-2">
-      <p className="text-sm font-medium text-gray-700">{label}</p>
+      <p className="text-sm font-medium text-muted-foreground">{label}</p>
       <div
-        className={`mt-1 whitespace-pre-wrap rounded-md border bg-gray-50 px-3 py-2 text-sm text-gray-900 ${rows}`}
+        className={`mt-1 whitespace-pre-wrap rounded-md border bg-muted px-3 py-2 text-sm text-foreground ${rows}`}
       >
         {valueOrDash(value)}
       </div>
@@ -81,13 +81,13 @@ function ReadOnlyAttachments({
 
   return (
     <div>
-      <p className="text-sm font-medium text-gray-700">Attachments</p>
-      <div className="mt-1 min-h-10 space-y-1 rounded-md border bg-gray-50 px-3 py-2 text-sm text-gray-900">
+      <p className="text-sm font-medium text-muted-foreground">Attachments</p>
+      <div className="mt-1 min-h-10 space-y-1 rounded-md border bg-muted px-3 py-2 text-sm text-foreground">
         {attachments.map((attachment) => (
           <a
             key={attachment.id}
             href={`/api/sapf/${requestId}/attachments/${attachment.id}`}
-            className="block text-blue-700 hover:underline"
+            className="block text-primary hover:underline"
           >
             {attachment.fileName} ({formatAttachmentSize(attachment.size)})
           </a>
@@ -112,20 +112,20 @@ function ReadOnlyChecklist({
 
   return (
     <div className="md:col-span-2">
-      <p className="text-sm font-medium text-gray-700">{label}</p>
+      <p className="text-sm font-medium text-muted-foreground">{label}</p>
       <div className={`mt-2 grid gap-2 ${columns}`}>
         {options.map((option) => {
           const checked = selectedSet.has(option);
           return (
             <div
               key={option}
-              className="flex min-h-9 items-center gap-2 rounded-md border bg-gray-50 px-3 py-2 text-sm text-gray-800"
+              className="flex min-h-9 items-center gap-2 rounded-md border bg-muted px-3 py-2 text-sm text-foreground"
             >
               <span
                 className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
                   checked
                     ? "border-emerald-600 bg-emerald-600 text-white"
-                    : "border-gray-300 bg-white"
+                    : "border-border bg-background"
                 }`}
               >
                 {checked && <Check className="h-3 w-3" />}
@@ -164,7 +164,10 @@ export default function SapfReadonlyDetails({
           <CardDescription>Reserved venue date and time.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
-          <ReadOnlyField label="Activity Date" value={format(startAt, "yyyy-MM-dd")} />
+          <ReadOnlyField
+            label="Activity Date"
+            value={format(startAt, "yyyy-MM-dd")}
+          />
           <ReadOnlyField label="Start Time" value={format(startAt, "h:mm a")} />
           <ReadOnlyField label="End Time" value={format(endAt, "h:mm a")} />
           <div className="md:col-span-3">
@@ -188,11 +191,17 @@ export default function SapfReadonlyDetails({
           <ReadOnlyField label="Program/Course" value={part1.programCourse} />
           <ReadOnlyField label="Modality" value={part1.modality} />
           <ReadOnlyField label="Setting" value={part1.setting} />
-          <ReadOnlyField label="Personnel-In-Charge" value={part1.personnelInCharge} />
+          <ReadOnlyField
+            label="Personnel-In-Charge"
+            value={part1.personnelInCharge}
+          />
           <ReadOnlyField label="Activity Type" value={part1.activityType} />
           <ReadOnlyField label="Attire" value={part1.attire} />
           <ReadOnlyField label="Scope" value={part1.scope} />
-          <ReadOnlyField label="No. of Participants" value={part1.noOfParticipants} />
+          <ReadOnlyField
+            label="No. of Participants"
+            value={part1.noOfParticipants}
+          />
           <ReadOnlyField label="Program" value={part1.program} />
           <ReadOnlyLongField label="Rationale" value={part1.rationale} />
           <ReadOnlyLongField label="Objective/s" value={part1.objectives} />
@@ -207,9 +216,16 @@ export default function SapfReadonlyDetails({
             options={GRADUATE_ATTRIBUTE_OPTIONS}
             selected={part1.graduateAttributes}
           />
-          <ReadOnlyLongField label="Program Flow" value={part1.programFlow} rows="min-h-20" />
+          <ReadOnlyLongField
+            label="Program Flow"
+            value={part1.programFlow}
+            rows="min-h-20"
+          />
           <ReadOnlyField label="Budget" value={part1.budget} />
-          <ReadOnlyField label="Source of Budget" value={part1.sourceOfBudget} />
+          <ReadOnlyField
+            label="Source of Budget"
+            value={part1.sourceOfBudget}
+          />
         </CardContent>
       </Card>
 
@@ -224,11 +240,23 @@ export default function SapfReadonlyDetails({
             selected={part2.supportRequests}
           />
           <ReadOnlyField label="Budget Details" value={part2.budgetDetails} />
-          <ReadOnlyField label="Vehicle Passengers" value={part2.vehiclePassengers} />
+          <ReadOnlyField
+            label="Vehicle Passengers"
+            value={part2.vehiclePassengers}
+          />
           <ReadOnlyField label="Food/Snacks Pax" value={part2.foodPax} />
-          <ReadOnlyField label="Room/Venue Details" value={part2.roomVenueDetails} />
-          <ReadOnlyField label="Microphone Quantity" value={part2.microphoneQty} />
-          <ReadOnlyField label="Other Support Requests" value={part2.otherSupport} />
+          <ReadOnlyField
+            label="Room/Venue Details"
+            value={part2.roomVenueDetails}
+          />
+          <ReadOnlyField
+            label="Microphone Quantity"
+            value={part2.microphoneQty}
+          />
+          <ReadOnlyField
+            label="Other Support Requests"
+            value={part2.otherSupport}
+          />
         </CardContent>
       </Card>
 

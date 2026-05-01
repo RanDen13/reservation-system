@@ -61,17 +61,23 @@ export default function FirstLoginPassword({ name, email }: FirstLoginPasswordPr
   }
 
   const requirement = (ok: boolean, label: string) => (
-    <div className={ok ? "flex items-center gap-2 text-emerald-700" : "flex items-center gap-2 text-gray-500"}>
+    <div
+      className={
+        ok
+          ? "flex items-center gap-2 text-emerald-600"
+          : "flex items-center gap-2 text-muted-foreground"
+      }
+    >
       <CheckCircle2 className="h-4 w-4" />
       <span>{label}</span>
     </div>
   );
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-950 px-4 py-10">
-      <Card className="w-full max-w-md border-0 shadow-2xl">
+    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
+      <Card className="w-full max-w-md border border-border/60 bg-card shadow-xl">
         <CardHeader className="space-y-3 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-emerald-600 text-white">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-primary-foreground">
             <KeyRound className="h-7 w-7" />
           </div>
           <CardTitle className="text-3xl">Create Your Password</CardTitle>
@@ -97,7 +103,7 @@ export default function FirstLoginPassword({ name, email }: FirstLoginPasswordPr
                 <button
                   type="button"
                   onClick={() => setShowPassword((value) => !value)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
@@ -119,14 +125,14 @@ export default function FirstLoginPassword({ name, email }: FirstLoginPasswordPr
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword((value) => !value)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                 >
                   {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
             </div>
 
-            <div className="grid gap-2 rounded-lg bg-gray-50 p-3 text-sm">
+            <div className="grid gap-2 rounded-lg border border-border/60 bg-muted/40 p-3 text-sm">
               {requirement(checks.length, "At least 8 characters")}
               {requirement(checks.uppercase, "One uppercase letter")}
               {requirement(checks.number, "One number")}
@@ -134,7 +140,11 @@ export default function FirstLoginPassword({ name, email }: FirstLoginPasswordPr
               {requirement(checks.match, "Passwords match")}
             </div>
 
-            <Button type="submit" disabled={!canSubmit || loading} className="h-12 w-full bg-emerald-600 hover:bg-emerald-700">
+            <Button
+              type="submit"
+              disabled={!canSubmit || loading}
+              className="h-12 w-full bg-primary text-primary-foreground hover:bg-primary/90"
+            >
               {loading ? "Saving..." : "Save Password"}
             </Button>
           </form>

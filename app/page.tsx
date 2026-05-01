@@ -7,6 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/components/ui/card";
+import { ModeToggle } from "@/components/mode-toggle";
+import { useSession } from "@/lib/auth-client";
 import { motion } from "framer-motion";
 import {
   CalendarDays,
@@ -19,7 +21,6 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
-import { useSession } from "@/lib/auth-client";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -50,48 +51,48 @@ const features = [
     description:
       "Check public venue schedules, blocks, and pending reservations before planning an activity.",
     icon: CalendarDays,
-    color: "text-blue-700",
-    bg: "bg-blue-50",
+    color: "text-blue-700 dark:text-blue-200",
+    bg: "bg-blue-500/10 dark:bg-blue-500/20",
   },
   {
     title: "Reservation Workflow",
     description:
       "Submit activity details, support requests, approvals, and SDS clearance in one tracked flow.",
     icon: FileText,
-    color: "text-emerald-700",
-    bg: "bg-emerald-50",
+    color: "text-emerald-700 dark:text-emerald-200",
+    bg: "bg-emerald-500/10 dark:bg-emerald-500/20",
   },
   {
     title: "Approval Progress",
     description:
       "Follow every required reviewer from adviser through university president with clear status markers.",
     icon: CheckCircle,
-    color: "text-indigo-700",
-    bg: "bg-indigo-50",
+    color: "text-indigo-700 dark:text-indigo-200",
+    bg: "bg-indigo-500/10 dark:bg-indigo-500/20",
   },
   {
     title: "Private Concerns",
     description:
       "Reviewers and officers can resolve request-specific concerns without exposing private discussions.",
     icon: Users,
-    color: "text-orange-700",
-    bg: "bg-orange-50",
+    color: "text-orange-700 dark:text-orange-200",
+    bg: "bg-orange-500/10 dark:bg-orange-500/20",
   },
   {
     title: "Secure Access",
     description:
       "Accounts and approver roles are managed by administrators for an officer-only reservation process.",
     icon: ShieldCheck,
-    color: "text-red-700",
-    bg: "bg-red-50",
+    color: "text-red-700 dark:text-red-200",
+    bg: "bg-red-500/10 dark:bg-red-500/20",
   },
   {
     title: "Verified Output",
     description:
       "Approved reservation documents can include verification details for dependable final records.",
     icon: Clock,
-    color: "text-cyan-700",
-    bg: "bg-cyan-50",
+    color: "text-cyan-700 dark:text-cyan-200",
+    bg: "bg-cyan-500/10 dark:bg-cyan-500/20",
   },
 ];
 
@@ -103,7 +104,7 @@ export default function Home() {
   const accountLabel = isLoggedIn ? "Go to dashboard" : "Login";
 
   return (
-    <div className="min-h-screen bg-white text-gray-950">
+    <div className="min-h-screen bg-background text-foreground">
       <section className="relative flex min-h-[92vh] items-center overflow-hidden px-4 py-20 sm:px-6 lg:px-20">
         <Image
           src="/lcupBg.png"
@@ -114,7 +115,14 @@ export default function Home() {
           quality={100}
         />
         <div className="absolute inset-0 bg-black/75" />
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-white to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-background to-transparent" />
+
+        <div className="absolute right-4 top-4 z-20 flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/70 backdrop-blur">
+          Theme
+          <div className="text-foreground">
+            <ModeToggle />
+          </div>
+        </div>
 
         <motion.div
           className="relative z-10 mx-auto grid w-full max-w-7xl gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center"
@@ -164,7 +172,7 @@ export default function Home() {
                 asChild
                 size="lg"
                 variant="outline"
-                className="border-white/35 bg-white/10 px-8 text-white hover:bg-white hover:text-gray-950"
+                className="border-white/35 bg-white/10 px-8 text-white hover:bg-white/20 hover:text-white"
               >
                 <Link href="/calendar">
                   <CalendarDays className="mr-2 h-5 w-5" />
@@ -192,7 +200,9 @@ export default function Home() {
                 </div>
                 <div>
                   <p className="font-semibold">Reservation Request Flow</p>
-                  <p className="text-sm text-white/60">Live approval tracking</p>
+                  <p className="text-sm text-white/60">
+                    Live approval tracking
+                  </p>
                 </div>
               </div>
               <span className="rounded-full bg-emerald-400/20 px-3 py-1 text-xs font-semibold text-emerald-200">
@@ -206,7 +216,7 @@ export default function Home() {
                   className="flex items-center gap-3 rounded-md border border-white/10 bg-white/10 p-3"
                   variants={fadeInUp}
                 >
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-sm font-bold text-gray-950">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground text-sm font-bold text-background">
                     {index + 1}
                   </div>
                   <p className="text-sm font-medium">{step}</p>
@@ -219,31 +229,37 @@ export default function Home() {
 
       <section className="relative z-10 mx-auto -mt-8 max-w-6xl px-4 sm:px-6">
         <motion.div
-          className="grid rounded-lg border bg-white p-5 shadow-xl sm:grid-cols-3"
+          className="grid rounded-lg border bg-card p-5 shadow-xl sm:grid-cols-3"
           initial={{ opacity: 0, y: 28 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.45 }}
         >
           <div className="flex items-center gap-4 p-4">
-            <MapPin className="h-9 w-9 text-blue-700" />
+            <MapPin className="h-9 w-9 text-blue-700 dark:text-blue-200" />
             <div>
               <p className="text-2xl font-bold">Venue</p>
-              <p className="text-sm text-gray-600">Availability visibility</p>
+              <p className="text-sm text-muted-foreground">
+                Availability visibility
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-4 border-t p-4 sm:border-l sm:border-t-0">
-            <FileText className="h-9 w-9 text-emerald-700" />
+            <FileText className="h-9 w-9 text-emerald-700 dark:text-emerald-200" />
             <div>
               <p className="text-2xl font-bold">Reservation</p>
-              <p className="text-sm text-gray-600">Structured submissions</p>
+              <p className="text-sm text-muted-foreground">
+                Structured submissions
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-4 border-t p-4 sm:border-l sm:border-t-0">
-            <CheckCircle className="h-9 w-9 text-indigo-700" />
+            <CheckCircle className="h-9 w-9 text-indigo-700 dark:text-indigo-200" />
             <div>
               <p className="text-2xl font-bold">Approval</p>
-              <p className="text-sm text-gray-600">End-to-end progress</p>
+              <p className="text-sm text-muted-foreground">
+                End-to-end progress
+              </p>
             </div>
           </div>
         </motion.div>
@@ -260,7 +276,7 @@ export default function Home() {
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
             Built around the LCUP approval process.
           </h2>
-          <p className="mt-3 text-lg text-gray-600">
+          <p className="mt-3 text-lg text-muted-foreground">
             The system supports practical reservation work: venue scheduling,
             reviewer routing, SDS clearance, document generation, and progress
             visibility.
@@ -299,7 +315,7 @@ export default function Home() {
 
       <section className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
         <motion.div
-          className="overflow-hidden rounded-lg bg-gray-950 px-6 py-12 text-center text-white sm:px-10"
+          className="overflow-hidden rounded-lg bg-slate-950 px-6 py-12 text-center text-white dark:bg-slate-900 sm:px-10"
           initial={{ opacity: 0, y: 28 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -313,19 +329,28 @@ export default function Home() {
             calendar before planning your activity.
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-            <Button asChild size="lg" className="bg-emerald-600 hover:bg-emerald-700">
+            <Button
+              asChild
+              size="lg"
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
               <Link href={accountHref}>
                 {isLoggedIn ? "Go to dashboard" : "Sign in"}
               </Link>
             </Button>
-            <Button asChild size="lg" variant="secondary">
+            <Button
+              asChild
+              size="lg"
+              variant="outline"
+              className="border-white/35 text-white hover:bg-white/10"
+            >
               <Link href="/calendar">View calendar</Link>
             </Button>
           </div>
         </motion.div>
       </section>
 
-      <footer className="border-t bg-white py-8 text-center text-sm text-gray-500">
+      <footer className="border-t bg-background py-8 text-center text-sm text-muted-foreground">
         Copyright 2026 La Consolacion University Philippines. LCUP Venue
         Reservation.
       </footer>

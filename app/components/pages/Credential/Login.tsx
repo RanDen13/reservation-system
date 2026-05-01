@@ -133,11 +133,11 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-linear-to-r from-blue-50 via-white to-blue-50 px-4 py-10 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-muted/40 px-4 py-10 relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
-          className="absolute top-20 -left-20 w-72 h-72 bg-blue-200 rounded-full opacity-20 blur-3xl"
+          className="absolute top-20 -left-20 w-72 h-72 bg-primary/20 rounded-full opacity-30 blur-3xl"
           animate={{
             y: [0, 50, 0],
             x: [0, 30, 0],
@@ -149,7 +149,7 @@ const Login = () => {
           }}
         />
         <motion.div
-          className="absolute bottom-20 -right-20 w-96 h-96 bg-emerald-200 rounded-full opacity-20 blur-3xl"
+          className="absolute bottom-20 -right-20 w-96 h-96 bg-secondary/50 rounded-full opacity-30 blur-3xl"
           animate={{
             y: [0, -50, 0],
             x: [0, -30, 0],
@@ -169,7 +169,7 @@ const Login = () => {
           variants={containerVariants}
           transition={{ duration: 0.5, ease: "easeOut" }}
         >
-          <Card className="border-2 shadow-2xl backdrop-blur-sm bg-white/95">
+          <Card className="border border-border/60 shadow-xl backdrop-blur-sm bg-card/90">
             <CardHeader className="text-center space-y-4 pb-8">
               <motion.div
                 initial={{ scale: 0 }}
@@ -177,15 +177,15 @@ const Login = () => {
                 transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
                 className="inline-block mx-auto"
               >
-                <div className="w-16 h-16 bg-linear-to-r from-sky-500 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg">
+                <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary/70 rounded-2xl flex items-center justify-center shadow-lg">
                   <Lock className="w-8 h-8 text-white" />
                 </div>
               </motion.div>
               <div>
-                <CardTitle className="text-3xl font-bold bg-linear-to-r from-sky-600 to-emerald-600 bg-clip-text text-transparent">
+                <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-emerald-500 bg-clip-text text-transparent">
                   Welcome Back
                 </CardTitle>
-                <CardDescription className="text-base mt-2">
+                <CardDescription className="text-base mt-2 text-muted-foreground">
                   Sign in to access your LCUP Venue Reservation account
                 </CardDescription>
               </div>
@@ -201,7 +201,7 @@ const Login = () => {
                     Email Address
                   </Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                     <Input
                       id="login-email"
                       name="email"
@@ -225,7 +225,7 @@ const Login = () => {
                     Password
                   </Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                     <Input
                       id="login-password"
                       name="password"
@@ -242,7 +242,7 @@ const Login = () => {
                       type="button"
                       onClick={() => setShowLoginPassword(!showLoginPassword)}
                       disabled={busy}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                     >
                       {showLoginPassword ? (
                         <EyeOff className="h-5 w-5" />
@@ -256,7 +256,7 @@ const Login = () => {
                 <Button
                   type="submit"
                   disabled={busy}
-                  className="w-full h-12 text-base bg-linear-to-r from-sky-500 to-emerald-500 hover:from-sky-600 hover:to-emerald-600 shadow-lg cursor-pointer"
+                  className="w-full h-12 text-base bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg cursor-pointer"
                 >
                   {loading ? (
                     <>
@@ -283,11 +283,11 @@ const Login = () => {
               </form>
 
               <div className="my-6 flex items-center gap-3">
-                <div className="h-px flex-1 bg-gray-200" />
-                <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Magic Code
                 </span>
-                <div className="h-px flex-1 bg-gray-200" />
+                <div className="h-px flex-1 bg-border" />
               </div>
 
               <div className="space-y-4">
@@ -307,7 +307,7 @@ const Login = () => {
                     Magic Code
                   </Label>
                   <div className="relative">
-                    <KeyRound className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                    <KeyRound className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       id="magic-code"
                       value={magicCode}
@@ -326,14 +326,14 @@ const Login = () => {
                   type="button"
                   disabled={busy}
                   onClick={handleMagicCodeLogin}
-                  className="h-12 w-full bg-emerald-600 hover:bg-emerald-700"
+                  className="h-12 w-full bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   <KeyRound className="mr-2 h-5 w-5" />
                   {verifyingMagicCode ? "Checking..." : "Sign In With Magic Code"}
                 </Button>
               </div>
 
-              <p className="mt-4 text-xs text-center text-gray-500">
+              <p className="mt-4 text-xs text-center text-muted-foreground">
                 Accounts are created by the super admin. New accounts receive a magic code first.
               </p>
             </CardContent>
@@ -348,7 +348,7 @@ const Login = () => {
           >
             <Link
               href="/"
-              className="text-sm text-gray-600 hover:text-sky-600 transition-colors inline-flex items-center gap-2 font-medium"
+              className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-2 font-medium"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Home

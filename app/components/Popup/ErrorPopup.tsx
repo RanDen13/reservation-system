@@ -38,17 +38,17 @@ const ErrorPopup = ({
 
   return (
     <ModalBase notTransparent={notTransparent} bgColor={bgColor}>
-      <Card className="max-w-md w-full shadow-2xl border-2 border-red-200">
+      <Card className="max-w-md w-full shadow-lg border border-destructive/30 bg-card">
         <CardContent className="pt-6">
           <div className="flex flex-col items-center text-center gap-4">
-            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-red-50 border-2 border-red-200">
-              <AlertTriangle className="w-8 h-8 text-red-600" />
+            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-destructive/10 border border-destructive/30">
+              <AlertTriangle className="w-8 h-8 text-destructive" />
             </div>
             <div className="space-y-2">
-              <p className="text-sm font-bold text-red-600 uppercase tracking-wider">
+              <p className="text-sm font-bold text-destructive uppercase tracking-wider">
                 Something went wrong
               </p>
-              <p className="text-sm text-gray-700 wrap-break-words max-w-xs">
+              <p className="text-sm text-muted-foreground wrap-break-words max-w-xs">
                 {message}
               </p>
             </div>

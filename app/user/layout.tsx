@@ -21,7 +21,7 @@ const layout = async ({ children }: { children: React.ReactNode }) => {
 
   if (account?.banned) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-background">
         <DeactivatedNotice />
       </div>
     );
@@ -34,7 +34,7 @@ const layout = async ({ children }: { children: React.ReactNode }) => {
     | "SUPER_ADMIN";
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-background">
       <Sidebar
         userRole={userRole}
         userName={session.user.name}

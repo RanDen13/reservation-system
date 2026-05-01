@@ -44,7 +44,7 @@ function RequestList({
   };
 }) {
   if (requests.length === 0) {
-    return <p className="text-sm text-gray-500">{empty}</p>;
+    return <p className="text-sm text-muted-foreground">{empty}</p>;
   }
 
   return (
@@ -134,7 +134,7 @@ export default function SapfBookingsPage() {
   if (loading && !workspace) {
     return (
       <div className="p-8">
-        <p className="text-gray-600">Loading bookings...</p>
+        <p className="text-muted-foreground">Loading bookings...</p>
       </div>
     );
   }
@@ -145,8 +145,8 @@ export default function SapfBookingsPage() {
     <div className="space-y-8 p-4 lg:p-8">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-950">Bookings</h1>
-          <p className="text-gray-600">
+          <h1 className="text-3xl font-bold text-foreground">Bookings</h1>
+          <p className="text-muted-foreground">
             Pending reviews, followed requests, and old venue reservation
             records.
           </p>

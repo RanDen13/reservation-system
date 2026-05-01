@@ -34,14 +34,15 @@ function dotClass(status: string) {
   if (status === "RETURNED")
     return "border-orange-500 bg-orange-500 text-white";
   if (status === "ACTIVE") return "border-blue-600 bg-blue-600 text-white";
-  if (status === "SKIPPED") return "border-gray-300 bg-gray-100 text-gray-400";
+  if (status === "SKIPPED")
+    return "border-border bg-muted text-muted-foreground";
   if (completedStatuses.has(status))
-    return "border-gray-950 bg-gray-950 text-white";
-  return "border-gray-300 bg-white text-gray-300";
+    return "border-foreground bg-foreground text-background";
+  return "border-border bg-card text-muted-foreground";
 }
 
 function connectorClass(done: boolean) {
-  return done ? "bg-gray-950" : "bg-gray-100";
+  return done ? "bg-foreground" : "bg-muted";
 }
 
 export default function ApprovalProgressTimeline({
@@ -74,7 +75,7 @@ export default function ApprovalProgressTimeline({
   return (
     <div
       className={cn(
-        "overflow-x-auto rounded-md border bg-white",
+        "overflow-x-auto rounded-md border bg-card",
         compact ? "p-3" : "p-4",
       )}
     >
@@ -85,7 +86,7 @@ export default function ApprovalProgressTimeline({
             className="flex min-w-28 flex-1 flex-col items-center gap-2 text-center"
           >
             <p
-              className="h-5 max-w-28 truncate px-2 text-xs font-semibold text-gray-950"
+              className="h-5 max-w-28 truncate px-2 text-xs font-semibold text-foreground"
               title={stepLabel(step)}
             >
               {stepLabel(step)}
@@ -118,7 +119,7 @@ export default function ApprovalProgressTimeline({
               />
             </div>
             {!compact && (
-              <p className="h-4 text-[11px] font-medium text-gray-500">
+              <p className="h-4 text-[11px] font-medium text-muted-foreground">
                 {statusLabel(step.status)}
               </p>
             )}
