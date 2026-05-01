@@ -28,6 +28,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "docx2pdf-converter": "^2.1.1",
     "docxtemplater": "^3.68.6",
     "dotenv": "^17.2.3",
     "framer-motion": "^12.23.26",

@@ -56,7 +56,7 @@ export async function GET(
     verifyUrl,
   });
 
-  return new NextResponse(bytes, {
+  return new NextResponse(new Uint8Array(bytes), {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="${sapf.requestNumber}-approved-sapf.pdf"`,

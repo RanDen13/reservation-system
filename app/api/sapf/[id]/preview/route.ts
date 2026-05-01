@@ -88,7 +88,7 @@ export async function GET(
     mode: "preview",
   });
 
-  return new NextResponse(bytes, {
+  return new NextResponse(new Uint8Array(bytes), {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `inline; filename="${sapf.requestNumber}-sapf-preview.pdf"`,
