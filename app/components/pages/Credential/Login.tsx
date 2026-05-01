@@ -12,7 +12,15 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { signIn } from "@/lib/auth-client";
 import { motion } from "framer-motion";
-import { ArrowLeft, Eye, EyeOff, KeyRound, Lock, Mail, Send } from "lucide-react";
+import {
+  ArrowLeft,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Lock,
+  Mail,
+  Send,
+} from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { usePopup } from "../../Popup/PopupProvider";
@@ -26,7 +34,10 @@ const magicCodeLength = 10;
 const magicCodeGroupSize = 5;
 
 function normalizeMagicCode(value: string) {
-  return value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, magicCodeLength);
+  return value
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, magicCodeLength);
 }
 
 function formatMagicCode(value: string) {
@@ -59,7 +70,10 @@ const Login = () => {
   const [magicCode, setMagicCode] = useState("");
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const statusPopup = usePopup();
-  const normalizedMagicCode = useMemo(() => normalizeMagicCode(magicCode), [magicCode]);
+  const normalizedMagicCode = useMemo(
+    () => normalizeMagicCode(magicCode),
+    [magicCode],
+  );
   const busy = loading || sendingMagicCode || verifyingMagicCode;
 
   useEffect(() => {
@@ -110,7 +124,9 @@ const Login = () => {
           statusPopup.showSuccess("Magic code sent. Check your email.");
         },
         onError: (ctx) => {
-          statusPopup.showError(ctx.error.message || "Unable to send magic code.");
+          statusPopup.showError(
+            ctx.error.message || "Unable to send magic code.",
+          );
         },
       },
     );
@@ -124,7 +140,10 @@ const Login = () => {
     }
 
     setVerifyingMagicCode(true);
-    const verifyUrl = new URL("/api/auth/magic-link/verify", window.location.origin);
+    const verifyUrl = new URL(
+      "/api/auth/magic-link/verify",
+      window.location.origin,
+    );
     verifyUrl.searchParams.set("token", normalizedMagicCode);
     verifyUrl.searchParams.set("callbackURL", "/first-login");
     verifyUrl.searchParams.set("newUserCallbackURL", "/first-login");
@@ -311,7 +330,9 @@ const Login = () => {
                     <Input
                       id="magic-code"
                       value={magicCode}
-                      onChange={(event) => setMagicCode(formatMagicCode(event.target.value))}
+                      onChange={(event) =>
+                        setMagicCode(formatMagicCode(event.target.value))
+                      }
                       className="h-12 pl-10 text-base uppercase tracking-[0.2em]"
                       placeholder="ABCDE-FGHIJ"
                       disabled={busy}
@@ -329,12 +350,15 @@ const Login = () => {
                   className="h-12 w-full bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   <KeyRound className="mr-2 h-5 w-5" />
-                  {verifyingMagicCode ? "Checking..." : "Sign In With Magic Code"}
+                  {verifyingMagicCode
+                    ? "Checking..."
+                    : "Sign In With Magic Code"}
                 </Button>
               </div>
 
               <p className="mt-4 text-xs text-center text-muted-foreground">
-                Accounts are created by the super admin. New accounts receive a magic code first.
+                Accounts are created by the super admin. New accounts receive a
+                magic code first.
               </p>
             </CardContent>
           </Card>

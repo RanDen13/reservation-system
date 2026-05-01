@@ -21,7 +21,10 @@ type FirstLoginPasswordProps = {
   email?: string | null;
 };
 
-export default function FirstLoginPassword({ name, email }: FirstLoginPasswordProps) {
+export default function FirstLoginPassword({
+  name,
+  email,
+}: FirstLoginPasswordProps) {
   const router = useRouter();
   const popup = usePopup();
   const [password, setPassword] = useState("");
@@ -105,7 +108,11 @@ export default function FirstLoginPassword({ name, email }: FirstLoginPasswordPr
                   onClick={() => setShowPassword((value) => !value)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -127,7 +134,11 @@ export default function FirstLoginPassword({ name, email }: FirstLoginPasswordPr
                   onClick={() => setShowConfirmPassword((value) => !value)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                 >
-                  {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             </div>
