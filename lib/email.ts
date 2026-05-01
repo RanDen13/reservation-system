@@ -1,3 +1,4 @@
+import { getEmailSettings } from "@/app/components/pages/Settings/SystemSettingsActions";
 import nodemailer from "nodemailer";
 
 function escapeHtml(input: string) {
@@ -10,12 +11,21 @@ function escapeHtml(input: string) {
 }
 
 export async function sendEmail(to: string, subject: string, text: string) {
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT || 465);
-  const user = process.env.SMTP_USER || process.env.SENDER_EMAIL;
-  const pass = process.env.SMTP_PASSWORD || process.env.SENDER_PASSWORD;
-  const senderEmail = process.env.SENDER_EMAIL || user;
-  const senderName = process.env.SENDER_NAME || "LCUP Venue Reservation";
+  const settings = await getEmailSettings();
+  const host = settings.smtpHost || process.env.SMTP_HOST;
+  const port = settings.smtpPort ?? Number(process.env.SMTP_PORT || 465);
+  const user =
+    settings.smtpUser ||
+    process.env.SMTP_USER ||
+    settings.senderEmail ||
+    process.env.SENDER_EMAIL;
+  const pass =
+    settings.smtpPass ||
+    process.env.SMTP_PASSWORD ||
+    process.env.SENDER_PASSWORD;
+  const senderEmail = settings.senderEmail || process.env.SENDER_EMAIL || user;
+  const senderName =
+    settings.senderName || process.env.SENDER_NAME || "LCUP Venue Reservation";
 
   if (!host || !port || !user || !pass || !senderEmail) {
     if (process.env.NODE_ENV !== "production") {

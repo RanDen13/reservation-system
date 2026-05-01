@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/app/components/ui/button";
+import { ModeToggle } from "@/components/mode-toggle";
 import { cn } from "@/lib/utils";
 import {
   Building2,
@@ -9,6 +10,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Settings,
   Users,
   X,
 } from "lucide-react";
@@ -128,6 +130,18 @@ export default function Sidebar({
             Home
           </Button>
         </Link>
+        {userRole === "SUPER_ADMIN" && (
+          <Link href="/user/settings">
+            <Button variant="outline" className="w-full justify-start gap-3">
+              <Settings className="h-5 w-5" />
+              Settings
+            </Button>
+          </Link>
+        )}
+        <div className="flex items-center justify-between rounded-lg border px-4 py-3 text-sm text-gray-700">
+          <span className="font-medium">Theme</span>
+          <ModeToggle />
+        </div>
         <Link href="/signout">
           <Button variant="destructive" className="w-full justify-start gap-3">
             <LogOut className="h-5 w-5" />

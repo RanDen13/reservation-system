@@ -420,6 +420,20 @@ model Account {
   @@map("account")
 }
 
+model SystemSettings {
+  id          String   @id @default("SYSTEM")
+  smtpHost    String   @default("smtp.gmail.com")
+  smtpPort    Int      @default(465)
+  smtpUser    String   @default("")
+  smtpPass    String   @default("")
+  senderEmail String   @default("")
+  senderName  String   @default("LCUP Venue Reservation")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
 model Verification {
   id         String   @id
   identifier String

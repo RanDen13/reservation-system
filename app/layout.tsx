@@ -1,4 +1,5 @@
 import PopupProvider from "@/app/components/Popup/PopupProvider";
+import { ThemeProvider } from "@/components/theme-provider";
 import type { Metadata } from "next";
 import { PublicEnvScript } from "next-runtime-env";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -26,14 +27,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <PublicEnvScript />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <PopupProvider>{children}</PopupProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <PopupProvider>{children}</PopupProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
