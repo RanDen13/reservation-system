@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import {
   Building2,
   CalendarDays,
-  CheckCircle,
   History,
   Home,
   LayoutDashboard,
@@ -38,12 +37,6 @@ const navItems: NavItem[] = [
     label: "Dashboard",
     href: "/user/dashboard",
     icon: <LayoutDashboard className="h-5 w-5" />,
-  },
-  {
-    label: "Approvals",
-    href: "/user/approvals",
-    icon: <CheckCircle className="h-5 w-5" />,
-    roles: ["APPROVER", "ADMIN", "SUPER_ADMIN"],
   },
   {
     label: "Accounts",

@@ -68,7 +68,7 @@ export default function SapfApprovalDetailPage({
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-3">
           <Button asChild variant="outline">
-            <Link href="/user/approvals">
+            <Link href="/user/bookings">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Link>

@@ -15,6 +15,14 @@ import { useEffect, useMemo, useState } from "react";
 import { getSapfWorkspace } from "./SapfActions";
 import { RequestSummary } from "./SapfRequestDetail";
 
+const visibleFollowStatuses = new Set([
+  "SUBMITTED",
+  "IN_REVIEW",
+  "RETURNED_FOR_REVISION",
+  "APPROVED",
+  "REJECTED",
+]);
+
 export default function SapfApprovalsPage() {
   const popup = usePopup();
   const [workspace, setWorkspace] = useState<any>(null);
@@ -48,6 +56,24 @@ export default function SapfApprovalsPage() {
       ),
     );
   }, [workspace]);
+  const followableRequests = useMemo(() => {
+    if (!workspace) return [];
+
+    const activeIds = new Set(reviewerCurrent.map((request: any) => request.id));
+    return workspace.requests.filter((request: any) => {
+      const isInApprovalChain =
+        workspace.me.role === "SUPER_ADMIN" ||
+        request.approvalSteps.some(
+          (step: any) => step.reviewerId === workspace.me.id,
+        );
+
+      return (
+        isInApprovalChain &&
+        !activeIds.has(request.id) &&
+        visibleFollowStatuses.has(request.status)
+      );
+    });
+  }, [reviewerCurrent, workspace]);
 
   if (loading && !workspace) {
     return (
@@ -85,41 +111,79 @@ export default function SapfApprovalsPage() {
           </CardHeader>
         </Card>
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5" />
-              Pending approvals
-            </CardTitle>
-            <CardDescription>
-              {reviewerCurrent.length} request
-              {reviewerCurrent.length === 1 ? "" : "s"} waiting for your review.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {reviewerCurrent.length === 0 ? (
-              <p className="text-sm text-gray-500">
-                No active assigned reviews.
-              </p>
-            ) : (
-              reviewerCurrent.map((request: any) => (
-                <div key={request.id} className="space-y-3">
-                  <RequestSummary
-                    request={request}
-                    showBadges={false}
-                    showConflict={false}
-                    showPdf={false}
-                  />
-                  <div className="flex justify-end">
-                    <Button asChild variant="outline">
-                      <Link href={`/user/approvals/${request.id}`}>View</Link>
-                    </Button>
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5" />
+                Pending approvals
+              </CardTitle>
+              <CardDescription>
+                {reviewerCurrent.length} request
+                {reviewerCurrent.length === 1 ? "" : "s"} waiting for your
+                review.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {reviewerCurrent.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  No active assigned reviews.
+                </p>
+              ) : (
+                reviewerCurrent.map((request: any) => (
+                  <div key={request.id} className="space-y-3">
+                    <RequestSummary
+                      request={request}
+                      showBadges={false}
+                      showConflict={false}
+                      showPdf={false}
+                    />
+                    <div className="flex justify-end">
+                      <Button asChild variant="outline">
+                        <Link href={`/user/approvals/${request.id}`}>View</Link>
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5" />
+                Following
+              </CardTitle>
+              <CardDescription>
+                Requests where you are part of the approval chain, including
+                ones you already approved.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {followableRequests.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  No other assigned requests to follow.
+                </p>
+              ) : (
+                followableRequests.map((request: any) => (
+                  <div key={request.id} className="space-y-3">
+                    <RequestSummary
+                      request={request}
+                      showConflict={false}
+                      showPdf={false}
+                    />
+                    <div className="flex justify-end">
+                      <Button asChild variant="outline">
+                        <Link href={`/user/approvals/${request.id}`}>View</Link>
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </>
       )}
     </div>
   );

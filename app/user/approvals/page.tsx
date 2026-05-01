@@ -1,4 +1,3 @@
-import SapfApprovalsPage from "@/app/components/pages/SAPF/SapfApprovalsPage";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -12,7 +11,7 @@ const page = async () => {
     redirect("/login");
   }
 
-  return <SapfApprovalsPage />;
+  redirect("/user/bookings");
 };
 
 export default page;

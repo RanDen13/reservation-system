@@ -270,7 +270,7 @@ export default function SapfDashboard() {
             <CardContent className="flex items-center justify-between">
               <p className="text-3xl font-bold">{waitingApprovalCount}</p>
               <Button asChild variant="outline">
-                <Link href="/user/approvals">Open approvals</Link>
+                <Link href="/user/bookings">Open bookings</Link>
               </Button>
             </CardContent>
           </Card>

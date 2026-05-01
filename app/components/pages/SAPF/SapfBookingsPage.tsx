@@ -9,13 +9,59 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/components/ui/card";
-import { History, RefreshCcw } from "lucide-react";
+import { CheckCircle, Clock, History, RefreshCcw } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { getSapfWorkspace } from "./SapfActions";
 import { RequestSummary } from "./SapfRequestDetail";
 
+const activeStatuses = new Set([
+  "DRAFT",
+  "SUBMITTED",
+  "IN_REVIEW",
+  "RETURNED_FOR_REVISION",
+]);
 const historyStatuses = new Set(["APPROVED", "REJECTED", "CANCELLED"]);
+const followStatuses = new Set([
+  "SUBMITTED",
+  "IN_REVIEW",
+  "RETURNED_FOR_REVISION",
+]);
+
+function RequestList({
+  requests,
+  hrefFor,
+  empty,
+  summaryProps,
+}: {
+  requests: any[];
+  hrefFor: (request: any) => string;
+  empty: string;
+  summaryProps?: {
+    showBadges?: boolean;
+    showConflict?: boolean;
+    showPdf?: boolean;
+  };
+}) {
+  if (requests.length === 0) {
+    return <p className="text-sm text-gray-500">{empty}</p>;
+  }
+
+  return (
+    <>
+      {requests.map((request: any) => (
+        <div key={request.id} className="space-y-3">
+          <RequestSummary request={request} {...summaryProps} />
+          <div className="flex justify-end">
+            <Button asChild variant="outline">
+              <Link href={hrefFor(request)}>View</Link>
+            </Button>
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
 
 export default function SapfBookingsPage() {
   const popup = usePopup();
@@ -45,11 +91,50 @@ export default function SapfBookingsPage() {
       historyStatuses.has(request.status),
     );
   }, [workspace]);
+  const pendingRequests = useMemo(() => {
+    if (!workspace) return [];
+
+    if (workspace.me.role === "OFFICER") {
+      return workspace.requests.filter((request: any) =>
+        activeStatuses.has(request.status),
+      );
+    }
+
+    return workspace.requests.filter((request: any) =>
+      request.approvalSteps.some(
+        (step: any) =>
+          step.status === "ACTIVE" &&
+          (step.reviewerId === workspace.me.id ||
+            workspace.me.role === "SUPER_ADMIN"),
+      ),
+    );
+  }, [workspace]);
+  const followingRequests = useMemo(() => {
+    if (!workspace || workspace.me.role === "OFFICER") return [];
+
+    const pendingIds = new Set(
+      pendingRequests.map((request: any) => request.id),
+    );
+
+    return workspace.requests.filter((request: any) => {
+      const isInApprovalChain =
+        workspace.me.role === "SUPER_ADMIN" ||
+        request.approvalSteps.some(
+          (step: any) => step.reviewerId === workspace.me.id,
+        );
+
+      return (
+        isInApprovalChain &&
+        !pendingIds.has(request.id) &&
+        followStatuses.has(request.status)
+      );
+    });
+  }, [pendingRequests, workspace]);
 
   if (loading && !workspace) {
     return (
       <div className="p-8">
-        <p className="text-gray-600">Loading booking history...</p>
+        <p className="text-gray-600">Loading bookings...</p>
       </div>
     );
   }
@@ -60,9 +145,9 @@ export default function SapfBookingsPage() {
     <div className="space-y-8 p-4 lg:p-8">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-950">Booking History</h1>
+          <h1 className="text-3xl font-bold text-gray-950">Bookings</h1>
           <p className="text-gray-600">
-            Approved, rejected, and cancelled SAPF requests.
+            Pending reviews, followed requests, and old SAPF records.
           </p>
         </div>
         <Button onClick={refresh} variant="outline" disabled={loading}>
@@ -74,29 +159,74 @@ export default function SapfBookingsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <History className="h-5 w-5" />
-            All history
+            <Clock className="h-5 w-5" />
+            Pending
           </CardTitle>
           <CardDescription>
-            {historyRequests.length} request
-            {historyRequests.length === 1 ? "" : "s"} in history.
+            {pendingRequests.length} request
+            {pendingRequests.length === 1 ? "" : "s"} waiting or in progress.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {historyRequests.length === 0 ? (
-            <p className="text-sm text-gray-500">No historical requests yet.</p>
-          ) : (
-            historyRequests.map((request: any) => (
-              <div key={request.id} className="space-y-3">
-                <RequestSummary request={request} showPdf={false} />
-                <div className="flex justify-end">
-                  <Button asChild variant="outline">
-                    <Link href={`/user/bookings/${request.id}`}>View</Link>
-                  </Button>
-                </div>
-              </div>
-            ))
-          )}
+        <CardContent className="space-y-4">
+          <RequestList
+            requests={pendingRequests}
+            hrefFor={(request) =>
+              workspace.me.role === "OFFICER"
+                ? `/user/bookings/${request.id}`
+                : `/user/approvals/${request.id}`
+            }
+            empty="No pending requests."
+            summaryProps={{
+              showBadges: workspace.me.role === "OFFICER",
+              showConflict: workspace.me.role === "OFFICER",
+              showPdf: false,
+            }}
+          />
+        </CardContent>
+      </Card>
+
+      {workspace.me.role !== "OFFICER" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5" />
+              Following
+            </CardTitle>
+            <CardDescription>
+              {followingRequests.length} request
+              {followingRequests.length === 1 ? "" : "s"} you can monitor after
+              your step.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <RequestList
+              requests={followingRequests}
+              hrefFor={(request) => `/user/approvals/${request.id}`}
+              empty="No requests to follow."
+              summaryProps={{ showConflict: false, showPdf: false }}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <History className="h-5 w-5" />
+            Old
+          </CardTitle>
+          <CardDescription>
+            {historyRequests.length} completed request
+            {historyRequests.length === 1 ? "" : "s"}.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <RequestList
+            requests={historyRequests}
+            hrefFor={(request) => `/user/bookings/${request.id}`}
+            empty="No old requests yet."
+            summaryProps={{ showPdf: false }}
+          />
         </CardContent>
       </Card>
     </div>
