@@ -9,6 +9,7 @@ export type EventSpaceData = EventSpace & {
   amenities?: Amenity[];
   sapfRequests?: any[];
   venueBlocks?: any[];
+  globalBlocks?: any[];
 };
 
 export const IMAGE_SCHEMA = z

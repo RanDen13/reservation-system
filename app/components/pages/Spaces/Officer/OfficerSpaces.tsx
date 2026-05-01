@@ -13,11 +13,14 @@ import { Label } from "@/app/components/ui/label";
 import { Building2, Search, Users } from "lucide-react";
 import { useState } from "react";
 import { EventSpaceData } from "../schema";
+import UniversityWideBlocks from "../UniversityWideBlocks";
 
 export default function OfficerSpaces({
   eventSpaces,
+  globalBlocks = [],
 }: {
   eventSpaces: EventSpaceData[];
+  globalBlocks?: any[];
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCapacity, setFilterCapacity] = useState("");
@@ -80,6 +83,8 @@ export default function OfficerSpaces({
           </div>
         </CardContent>
       </Card>
+
+      <UniversityWideBlocks blocks={globalBlocks} />
 
       <p className="text-gray-600">
         Showing <span className="font-semibold">{filteredSpaces.length}</span>{" "}

@@ -2,8 +2,10 @@
 
 import ErrorPopup from "@/app/components/Popup/ErrorPopup";
 import { usePopup } from "@/app/components/Popup/PopupProvider";
-import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
+import VenueMonthCalendar, {
+  VenueCalendarItem,
+} from "@/app/components/pages/Calendar/VenueMonthCalendar";
 import {
   Card,
   CardContent,
@@ -33,7 +35,6 @@ import {
   Building2,
   CalendarDays,
   CheckCircle,
-  Clock,
   Info,
   MapPin,
   Save,
@@ -65,12 +66,6 @@ function addCalendarDays(date: Date, days: number) {
   const result = new Date(date);
   result.setDate(result.getDate() + days);
   return result;
-}
-
-function statusClass(status: string) {
-  if (status === "APPROVED") return "bg-emerald-100 text-emerald-700";
-  if (status === "RETURNED_FOR_REVISION") return "bg-orange-100 text-orange-700";
-  return "bg-amber-100 text-amber-700";
 }
 
 function SapfForm({
@@ -428,7 +423,7 @@ const EventSpacePage = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const calendarItems = useMemo(() => {
+  const calendarItems = useMemo<VenueCalendarItem[]>(() => {
     if (!eventSpace) return [];
     return [
       ...(eventSpace.sapfRequests || []).map((request) => ({
@@ -437,7 +432,8 @@ const EventSpacePage = ({
         subtitle: request.organization,
         startAt: request.startAt,
         endAt: request.endAt,
-        status: request.status === "APPROVED" ? "BOOKED" : "PENDING",
+        status: request.status === "APPROVED" ? ("BOOKED" as const) : ("PENDING" as const),
+        scope: "VENUE" as const,
       })),
       ...(eventSpace.venueBlocks || []).map((block) => ({
         id: block.id,
@@ -445,7 +441,17 @@ const EventSpacePage = ({
         subtitle: block.reason || "Venue block",
         startAt: block.startAt,
         endAt: block.endAt,
-        status: "BLOCKED",
+        status: "BLOCKED" as const,
+        scope: "VENUE" as const,
+      })),
+      ...(eventSpace.globalBlocks || []).map((block) => ({
+        id: block.id,
+        title: block.title,
+        subtitle: block.reason || "University-wide block",
+        startAt: block.startAt,
+        endAt: block.endAt,
+        status: "BLOCKED" as const,
+        scope: "UNIVERSITY" as const,
       })),
     ].sort(
       (a, b) =>
@@ -532,36 +538,11 @@ const EventSpacePage = ({
         </TabsContent>
 
         <TabsContent value="calendar" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CalendarDays className="h-5 w-5" />
-                Venue Calendar
-              </CardTitle>
-              <CardDescription>Pending requests are soft holds; approved requests and blocks reserve the slot.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {calendarItems.length === 0 ? (
-                <p className="text-sm text-gray-500">No pending or booked dates yet.</p>
-              ) : (
-                calendarItems.map((item) => (
-                  <div key={item.id} className="flex flex-col gap-2 rounded-lg border p-4 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <p className="font-semibold">{item.title}</p>
-                      <p className="text-sm text-gray-600">{item.subtitle}</p>
-                      <p className="mt-1 flex items-center gap-2 text-sm text-gray-700">
-                        <Clock className="h-4 w-4" />
-                        {format(new Date(item.startAt), "MMM d, yyyy h:mm a")} to {format(new Date(item.endAt), "h:mm a")}
-                      </p>
-                    </div>
-                    <Badge className={item.status === "BOOKED" ? "bg-emerald-100 text-emerald-700" : item.status === "BLOCKED" ? "bg-red-100 text-red-700" : statusClass(item.status)}>
-                      {item.status}
-                    </Badge>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
+          <VenueMonthCalendar
+            items={calendarItems}
+            title={`${eventSpace.name} calendar`}
+            description="Pending requests are soft holds; booked reservations and blocks reserve dates."
+          />
         </TabsContent>
 
         {canCreateReservation && (

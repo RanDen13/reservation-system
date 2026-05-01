@@ -2,6 +2,8 @@
 
 import CreateEventSpacePopup from "@/app/components/EventSpace/CreateEventSpacePopup";
 import EventSpaceCard from "@/app/components/EventSpace/EventSpaceCard";
+import { usePopup } from "@/app/components/Popup/PopupProvider";
+import { createVenueBlock } from "@/app/components/pages/SAPF/SapfActions";
 import { Button } from "@/app/components/ui/button";
 import {
   Card,
@@ -13,18 +15,35 @@ import {
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { motion } from "framer-motion";
-import { Building2, Calendar, Plus, Search, Users } from "lucide-react";
+import { Building2, Calendar, CalendarX, Plus, Search, Users } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { EventSpaceData } from "../schema";
+import UniversityWideBlocks from "../UniversityWideBlocks";
 
 export default function AdminSpaces({
   eventSpaces,
+  globalBlocks = [],
 }: {
   eventSpaces: EventSpaceData[];
+  globalBlocks?: any[];
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCapacity, setFilterCapacity] = useState("");
   const [showCreatePopup, setShowCreatePopup] = useState(false);
+  const popup = usePopup();
+  const router = useRouter();
+
+  const handleCreateGlobalBlock = async (formData: FormData) => {
+    formData.set("eventSpaceId", "ALL");
+    const result = await createVenueBlock(formData);
+    if (!result.success) {
+      popup.showError(result.message || "Failed to create block.");
+      return;
+    }
+    popup.showSuccess(result.message || "University-wide block created.");
+    router.refresh();
+  };
 
   const filteredSpaces = eventSpaces.filter((space) => {
     const matchesSearch = space.name
@@ -115,6 +134,50 @@ export default function AdminSpaces({
           </CardContent>
         </Card>
       </motion.div>
+
+      <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
+        <UniversityWideBlocks blocks={globalBlocks} />
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CalendarX className="h-5 w-5 text-violet-700" />
+              Add University Block
+            </CardTitle>
+            <CardDescription>
+              Block a date or time range for every venue.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form action={handleCreateGlobalBlock} className="space-y-3">
+              <div>
+                <Label>Title</Label>
+                <Input name="title" required />
+              </div>
+              <div>
+                <Label>Date</Label>
+                <Input name="date" type="date" required />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label>Start</Label>
+                  <Input name="startTime" type="time" required />
+                </div>
+                <div>
+                  <Label>End</Label>
+                  <Input name="endTime" type="time" required />
+                </div>
+              </div>
+              <div>
+                <Label>Reason</Label>
+                <Input name="reason" />
+              </div>
+              <Button className="w-full bg-violet-600 hover:bg-violet-700">
+                Create Block
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Filters */}
       <motion.div

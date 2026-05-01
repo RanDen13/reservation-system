@@ -20,6 +20,12 @@ export async function getVenueCalendarData() {
               ] as any,
             },
           },
+          select: {
+            id: true,
+            startAt: true,
+            endAt: true,
+            status: true,
+          },
           orderBy: {
             startAt: "asc",
           },

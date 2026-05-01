@@ -16,11 +16,13 @@ import EditEventSpacePopup from "./EditEventSpacePopup";
 interface EventAreaProps {
   eventSpace: EventSpace & { amenities?: Amenity[] };
   showAdminActions?: boolean;
+  detailsHref?: string;
 }
 
 export default function EventSpaceCard({
   eventSpace,
   showAdminActions = false,
+  detailsHref,
 }: EventAreaProps) {
   const {
     id,
@@ -171,7 +173,7 @@ export default function EventSpaceCard({
               </Button>
             </div>
           ) : (
-            <Link href={`/user/spaces/${id}`} className="block">
+            <Link href={detailsHref || `/user/spaces/${id}`} className="block">
               <Button variant="outline" className="w-full cursor-pointer">
                 View Details
               </Button>

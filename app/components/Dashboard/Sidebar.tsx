@@ -4,7 +4,6 @@ import { Button } from "@/app/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   Building2,
-  CalendarDays,
   History,
   Home,
   LayoutDashboard,
@@ -54,11 +53,6 @@ const navItems: NavItem[] = [
     label: "Venues",
     href: "/user/spaces",
     icon: <Building2 className="h-5 w-5" />,
-  },
-  {
-    label: "Public Calendar",
-    href: "/user/calendar",
-    icon: <CalendarDays className="h-5 w-5" />,
   },
 ];
 

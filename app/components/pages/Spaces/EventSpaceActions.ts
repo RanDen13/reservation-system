@@ -50,6 +50,48 @@ export async function getAllEventSpaces(): Promise<
   }
 }
 
+export async function getGlobalVenueBlocks(): Promise<ActionResult<any[]>> {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (!session?.user) {
+      return {
+        success: false,
+        message: "Unauthorized access.",
+      };
+    }
+
+    const blocks = await prisma.venueBlock.findMany({
+      where: {
+        eventSpaceId: null,
+      },
+      select: {
+        id: true,
+        title: true,
+        reason: true,
+        startAt: true,
+        endAt: true,
+      },
+      orderBy: {
+        startAt: "asc",
+      },
+    });
+
+    return {
+      success: true,
+      data: blocks,
+    };
+  } catch (error) {
+    console.error("Error fetching university-wide blocks:", error);
+    return {
+      success: false,
+      message:
+        (error as Error).message || "Failed to fetch university-wide blocks.",
+    };
+  }
+}
+
 export async function getEventSpaceById(
   id: string,
 ): Promise<ActionResult<EventSpaceData>> {
@@ -63,48 +105,65 @@ export async function getEventSpaceById(
         message: "Unauthorized access.",
       };
     }
-    const space = await prisma.eventSpace.findUnique({
-      where: { id },
-      include: {
-        amenities: true,
-        sapfRequests: {
-          where: {
-            status: {
-              in: [
-                "SUBMITTED",
-                "IN_REVIEW",
-                "RETURNED_FOR_REVISION",
-                "APPROVED",
-              ] as any,
+    const [space, globalBlocks] = await Promise.all([
+      prisma.eventSpace.findUnique({
+        where: { id },
+        include: {
+          amenities: true,
+          sapfRequests: {
+            where: {
+              status: {
+                in: [
+                  "SUBMITTED",
+                  "IN_REVIEW",
+                  "RETURNED_FOR_REVISION",
+                  "APPROVED",
+                ] as any,
+              },
+            },
+            select: {
+              id: true,
+              requestNumber: true,
+              title: true,
+              organization: true,
+              startAt: true,
+              endAt: true,
+              status: true,
+            },
+            orderBy: {
+              startAt: "asc",
             },
           },
-          select: {
-            id: true,
-            requestNumber: true,
-            title: true,
-            organization: true,
-            startAt: true,
-            endAt: true,
-            status: true,
-          },
-          orderBy: {
-            startAt: "asc",
-          },
-        },
-        venueBlocks: {
-          select: {
-            id: true,
-            title: true,
-            reason: true,
-            startAt: true,
-            endAt: true,
-          },
-          orderBy: {
-            startAt: "asc",
+          venueBlocks: {
+            select: {
+              id: true,
+              title: true,
+              reason: true,
+              startAt: true,
+              endAt: true,
+            },
+            orderBy: {
+              startAt: "asc",
+            },
           },
         },
-      },
-    });
+      }),
+      prisma.venueBlock.findMany({
+        where: {
+          eventSpaceId: null,
+        },
+        select: {
+          id: true,
+          title: true,
+          reason: true,
+          startAt: true,
+          endAt: true,
+        },
+        orderBy: {
+          startAt: "asc",
+        },
+      }),
+    ]);
     if (!space) {
       return {
         success: false,
@@ -114,7 +173,10 @@ export async function getEventSpaceById(
 
     return {
       success: true,
-      data: space,
+      data: {
+        ...space,
+        globalBlocks,
+      },
     };
   } catch (error) {
     console.error("Error fetching event space:", error);
