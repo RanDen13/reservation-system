@@ -3,7 +3,13 @@
 import { usePopup } from "@/app/components/Popup/PopupProvider";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
-import { Card, CardContent } from "@/app/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
@@ -15,6 +21,8 @@ import {
   RefreshCcw,
   XCircle,
 } from "lucide-react";
+import { useState } from "react";
+import ModalBase from "../../Popup/ModalBase";
 import { addConcernMessage, reviewSapfRequest } from "./SapfActions";
 import SapfReadonlyDetails from "./SapfReadonlyDetails";
 
@@ -210,6 +218,10 @@ function ReviewControls({
   onRefresh: () => Promise<void>;
 }) {
   const popup = usePopup();
+  const [selectedAction, setSelectedAction] = useState<
+    "approve" | "return" | "reject" | null
+  >(null);
+  const [submitting, setSubmitting] = useState(false);
   if (me?.role === "SUPER_ADMIN") return null;
   const step = request.approvalSteps?.find(
     (item: any) => item.status === "ACTIVE" && item.reviewerId === me.id,
@@ -218,14 +230,43 @@ function ReviewControls({
   if (!step) return null;
 
   const handleReview = async (formData: FormData) => {
+    setSubmitting(true);
     const result = await reviewSapfRequest(formData);
+    setSubmitting(false);
     if (!result.success) {
       popup.showError(result.message);
       return;
     }
+    setSelectedAction(null);
     popup.showSuccess(result.message || "Review saved.");
     await onRefresh();
   };
+
+  const approveFormId = `approve-form-${step.id}`;
+  const selectedActionLabel =
+    selectedAction === "approve"
+      ? "Approve request"
+      : selectedAction === "return"
+        ? "Return for revision"
+        : "Reject request";
+  const selectedActionDescription =
+    selectedAction === "approve"
+      ? "Add an optional approval comment before moving this request forward."
+      : selectedAction === "return"
+        ? "Tell the officer what needs to be revised before this can continue."
+        : "Provide the rejection reason that will be recorded on this request.";
+  const selectedActionCommentLabel =
+    selectedAction === "approve"
+      ? "Approval comment"
+      : selectedAction === "return"
+        ? "Revision comment"
+        : "Rejection reason";
+  const selectedActionPlaceholder =
+    selectedAction === "approve"
+      ? "Optional approval comment"
+      : selectedAction === "return"
+        ? "What should the officer revise?"
+        : "Why is this request rejected?";
 
   return (
     <div className="space-y-4 rounded-lg border bg-blue-50 p-4">
@@ -239,7 +280,7 @@ function ReviewControls({
           <div>
             <Label>Parent&apos;s Consent Form</Label>
             <Input
-              form="approve-form"
+              form={approveFormId}
               name="parentsConsent"
               placeholder="Yes / Not Applicable"
             />
@@ -247,7 +288,7 @@ function ReviewControls({
           <div>
             <Label>Attachments</Label>
             <Input
-              form="approve-form"
+              form={approveFormId}
               name="attachments"
               placeholder="List attachments"
             />
@@ -255,7 +296,7 @@ function ReviewControls({
           <div>
             <Label>Academic Class Interruption</Label>
             <Input
-              form="approve-form"
+              form={approveFormId}
               name="academicInterruption"
               placeholder="Yes / None"
             />
@@ -263,7 +304,7 @@ function ReviewControls({
           <div>
             <Label>Academic Remarks</Label>
             <Input
-              form="approve-form"
+              form={approveFormId}
               name="academicRemarks"
               placeholder="Remarks"
             />
@@ -271,7 +312,7 @@ function ReviewControls({
           <div>
             <Label>Medical Exam Request</Label>
             <Input
-              form="approve-form"
+              form={approveFormId}
               name="medicalExam"
               placeholder="Yes / Not Applicable"
             />
@@ -279,7 +320,7 @@ function ReviewControls({
           <div>
             <Label>Report of Compliance</Label>
             <Input
-              form="approve-form"
+              form={approveFormId}
               name="reportOfCompliance"
               placeholder="Yes / Not Applicable"
             />
@@ -287,7 +328,7 @@ function ReviewControls({
           <div>
             <Label>Student-Personnel Ratio</Label>
             <Input
-              form="approve-form"
+              form={approveFormId}
               name="studentPersonnelRatio"
               placeholder="e.g. 1:30"
             />
@@ -296,39 +337,88 @@ function ReviewControls({
       )}
 
       <div className="grid gap-3 lg:grid-cols-3">
-        <form id="approve-form" action={handleReview} className="space-y-2">
-          <input type="hidden" name="requestId" value={request.id} />
-          <input type="hidden" name="stepId" value={step.id} />
-          <input type="hidden" name="action" value="approve" />
-          <Textarea name="comment" placeholder="Optional approval comment" />
-          <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
-            <CheckCircle className="mr-2 h-4 w-4" />
-            Approve
-          </Button>
-        </form>
-
-        <form action={handleReview} className="space-y-2">
-          <input type="hidden" name="requestId" value={request.id} />
-          <input type="hidden" name="stepId" value={step.id} />
-          <input type="hidden" name="action" value="return" />
-          <Textarea name="comment" placeholder="Revision comment" required />
-          <Button variant="outline" className="w-full">
-            <RefreshCcw className="mr-2 h-4 w-4" />
-            Return
-          </Button>
-        </form>
-
-        <form action={handleReview} className="space-y-2">
-          <input type="hidden" name="requestId" value={request.id} />
-          <input type="hidden" name="stepId" value={step.id} />
-          <input type="hidden" name="action" value="reject" />
-          <Textarea name="comment" placeholder="Rejection reason" required />
-          <Button variant="destructive" className="w-full">
-            <XCircle className="mr-2 h-4 w-4" />
-            Reject
-          </Button>
-        </form>
+        <Button
+          type="button"
+          className="w-full bg-emerald-600 hover:bg-emerald-700"
+          onClick={() => setSelectedAction("approve")}
+        >
+          <CheckCircle className="mr-2 h-4 w-4" />
+          Approve
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full bg-white"
+          onClick={() => setSelectedAction("return")}
+        >
+          <RefreshCcw className="mr-2 h-4 w-4" />
+          Return
+        </Button>
+        <Button
+          type="button"
+          variant="destructive"
+          className="w-full"
+          onClick={() => setSelectedAction("reject")}
+        >
+          <XCircle className="mr-2 h-4 w-4" />
+          Reject
+        </Button>
       </div>
+
+      {selectedAction && (
+        <ModalBase onClose={() => setSelectedAction(null)}>
+          <Card className="w-[min(92vw,520px)]">
+            <CardHeader>
+              <CardTitle>{selectedActionLabel}</CardTitle>
+              <CardDescription>{selectedActionDescription}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form
+                id={selectedAction === "approve" ? approveFormId : undefined}
+                action={handleReview}
+                className="space-y-4"
+              >
+                <input type="hidden" name="requestId" value={request.id} />
+                <input type="hidden" name="stepId" value={step.id} />
+                <input type="hidden" name="action" value={selectedAction} />
+                <div>
+                  <Label>{selectedActionCommentLabel}</Label>
+                  <Textarea
+                    name="comment"
+                    placeholder={selectedActionPlaceholder}
+                    required={selectedAction !== "approve"}
+                    rows={4}
+                  />
+                </div>
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setSelectedAction(null)}
+                    disabled={submitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={submitting}
+                    variant={
+                      selectedAction === "reject" ? "destructive" : "default"
+                    }
+                    className={
+                      selectedAction === "approve"
+                        ? "bg-emerald-600 hover:bg-emerald-700"
+                        : ""
+                    }
+                  >
+                    {submitting ? "Saving..." : selectedActionLabel}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </ModalBase>
+      )}
     </div>
   );
 }
