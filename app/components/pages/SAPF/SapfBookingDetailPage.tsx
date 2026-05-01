@@ -2,10 +2,10 @@
 
 import { usePopup } from "@/app/components/Popup/PopupProvider";
 import { Button } from "@/app/components/ui/button";
-import { ArrowLeft, FileDown, RefreshCcw } from "lucide-react";
+import { ArrowLeft, FileDown, RefreshCcw, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getSapfRequestById } from "./SapfActions";
+import { cancelSapfRequest, getSapfRequestById } from "./SapfActions";
 import SapfReadonlyDetails from "./SapfReadonlyDetails";
 import { RequestSummary } from "./SapfRequestDetail";
 
@@ -45,7 +45,27 @@ export default function SapfBookingDetailPage({
 
   if (!payload) return null;
 
-  const { request } = payload;
+  const { request, me } = payload;
+  const canCancel =
+    me?.role === "OFFICER" &&
+    !["CANCELLED", "REJECTED"].includes(request.status);
+
+  const handleCancel = async () => {
+    const confirmed = await popup.showYesNo(
+      "Cancel this reservation? This will stop the approval flow and release the slot.",
+    );
+    if (!confirmed) return;
+
+    const formData = new FormData();
+    formData.set("requestId", request.id);
+    const result = await cancelSapfRequest(formData);
+    if (!result.success) {
+      popup.showError(result.message || "Failed to cancel reservation.");
+      return;
+    }
+    popup.showSuccess(result.message || "Reservation cancelled.");
+    await refresh();
+  };
 
   return (
     <div className="space-y-6 p-4 lg:p-8">
@@ -85,6 +105,12 @@ export default function SapfBookingDetailPage({
                 <FileDown className="mr-2 h-4 w-4" />
                 View Reservation PDF
               </a>
+            </Button>
+          )}
+          {canCancel && (
+            <Button onClick={handleCancel} variant="destructive" disabled={loading}>
+              <XCircle className="mr-2 h-4 w-4" />
+              Cancel Reservation
             </Button>
           )}
           <Button onClick={refresh} variant="outline" disabled={loading}>

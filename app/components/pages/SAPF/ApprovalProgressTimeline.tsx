@@ -1,9 +1,9 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Check, Clock, RefreshCcw, X } from "lucide-react";
+import { Check, Clock, Minus, RefreshCcw, X } from "lucide-react";
 
-const completedStatuses = new Set(["APPROVED", "SKIPPED"]);
+const completedStatuses = new Set(["APPROVED"]);
 
 function statusLabel(status: string) {
   return status.replaceAll("_", " ");
@@ -24,6 +24,7 @@ function StepIcon({ status }: { status: string }) {
   if (status === "REJECTED") return <X className="h-3.5 w-3.5" />;
   if (status === "RETURNED") return <RefreshCcw className="h-3.5 w-3.5" />;
   if (status === "ACTIVE") return <Clock className="h-3.5 w-3.5" />;
+  if (status === "SKIPPED") return <Minus className="h-3.5 w-3.5" />;
   if (completedStatuses.has(status)) return <Check className="h-3.5 w-3.5" />;
   return <span className="h-2 w-2 rounded-full bg-current" />;
 }
@@ -33,6 +34,7 @@ function dotClass(status: string) {
   if (status === "RETURNED")
     return "border-orange-500 bg-orange-500 text-white";
   if (status === "ACTIVE") return "border-blue-600 bg-blue-600 text-white";
+  if (status === "SKIPPED") return "border-gray-300 bg-gray-100 text-gray-400";
   if (completedStatuses.has(status))
     return "border-gray-950 bg-gray-950 text-white";
   return "border-gray-300 bg-white text-gray-300";
@@ -64,7 +66,8 @@ export default function ApprovalProgressTimeline({
     },
   ];
   const minWidth = Math.max(timelineSteps.length * 112, 420);
-  const isReached = (step: any) => step.status !== "PENDING";
+  const isReached = (step: any) =>
+    step.status !== "PENDING" && step.status !== "SKIPPED";
   const segmentDone = (index: number) =>
     isReached(timelineSteps[index]) && isReached(timelineSteps[index + 1]);
 

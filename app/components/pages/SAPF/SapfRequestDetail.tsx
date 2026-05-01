@@ -38,6 +38,8 @@ function formatFileSize(bytes: number) {
 function statusClass(status: string) {
   if (status === "APPROVED") return "bg-emerald-100 text-emerald-700";
   if (status === "REJECTED") return "bg-red-100 text-red-700";
+  if (status === "CANCELLED" || status === "SKIPPED")
+    return "bg-gray-100 text-gray-700";
   if (status === "RETURNED_FOR_REVISION" || status === "RETURNED")
     return "bg-orange-100 text-orange-700";
   if (status === "ACTIVE" || status === "IN_REVIEW")

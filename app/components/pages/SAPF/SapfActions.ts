@@ -1167,6 +1167,117 @@ export async function saveSapfRequest(
   }
 }
 
+export async function cancelSapfRequest(
+  data: FormData,
+): Promise<ActionResult<void>> {
+  try {
+    const user = await getSessionUser();
+    if (!user || !requireRole(user.role, ["OFFICER"])) {
+      return {
+        success: false,
+        message: "Only officers can cancel their reservations.",
+      };
+    }
+
+    const requestId = field(data, "requestId");
+    const comment = field(data, "comment") || "Cancelled by officer.";
+
+    const request = await prisma.sAPFRequest.findFirst({
+      where: {
+        id: requestId,
+        officerId: user.id,
+      },
+      include: {
+        approvalSteps: true,
+      },
+    });
+
+    if (!request) {
+      return {
+        success: false,
+        message: "Reservation request not found.",
+      };
+    }
+
+    if (["CANCELLED", "REJECTED"].includes(request.status)) {
+      return {
+        success: false,
+        message: "This reservation can no longer be cancelled.",
+      };
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.sAPFRequest.update({
+        where: { id: request.id },
+        data: {
+          status: "CANCELLED" as any,
+          currentStepOrder: null,
+          conflictWarning: false,
+        },
+      });
+      await tx.approvalStep.updateMany({
+        where: {
+          requestId: request.id,
+          status: {
+            in: ["PENDING", "ACTIVE", "RETURNED"] as any,
+          },
+        },
+        data: {
+          status: "SKIPPED" as any,
+          comment,
+          actedAt: new Date(),
+        },
+      });
+      await tx.approvalAction.create({
+        data: {
+          id: uuid(),
+          requestId: request.id,
+          actorId: user.id,
+          action: "CANCELLED" as any,
+          comment,
+        },
+      });
+    });
+
+    const reviewerIds = [
+      ...new Set(
+        request.approvalSteps
+          .filter((step) => ["PENDING", "ACTIVE", "RETURNED"].includes(step.status))
+          .map((step) => step.reviewerId),
+      ),
+    ];
+
+    await Promise.all(
+      reviewerIds.map((reviewerId) =>
+        createNotification(
+          reviewerId,
+          "Reservation cancelled",
+          `${request.requestNumber} was cancelled by the officer.`,
+          "REQUEST",
+          request.id,
+        ),
+      ),
+    );
+
+    revalidatePath("/user/dashboard");
+    revalidatePath("/user/bookings");
+    revalidatePath(`/user/bookings/${request.id}`);
+    revalidatePath("/user/approvals");
+    revalidatePath("/calendar");
+
+    return {
+      success: true,
+      message: "Reservation cancelled.",
+    };
+  } catch (error) {
+    console.error("Reservation cancellation failed:", error);
+    return {
+      success: false,
+      message: (error as Error).message || "Failed to cancel reservation.",
+    };
+  }
+}
+
 async function getOrCreateThread(request: any, step: any) {
   const existing = await prisma.concernThread.findUnique({
     where: { approvalStepId: step.id },
