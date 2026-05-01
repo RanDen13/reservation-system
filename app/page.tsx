@@ -13,11 +13,13 @@ import {
   CheckCircle,
   Clock,
   FileText,
+  LayoutDashboard,
   LogIn,
   MapPin,
   ShieldCheck,
   Users,
 } from "lucide-react";
+import { useSession } from "@/lib/auth-client";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -94,6 +96,12 @@ const features = [
 ];
 
 export default function Home() {
+  const session = useSession();
+  const isLoggedIn = Boolean(session.data?.user);
+  const accountHref = isLoggedIn ? "/user/dashboard" : "/login";
+  const AccountIcon = isLoggedIn ? LayoutDashboard : LogIn;
+  const accountLabel = isLoggedIn ? "Go to dashboard" : "Login";
+
   return (
     <div className="min-h-screen bg-white text-gray-950">
       <section className="relative flex min-h-[92vh] items-center overflow-hidden px-4 py-20 sm:px-6 lg:px-20">
@@ -147,9 +155,9 @@ export default function Home() {
                 size="lg"
                 className="bg-emerald-600 px-8 hover:bg-emerald-700"
               >
-                <Link href="/login">
-                  <LogIn className="mr-2 h-5 w-5" />
-                  Login
+                <Link href={accountHref}>
+                  <AccountIcon className="mr-2 h-5 w-5" />
+                  {accountLabel}
                 </Link>
               </Button>
               <Button
@@ -306,7 +314,9 @@ export default function Home() {
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Button asChild size="lg" className="bg-emerald-600 hover:bg-emerald-700">
-              <Link href="/login">Sign in</Link>
+              <Link href={accountHref}>
+                {isLoggedIn ? "Go to dashboard" : "Sign in"}
+              </Link>
             </Button>
             <Button asChild size="lg" variant="secondary">
               <Link href="/calendar">View calendar</Link>

@@ -27,6 +27,7 @@ const requiredFixedPositions = [
   "VPAA",
   "UNIVERSITY_PRESIDENT",
 ] as const;
+const MIN_BOOKING_ADVANCE_DAYS = 30;
 const MAX_SDS_ATTACHMENT_BYTES = 25 * 1024 * 1024;
 const sapfAttachmentMetadataSelect = {
   id: true,
@@ -106,6 +107,28 @@ function numberField(data: FormData, key: string, fallback = 0) {
 
 function localDateTime(date: string, time: string) {
   return new Date(`${date}T${time}:00`);
+}
+
+function startOfLocalDay(date = new Date()) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function addCalendarDays(date: Date, days: number) {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+}
+
+function minimumBookingDate() {
+  return addCalendarDays(startOfLocalDay(), MIN_BOOKING_ADVANCE_DAYS);
+}
+
+function formatDateForMessage(date: Date) {
+  return date.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 function hasOverlap(
@@ -924,14 +947,25 @@ export async function saveSapfRequest(
       };
     }
 
-    if (
-      Number.isNaN(startAt.getTime()) ||
-      Number.isNaN(endAt.getTime()) ||
-      endAt <= startAt
-    ) {
+    if (Number.isNaN(startAt.getTime()) || Number.isNaN(endAt.getTime())) {
       return {
         success: false,
         message: "Please select a valid date and time range.",
+      };
+    }
+
+    if (endAt <= startAt) {
+      return {
+        success: false,
+        message: "End time must be later than start time.",
+      };
+    }
+
+    const earliestBookingDate = minimumBookingDate();
+    if (startAt < earliestBookingDate) {
+      return {
+        success: false,
+        message: `Reservations must be booked at least ${MIN_BOOKING_ADVANCE_DAYS} days in advance. Choose ${formatDateForMessage(earliestBookingDate)} or later.`,
       };
     }
 

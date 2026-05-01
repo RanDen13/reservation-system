@@ -34,6 +34,7 @@ import {
   CalendarDays,
   CheckCircle,
   Clock,
+  Info,
   MapPin,
   Save,
   Send,
@@ -51,6 +52,20 @@ import EventSpaceSkeleton from "./EventSpaceSkeleton";
 import { EventSpaceData } from "./schema";
 
 type AppRole = "OFFICER" | "APPROVER" | "ADMIN" | "SUPER_ADMIN";
+const MIN_BOOKING_ADVANCE_DAYS = 30;
+
+function toDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function addCalendarDays(date: Date, days: number) {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+}
 
 function statusClass(status: string) {
   if (status === "APPROVED") return "bg-emerald-100 text-emerald-700";
@@ -69,8 +84,36 @@ function SapfForm({
 }) {
   const popup = usePopup();
   const [selectedDate, setSelectedDate] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const earliestBookingDate = useMemo(
+    () => addCalendarDays(new Date(), MIN_BOOKING_ADVANCE_DAYS),
+    [],
+  );
+  const minimumBookingDate = toDateInputValue(earliestBookingDate);
+  const earliestBookingDateLabel = format(earliestBookingDate, "MMM d, yyyy");
 
   const handleSave = async (formData: FormData) => {
+    const activityDate = String(formData.get("activityDate") ?? "");
+    const selectedStartTime = String(formData.get("startTime") ?? "");
+    const selectedEndTime = String(formData.get("endTime") ?? "");
+
+    if (activityDate && activityDate < minimumBookingDate) {
+      popup.showError(
+        `Reservations must be booked at least ${MIN_BOOKING_ADVANCE_DAYS} days in advance.`,
+      );
+      return;
+    }
+
+    if (
+      selectedStartTime &&
+      selectedEndTime &&
+      selectedEndTime <= selectedStartTime
+    ) {
+      popup.showError("End time must be later than start time.");
+      return;
+    }
+
     formData.set("venue", eventSpace.name);
     const result = await saveSapfRequest(formData);
     if (!result.success) {
@@ -91,26 +134,55 @@ function SapfForm({
             <CalendarDays className="h-5 w-5" />
             Schedule
           </CardTitle>
-          <CardDescription>Select the venue date and time first.</CardDescription>
+          <CardDescription>
+            Select a venue schedule at least 30 days in advance.
+          </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
+          <div className="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900 md:col-span-3">
+            <Info className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>
+              Reservations can only be booked at least 30 days in advance.
+              Earliest available date: {earliestBookingDateLabel}.
+            </p>
+          </div>
           <div>
             <Label>Activity Date</Label>
             <Input
               name="activityDate"
               type="date"
               value={selectedDate}
+              min={minimumBookingDate}
               onChange={(event) => setSelectedDate(event.target.value)}
               required
             />
           </div>
           <div>
             <Label>Start Time</Label>
-            <Input name="startTime" type="time" required />
+            <Input
+              name="startTime"
+              type="time"
+              value={startTime}
+              onChange={(event) => {
+                const nextStartTime = event.target.value;
+                setStartTime(nextStartTime);
+                if (endTime && nextStartTime && endTime <= nextStartTime) {
+                  setEndTime("");
+                }
+              }}
+              required
+            />
           </div>
           <div>
             <Label>End Time</Label>
-            <Input name="endTime" type="time" required />
+            <Input
+              name="endTime"
+              type="time"
+              value={endTime}
+              min={startTime || undefined}
+              onChange={(event) => setEndTime(event.target.value)}
+              required
+            />
           </div>
         </CardContent>
       </Card>
