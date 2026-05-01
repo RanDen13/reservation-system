@@ -1,7 +1,6 @@
 "use server";
 
 import ActionResult from "@/app/components/ActionResult";
-import { provisionMagicAccount } from "@/lib/account-provisioning";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
@@ -724,22 +723,24 @@ export async function getSapfWorkspace(): Promise<ActionResult<any>> {
           : Promise.resolve([]),
       ]);
 
-    const sanitizedRequests = requests.map((request: any) => normalizeSapfRequest({
-      ...request,
-      approvalSteps: request.approvalSteps.map((step: any) => {
-        const thread = step.concernThread;
-        const canSeeThread =
-          !thread ||
-          role === "SUPER_ADMIN" ||
-          thread.officerId === user.id ||
-          thread.reviewerId === user.id;
+    const sanitizedRequests = requests.map((request: any) =>
+      normalizeSapfRequest({
+        ...request,
+        approvalSteps: request.approvalSteps.map((step: any) => {
+          const thread = step.concernThread;
+          const canSeeThread =
+            !thread ||
+            role === "SUPER_ADMIN" ||
+            thread.officerId === user.id ||
+            thread.reviewerId === user.id;
 
-        return {
-          ...step,
-          concernThread: canSeeThread ? thread : null,
-        };
+          return {
+            ...step,
+            concernThread: canSeeThread ? thread : null,
+          };
+        }),
       }),
-    }));
+    );
 
     return {
       success: true,
@@ -1242,7 +1243,9 @@ export async function cancelSapfRequest(
     const reviewerIds = [
       ...new Set(
         request.approvalSteps
-          .filter((step) => ["PENDING", "ACTIVE", "RETURNED"].includes(step.status))
+          .filter((step) =>
+            ["PENDING", "ACTIVE", "RETURNED"].includes(step.status),
+          )
           .map((step) => step.reviewerId),
       ),
     ];
@@ -1320,7 +1323,10 @@ export async function reviewSapfRequest(
     });
 
     if (!request) {
-      return { success: false, message: "Venue reservation request not found." };
+      return {
+        success: false,
+        message: "Venue reservation request not found.",
+      };
     }
 
     const step = request.approvalSteps.find((item) => item.id === stepId);
@@ -1677,7 +1683,10 @@ export async function addConcernMessage(
     });
 
     if (!request) {
-      return { success: false, message: "Venue reservation request not found." };
+      return {
+        success: false,
+        message: "Venue reservation request not found.",
+      };
     }
     const step = request.approvalSteps.find((item) => item.id === stepId);
     if (!step) {
@@ -1766,11 +1775,12 @@ export async function createManagedAccount(
 
     const email = field(data, "email").toLowerCase();
 
-    await provisionMagicAccount({
-      email,
-      name: field(data, "name"),
-      role: role as UserRoleValue,
-    });
+    if (!email) {
+      return { success: false, message: "Email is required." };
+    }
+    if (!field(data, "name")) {
+      return { success: false, message: "Name is required." };
+    }
 
     await auth.api.signInMagicLink({
       headers: await headers(),
@@ -1780,6 +1790,23 @@ export async function createManagedAccount(
         newUserCallbackURL: "/first-login",
         errorCallbackURL: "/login",
       },
+    });
+
+    const createdUser = await auth.api.createUser({
+      headers: await headers(),
+      body: {
+        email,
+        name: field(data, "name"),
+      },
+    });
+
+    if (!createdUser?.user) {
+      throw new Error("Error creating user");
+    }
+
+    await prisma.user.update({
+      where: { id: createdUser.user.id },
+      data: { role },
     });
 
     revalidatePath("/user/dashboard");
@@ -1818,6 +1845,12 @@ export async function getAccountsWorkspace(): Promise<ActionResult<any>> {
         banReason: true,
         banExpires: true,
         createdAt: true,
+        accounts: {
+          where: { providerId: "credential" },
+          select: {
+            password: true,
+          },
+        },
         approverPositions: {
           where: { active: true },
           select: {
@@ -1827,9 +1860,25 @@ export async function getAccountsWorkspace(): Promise<ActionResult<any>> {
       },
     });
 
+    const normalizedUsers = users.map((account) => {
+      const hasPassword = account.accounts.some((entry) =>
+        Boolean(entry.password),
+      );
+      const status = account.banned
+        ? "INACTIVE"
+        : hasPassword
+          ? "ACTIVE"
+          : "PENDING";
+
+      return {
+        ...account,
+        status,
+      };
+    });
+
     return {
       success: true,
-      data: jsonSafe({ users }),
+      data: jsonSafe({ users: normalizedUsers, currentUserId: user.id }),
     };
   } catch (error) {
     console.error("Accounts load failed:", error);
@@ -1837,6 +1886,154 @@ export async function getAccountsWorkspace(): Promise<ActionResult<any>> {
       success: false,
       message: (error as Error).message || "Failed to load accounts.",
     };
+  }
+}
+
+export async function sendMagicEmail(
+  email: string,
+): Promise<ActionResult<void>> {
+  try {
+    const user = await getSessionUser();
+    if (!user || !requireRole(user.role, ["SUPER_ADMIN"])) {
+      return {
+        success: false,
+        message: "Only super admins can send magic codes.",
+      };
+    }
+
+    const targetEmail = String(email || "")
+      .trim()
+      .toLowerCase();
+    if (!targetEmail) {
+      return { success: false, message: "Email is required." };
+    }
+
+    const hasCredential = await prisma.account.findFirst({
+      where: {
+        providerId: "credential",
+        password: { not: null },
+        user: { email: targetEmail },
+      },
+    });
+
+    if (hasCredential) {
+      throw new Error("User already has a password set");
+    }
+
+    await auth.api.signInMagicLink({
+      headers: await headers(),
+      body: {
+        email: targetEmail,
+        callbackURL: "/first-login",
+        newUserCallbackURL: "/first-login",
+        errorCallbackURL: "/login",
+      },
+    });
+
+    revalidatePath("/user/accounts");
+    return { success: true, message: "Magic code sent." };
+  } catch (error) {
+    console.error("Error sending magic email: ", (error as Error).message);
+    return {
+      success: false,
+      message: "Failed to send magic email: " + (error as Error).message,
+    };
+  }
+}
+
+export async function deactivateAccount(
+  userId: string[],
+  banReason?: string,
+): Promise<ActionResult<void>> {
+  try {
+    const user = await getSessionUser();
+    if (!user || !requireRole(user.role, ["SUPER_ADMIN"])) {
+      return {
+        success: false,
+        message: "Only super admins can deactivate accounts.",
+      };
+    }
+
+    if (userId.includes(user.id)) {
+      return {
+        success: false,
+        message: "You cannot deactivate your own account.",
+      };
+    }
+
+    const users = await prisma.user.findMany({
+      where: { id: { in: userId } },
+      select: { id: true },
+    });
+
+    for (const target of users) {
+      await auth.api.banUser({
+        body: {
+          userId: target.id,
+          banReason,
+        },
+        headers: await headers(),
+      });
+
+      await auth.api.revokeUserSessions({
+        body: {
+          userId: target.id,
+        },
+        headers: await headers(),
+      });
+
+      await prisma.user.update({
+        where: { id: target.id },
+        data: { banned: true, banReason: banReason || null, banExpires: null },
+      });
+    }
+
+    revalidatePath("/user/accounts");
+    revalidatePath("/user/dashboard");
+    return { success: true, message: "Account deactivated." };
+  } catch (error) {
+    console.error("Error deactivating account:", error);
+    return { success: false, message: "Failed to deactivate account" };
+  }
+}
+
+export async function reactivateAccount(
+  userId: string[],
+): Promise<ActionResult<void>> {
+  try {
+    const user = await getSessionUser();
+    if (!user || !requireRole(user.role, ["SUPER_ADMIN"])) {
+      return {
+        success: false,
+        message: "Only super admins can reactivate accounts.",
+      };
+    }
+
+    const users = await prisma.user.findMany({
+      where: { id: { in: userId } },
+      select: { id: true },
+    });
+
+    for (const target of users) {
+      await auth.api.unbanUser({
+        body: {
+          userId: target.id,
+        },
+        headers: await headers(),
+      });
+
+      await prisma.user.update({
+        where: { id: target.id },
+        data: { banned: false, banReason: null, banExpires: null },
+      });
+    }
+
+    revalidatePath("/user/accounts");
+    revalidatePath("/user/dashboard");
+    return { success: true, message: "Account activated." };
+  } catch (error) {
+    console.error("Error unbanning account:", error);
+    return { success: false, message: "Failed to unban account" };
   }
 }
 
@@ -1860,10 +2057,10 @@ export async function updateManagedRole(
     if (!roleValues.includes(role as UserRoleValue)) {
       return { success: false, message: "Invalid role." };
     }
-    if (userId === user.id && role !== "SUPER_ADMIN") {
+    if (userId === user.id) {
       return {
         success: false,
-        message: "You cannot remove your own super admin role.",
+        message: "You cannot change your own role.",
       };
     }
 

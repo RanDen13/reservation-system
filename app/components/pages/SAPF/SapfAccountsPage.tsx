@@ -25,7 +25,10 @@ import { Plus, RefreshCcw, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   createManagedAccount,
+  deactivateAccount,
   getAccountsWorkspace,
+  reactivateAccount,
+  sendMagicEmail,
   updateApproverPosition,
   updateManagedRole,
 } from "./SapfActions";
@@ -48,30 +51,34 @@ type AccountUser = {
   name: string;
   email: string;
   role?: string | null;
-  banned?: boolean | null;
-  banReason?: string | null;
-  banExpires?: string | Date | null;
+  status: "PENDING" | "ACTIVE" | "INACTIVE";
   createdAt: string | Date;
   approverPositions?: { position: string }[];
 };
 
-function RoleBadge({ role }: { role?: string | null }) {
-  const label = role ? role.replaceAll("_", " ") : "UNASSIGNED";
-  return <Badge variant="outline">{label}</Badge>;
-}
-
-function PositionBadge({ position }: { position?: string }) {
-  const label =
-    position && position !== "NONE" ? position.replaceAll("_", " ") : "NONE";
-  return <Badge variant="outline">{label}</Badge>;
+function StatusBadge({ status }: { status: AccountUser["status"] }) {
+  const label = status.replaceAll("_", " ");
+  const tone =
+    status === "ACTIVE"
+      ? "border-green-200 bg-green-50 text-green-700"
+      : status === "INACTIVE"
+        ? "border-red-200 bg-red-50 text-red-700"
+        : "border-amber-200 bg-amber-50 text-amber-700";
+  return (
+    <Badge variant="outline" className={tone}>
+      {label}
+    </Badge>
+  );
 }
 
 function AccountRow({
   user,
   onUpdated,
+  isSelf,
 }: {
   user: AccountUser;
   onUpdated: () => Promise<void>;
+  isSelf: boolean;
 }) {
   const popup = usePopup();
   const [role, setRole] = useState(user.role || "OFFICER");
@@ -80,6 +87,8 @@ function AccountRow({
   );
   const [savingRole, setSavingRole] = useState(false);
   const [savingPosition, setSavingPosition] = useState(false);
+  const [savingAction, setSavingAction] = useState(false);
+  const [actionValue, setActionValue] = useState("");
   const canEditPosition =
     approverRoleOptions.includes(
       role as (typeof approverRoleOptions)[number],
@@ -135,6 +144,42 @@ function AccountRow({
     await onUpdated();
   };
 
+  const handleActionChange = async (nextAction: string) => {
+    if (!nextAction) return;
+    setActionValue(nextAction);
+
+    const actionLabel = nextAction.replaceAll("_", " ").toLowerCase();
+    const confirmed = await popup.showWarning(
+      `Run ${actionLabel} for ${user.name}?`,
+    );
+    if (!confirmed) {
+      setActionValue("");
+      return;
+    }
+
+    setSavingAction(true);
+    let result;
+
+    if (nextAction === "RESEND_MAGIC") {
+      result = await sendMagicEmail(user.email);
+    } else if (nextAction === "DEACTIVATE") {
+      result = await deactivateAccount([user.id]);
+    } else if (nextAction === "ACTIVATE") {
+      result = await reactivateAccount([user.id]);
+    }
+
+    setSavingAction(false);
+    setActionValue("");
+
+    if (!result?.success) {
+      popup.showError(result?.message || "Action failed.");
+      return;
+    }
+
+    popup.showSuccess(result.message || "Action complete.");
+    await onUpdated();
+  };
+
   return (
     <tr className="border-t">
       <td className="px-4 py-3">
@@ -142,13 +187,10 @@ function AccountRow({
         <p className="text-xs text-gray-500">{user.email}</p>
       </td>
       <td className="px-4 py-3">
-        <RoleBadge role={role} />
-      </td>
-      <td className="px-4 py-3">
         <Select
           value={role}
           onValueChange={handleRoleChange}
-          disabled={savingRole}
+          disabled={savingRole || isSelf}
         >
           <SelectTrigger className="h-9 w-[180px]">
             <SelectValue />
@@ -161,9 +203,6 @@ function AccountRow({
             ))}
           </SelectContent>
         </Select>
-      </td>
-      <td className="px-4 py-3">
-        <PositionBadge position={position} />
       </td>
       <td className="px-4 py-3">
         <Select
@@ -185,8 +224,33 @@ function AccountRow({
           </SelectContent>
         </Select>
       </td>
+      <td className="px-4 py-3">
+        <StatusBadge status={user.status} />
+      </td>
       <td className="px-4 py-3 text-sm text-gray-600">
         {format(new Date(user.createdAt), "MMM d, yyyy")}
+      </td>
+      <td className="px-4 py-3">
+        <Select
+          value={actionValue}
+          onValueChange={handleActionChange}
+          disabled={savingAction || isSelf}
+        >
+          <SelectTrigger className="h-9 w-[200px]">
+            <SelectValue placeholder="Select action" />
+          </SelectTrigger>
+          <SelectContent>
+            {user.status === "PENDING" && (
+              <SelectItem value="RESEND_MAGIC">Resend magic code</SelectItem>
+            )}
+            {!isSelf && user.status !== "INACTIVE" && (
+              <SelectItem value="DEACTIVATE">Deactivate account</SelectItem>
+            )}
+            {!isSelf && user.status === "INACTIVE" && (
+              <SelectItem value="ACTIVATE">Activate account</SelectItem>
+            )}
+          </SelectContent>
+        </Select>
       </td>
     </tr>
   );
@@ -194,9 +258,10 @@ function AccountRow({
 
 export default function SapfAccountsPage() {
   const popup = usePopup();
-  const [workspace, setWorkspace] = useState<{ users: AccountUser[] } | null>(
-    null,
-  );
+  const [workspace, setWorkspace] = useState<{
+    users: AccountUser[];
+    currentUserId: string;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -280,16 +345,21 @@ export default function SapfAccountsPage() {
             <thead className="bg-gray-50 text-xs uppercase text-gray-500">
               <tr>
                 <th className="px-4 py-3 text-left">Account</th>
-                <th className="px-4 py-3 text-left">Current Role</th>
-                <th className="px-4 py-3 text-left">Change Role</th>
-                <th className="px-4 py-3 text-left">Current Position</th>
-                <th className="px-4 py-3 text-left">Change Position</th>
+                <th className="px-4 py-3 text-left">Role</th>
+                <th className="px-4 py-3 text-left">Position</th>
+                <th className="px-4 py-3 text-left">Status</th>
                 <th className="px-4 py-3 text-left">Created</th>
+                <th className="px-4 py-3 text-left">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {workspace.users.map((user) => (
-                <AccountRow key={user.id} user={user} onUpdated={refresh} />
+                <AccountRow
+                  key={user.id}
+                  user={user}
+                  onUpdated={refresh}
+                  isSelf={user.id === workspace.currentUserId}
+                />
               ))}
             </tbody>
           </table>
