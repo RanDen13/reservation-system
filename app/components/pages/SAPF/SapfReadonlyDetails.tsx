@@ -19,7 +19,13 @@ import {
 
 function valueOrDash(value: any) {
   if (value === null || value === undefined || value === "") return "-";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
   return String(value);
+}
+
+function formatAttachmentSize(size: number) {
+  if (!size) return "0 MB";
+  return `${(size / 1024 / 1024).toFixed(1)} MB`;
 }
 
 function ReadOnlyField({
@@ -57,6 +63,35 @@ function ReadOnlyLongField({
         className={`mt-1 whitespace-pre-wrap rounded-md border bg-gray-50 px-3 py-2 text-sm text-gray-900 ${rows}`}
       >
         {valueOrDash(value)}
+      </div>
+    </div>
+  );
+}
+
+function ReadOnlyAttachments({
+  requestId,
+  attachments,
+}: {
+  requestId: string;
+  attachments?: any[];
+}) {
+  if (!attachments?.length) {
+    return <ReadOnlyField label="Attachments" value="-" />;
+  }
+
+  return (
+    <div>
+      <p className="text-sm font-medium text-gray-700">Attachments</p>
+      <div className="mt-1 min-h-10 space-y-1 rounded-md border bg-gray-50 px-3 py-2 text-sm text-gray-900">
+        {attachments.map((attachment) => (
+          <a
+            key={attachment.id}
+            href={`/api/sapf/${requestId}/attachments/${attachment.id}`}
+            className="block text-blue-700 hover:underline"
+          >
+            {attachment.fileName} ({formatAttachmentSize(attachment.size)})
+          </a>
+        ))}
       </div>
     </div>
   );
@@ -223,12 +258,18 @@ export default function SapfReadonlyDetails({
               label="Parent's Consent Form"
               value={part4.parentsConsent}
             />
-            <ReadOnlyField label="Attachments" value={part4.attachments} />
+            <ReadOnlyAttachments
+              requestId={request.id}
+              attachments={part4.attachments}
+            />
             <ReadOnlyField
               label="Academic Class Interruption"
               value={part4.academicInterruption}
             />
-            <ReadOnlyField label="Remarks" value={part4.academicRemarks} />
+            <ReadOnlyField
+              label="Academic Interruption Remarks"
+              value={part4.academicInterruptionRemarks}
+            />
             <ReadOnlyField
               label="Medical Exam Request"
               value={part4.medicalExam}

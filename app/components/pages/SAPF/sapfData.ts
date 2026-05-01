@@ -32,9 +32,51 @@ function valuesFromRows(rows: any[] | undefined) {
 }
 
 function hasAnyValue(value: Record<string, any>) {
-  return Object.values(value).some((item) =>
-    Array.isArray(item) ? item.length > 0 : Boolean(item),
-  );
+  return Object.values(value).some((item) => {
+    if (Array.isArray(item)) return item.length > 0;
+    if (item === null || item === undefined) return false;
+    if (typeof item === "string") return item.trim() !== "";
+    return true;
+  });
+}
+
+function nullableBoolean(value: any) {
+  if (typeof value === "boolean") return value;
+  if (value === null || value === undefined || value === "") return null;
+
+  const normalized = String(value).trim().toLowerCase();
+  if (["true", "yes", "1", "y"].includes(normalized)) return true;
+  if (
+    [
+      "false",
+      "no",
+      "0",
+      "n",
+      "none",
+      "not applicable",
+      "n/a",
+      "na",
+      "-",
+    ].includes(normalized)
+  ) {
+    return false;
+  }
+  if (normalized.includes("yes")) return true;
+  if (normalized.includes("not") || normalized.includes("none")) return false;
+
+  return null;
+}
+
+function attachmentRows(rows: any[] | undefined) {
+  return (rows || [])
+    .map((row) => ({
+      id: row?.id || "",
+      fileName: row?.fileName || row?.name || "Attachment",
+      mimeType: row?.mimeType || row?.type || "application/octet-stream",
+      size: Number(row?.size || 0),
+      createdAt: row?.createdAt,
+    }))
+    .filter((row) => row.id && row.fileName);
 }
 
 export function getSapfParts(request: any) {
@@ -76,13 +118,23 @@ export function getSapfParts(request: any) {
     otherSupport: request.otherSupport || "",
   };
 
+  const attachments = attachmentRows(request.attachments);
+  const hasAttachments =
+    nullableBoolean(request.hasAttachments) ??
+    (attachments.length ? true : null);
+  const academicInterruptionRemarks =
+    request.academicInterruptionRemarks || request.academicRemarks || "";
+
   const part4 = {
-    parentsConsent: request.parentsConsent || "",
-    attachments: request.attachments || "",
-    academicInterruption: request.academicInterruption || "",
-    academicRemarks: request.academicRemarks || "",
-    medicalExam: request.medicalExam || "",
-    reportOfCompliance: request.reportOfCompliance || "",
+    parentsConsent: nullableBoolean(request.parentsConsent),
+    hasAttachments,
+    attachments,
+    attachmentsForDocument: "-",
+    academicInterruption: nullableBoolean(request.academicInterruption),
+    academicInterruptionRemarks,
+    academicRemarks: academicInterruptionRemarks,
+    medicalExam: nullableBoolean(request.medicalExam),
+    reportOfCompliance: nullableBoolean(request.reportOfCompliance),
     studentPersonnelRatio: request.studentPersonnelRatio || "",
   };
 

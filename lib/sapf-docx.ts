@@ -37,6 +37,22 @@ function contains(value: any, option: string) {
   return short(value).toLowerCase().includes(option.toLowerCase());
 }
 
+function positive(value: any) {
+  if (typeof value === "boolean") return value;
+  return contains(value, "yes") || same(value, "true") || same(value, "1");
+}
+
+function negative(value: any) {
+  if (typeof value === "boolean") return !value;
+  return (
+    contains(value, "not") ||
+    contains(value, "none") ||
+    same(value, "no") ||
+    same(value, "false") ||
+    same(value, "0")
+  );
+}
+
 function schoolYear(date: Date) {
   const year = date.getFullYear();
   const startYear = date.getMonth() >= 5 ? year : year - 1;
@@ -202,22 +218,21 @@ export async function renderSapfDocx({ request }: { request: any }) {
     ),
     otherSupport: part2.otherSupport,
 
-    parentsConsentYes: marker(contains(part4.parentsConsent, "yes")),
-    parentsConsentNotApplicable: marker(contains(part4.parentsConsent, "not")),
-    attachments: part4.attachments,
+    parentsConsentYes: marker(positive(part4.parentsConsent)),
+    parentsConsentNotApplicable: marker(negative(part4.parentsConsent)),
+    attachments: part4.attachmentsForDocument || "-",
     academicInterruptionYes: marker(
-      contains(part4.academicInterruption, "yes"),
+      positive(part4.academicInterruption),
     ),
     academicInterruptionNone: marker(
-      contains(part4.academicInterruption, "none"),
+      negative(part4.academicInterruption),
     ),
-    academicRemarks: part4.academicRemarks,
-    medicalExamYes: marker(contains(part4.medicalExam, "yes")),
-    medicalExamNotApplicable: marker(contains(part4.medicalExam, "not")),
-    reportComplianceYes: marker(contains(part4.reportOfCompliance, "yes")),
-    reportComplianceNotApplicable: marker(
-      contains(part4.reportOfCompliance, "not"),
-    ),
+    academicRemarks:
+      part4.academicInterruptionRemarks || part4.academicRemarks,
+    medicalExamYes: marker(positive(part4.medicalExam)),
+    medicalExamNotApplicable: marker(negative(part4.medicalExam)),
+    reportComplianceYes: marker(positive(part4.reportOfCompliance)),
+    reportComplianceNotApplicable: marker(negative(part4.reportOfCompliance)),
     studentPersonnelRatio: part4.studentPersonnelRatio,
 
     preparedBy: request.officer?.name || "",

@@ -140,68 +140,83 @@ model Amenity {
 }
 
 model SAPFRequest {
-  id                String            @id
-  requestNumber     String            @unique
-  officerId         String
-  officer           User              @relation("OfficerRequests", fields: [officerId], references: [id], onDelete: Cascade)
-  eventSpaceId      String
-  eventSpace        EventSpace        @relation(fields: [eventSpaceId], references: [id], onDelete: Cascade)
-  title             String
-  organization      String
-  department        String
-  attendeeCount     Int
-  startAt           DateTime
-  endAt             DateTime
-  status            SAPFRequestStatus @default(DRAFT)
-  currentStepOrder  Int?
-  conflictWarning   Boolean           @default(false)
-  rejectionReason   String?
-  modality          String?
-  programCourse     String?
-  venue             String?
-  setting           String?
-  personnelInCharge String?
-  activityType      String?
-  attire            String?
-  scope             String?
-  program           String?
-  rationale         String?
-  objectives        String?
-  programFlow       String?
-  budget            String?
-  sourceOfBudget    String?
-  budgetDetails     String?
-  vehiclePassengers String?
-  foodPax           String?
-  roomVenueDetails  String?
-  microphoneQty     String?
-  otherSupport      String?
-  otherDetails      String?
-  parentsConsent    String?
-  attachments       String?
-  academicInterruption String?
-  academicRemarks      String?
-  medicalExam          String?
-  reportOfCompliance   String?
-  studentPersonnelRatio String?
-  verificationToken String?           @unique
-  approvedAt        DateTime?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  id                          String            @id
+  requestNumber               String            @unique
+  officerId                   String
+  officer                     User              @relation("OfficerRequests", fields: [officerId], references: [id], onDelete: Cascade)
+  eventSpaceId                String
+  eventSpace                  EventSpace        @relation(fields: [eventSpaceId], references: [id], onDelete: Cascade)
+  title                       String
+  organization                String
+  department                  String
+  attendeeCount               Int
+  startAt                     DateTime
+  endAt                       DateTime
+  status                      SAPFRequestStatus @default(DRAFT)
+  currentStepOrder            Int?
+  conflictWarning             Boolean           @default(false)
+  rejectionReason             String?
+  modality                    String?
+  programCourse               String?
+  venue                       String?
+  setting                     String?
+  personnelInCharge           String?
+  activityType                String?
+  attire                      String?
+  scope                       String?
+  program                     String?
+  rationale                   String?
+  objectives                  String?
+  programFlow                 String?
+  budget                      String?
+  sourceOfBudget              String?
+  budgetDetails               String?
+  vehiclePassengers           String?
+  foodPax                     String?
+  roomVenueDetails            String?
+  microphoneQty               String?
+  otherSupport                String?
+  otherDetails                String?
+  parentsConsent              Boolean?
+  hasAttachments              Boolean?
+  academicInterruption        Boolean?
+  academicInterruptionRemarks String?
+  medicalExam                 Boolean?
+  reportOfCompliance          Boolean?
+  studentPersonnelRatio       String?
+  verificationToken           String?           @unique
+  approvedAt                  DateTime?
+  createdAt                   DateTime          @default(now())
+  updatedAt                   DateTime          @updatedAt
 
-  coreValues          SAPFCoreValue[]
-  graduateAttributes  SAPFGraduateAttribute[]
-  supportRequests     SAPFSupportRequest[]
-  approvalSteps       ApprovalStep[]
-  approvalActions     ApprovalAction[]
-  notifications       Notification[]
-  concernThreads      ConcernThread[]
+  coreValues         SAPFCoreValue[]
+  graduateAttributes SAPFGraduateAttribute[]
+  supportRequests    SAPFSupportRequest[]
+  attachments        SAPFAttachment[]
+  approvalSteps      ApprovalStep[]
+  approvalActions    ApprovalAction[]
+  notifications      Notification[]
+  concernThreads     ConcernThread[]
 
   @@index([officerId])
   @@index([eventSpaceId])
   @@index([status])
   @@index([startAt])
   @@map("sapf_request")
+}
+
+model SAPFAttachment {
+  id        String      @id
+  requestId String
+  request   SAPFRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  fileName  String
+  mimeType  String
+  size      Int
+  data      Bytes
+  createdAt DateTime    @default(now())
+
+  @@index([requestId])
+  @@map("sapf_attachment")
 }
 
 model SAPFCoreValue {

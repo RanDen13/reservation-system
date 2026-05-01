@@ -27,6 +27,14 @@ const requiredFixedPositions = [
   "VPAA",
   "UNIVERSITY_PRESIDENT",
 ] as const;
+const MAX_SDS_ATTACHMENT_BYTES = 25 * 1024 * 1024;
+const sapfAttachmentMetadataSelect = {
+  id: true,
+  fileName: true,
+  mimeType: true,
+  size: true,
+  createdAt: true,
+} as const;
 
 type UserRoleValue = (typeof roleValues)[number];
 type ApproverRoleValue = (typeof approverRoleValues)[number];
@@ -61,6 +69,34 @@ function requireRole(
 
 function field(data: FormData, key: string, fallback = "") {
   return String(data.get(key) ?? fallback).trim();
+}
+
+function booleanField(data: FormData, key: string) {
+  const value = field(data, key).toLowerCase();
+  if (["true", "yes", "1"].includes(value)) return true;
+  if (["false", "no", "0"].includes(value)) return false;
+  return null;
+}
+
+function isUploadFile(value: FormDataEntryValue): value is File {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "arrayBuffer" in value &&
+    "size" in value &&
+    "name" in value
+  );
+}
+
+function uploadFiles(data: FormData, key: string) {
+  return data
+    .getAll(key)
+    .filter(isUploadFile)
+    .filter((file) => file.size > 0);
+}
+
+function formatMegabytes(bytes: number) {
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
 function numberField(data: FormData, key: string, fallback = 0) {
@@ -551,6 +587,10 @@ export async function getSapfWorkspace(): Promise<ActionResult<any>> {
         select: { value: true },
         orderBy: { createdAt: "asc" as const },
       },
+      attachments: {
+        select: sapfAttachmentMetadataSelect,
+        orderBy: { createdAt: "asc" as const },
+      },
       approvalSteps: {
         include: {
           reviewer: {
@@ -744,6 +784,10 @@ export async function getSapfRequestById(
       },
       supportRequests: {
         select: { value: true },
+        orderBy: { createdAt: "asc" as const },
+      },
+      attachments: {
+        select: sapfAttachmentMetadataSelect,
         orderBy: { createdAt: "asc" as const },
       },
       approvalSteps: {
@@ -1235,25 +1279,108 @@ export async function reviewSapfRequest(
       return { success: false, message: "Invalid review action." };
     }
 
-    const part4 =
-      step.position === "SDS"
-        ? {
-            parentsConsent: field(data, "parentsConsent"),
-            attachments: field(data, "attachments"),
-            academicInterruption: field(data, "academicInterruption"),
-            academicRemarks: field(data, "academicRemarks"),
-            medicalExam: field(data, "medicalExam"),
-            reportOfCompliance: field(data, "reportOfCompliance"),
-            studentPersonnelRatio:
-              field(data, "studentPersonnelRatio") ||
-              field(data, "participantPersonnelRatio"),
-          }
-        : undefined;
+    let part4:
+      | {
+          parentsConsent: boolean;
+          hasAttachments: boolean;
+          academicInterruption: boolean;
+          academicInterruptionRemarks: string | null;
+          medicalExam: boolean;
+          reportOfCompliance: boolean;
+          studentPersonnelRatio: string | null;
+        }
+      | undefined;
+    let uploadedAttachments: Array<{
+      id: string;
+      requestId: string;
+      fileName: string;
+      mimeType: string;
+      size: number;
+      data: Uint8Array<ArrayBuffer>;
+    }> = [];
+    let shouldReplaceAttachments = false;
 
-    if (step.position === "SDS" && !part4?.parentsConsent) {
-      return {
-        success: false,
-        message: "SDS Part 4 clearance must be filled before approval.",
+    if (step.position === "SDS") {
+      const parentsConsent = booleanField(data, "parentsConsent");
+      const hasAttachments = booleanField(data, "hasAttachments");
+      const academicInterruption = booleanField(data, "academicInterruption");
+      const medicalExam = booleanField(data, "medicalExam");
+      const reportOfCompliance = booleanField(data, "reportOfCompliance");
+      const missingFields = [
+        ["Parent's Consent Form", parentsConsent],
+        ["Attachments", hasAttachments],
+        ["Academic Class Interruption", academicInterruption],
+        ["Medical Exam Request", medicalExam],
+        ["Report of Compliance", reportOfCompliance],
+      ]
+        .filter(([, value]) => value === null)
+        .map(([label]) => label);
+
+      if (missingFields.length > 0) {
+        return {
+          success: false,
+          message: `Please choose Yes or No for: ${missingFields.join(", ")}.`,
+        };
+      }
+
+      const attachmentFiles = uploadFiles(data, "attachmentFiles");
+      const totalAttachmentSize = attachmentFiles.reduce(
+        (sum, file) => sum + file.size,
+        0,
+      );
+
+      if (totalAttachmentSize > MAX_SDS_ATTACHMENT_BYTES) {
+        return {
+          success: false,
+          message: `Attachments must total 25 MB or less. Current total is ${formatMegabytes(totalAttachmentSize)}.`,
+        };
+      }
+
+      const existingAttachmentCount = await prisma.sAPFAttachment.count({
+        where: { requestId: request.id },
+      });
+
+      if (
+        hasAttachments === true &&
+        attachmentFiles.length === 0 &&
+        existingAttachmentCount === 0
+      ) {
+        return {
+          success: false,
+          message: "Add at least one attachment or choose No for attachments.",
+        };
+      }
+
+      uploadedAttachments =
+        hasAttachments === true
+          ? await Promise.all(
+              attachmentFiles.map(async (file) => ({
+                id: uuid(),
+                requestId: request.id,
+                fileName: file.name || "attachment",
+                mimeType: file.type || "application/octet-stream",
+                size: file.size,
+                data: new Uint8Array(
+                  await file.arrayBuffer(),
+                ) as Uint8Array<ArrayBuffer>,
+              })),
+            )
+          : [];
+      shouldReplaceAttachments =
+        hasAttachments === false || uploadedAttachments.length > 0;
+
+      part4 = {
+        parentsConsent: parentsConsent as boolean,
+        hasAttachments: hasAttachments as boolean,
+        academicInterruption: academicInterruption as boolean,
+        academicInterruptionRemarks:
+          field(data, "academicInterruptionRemarks") || null,
+        medicalExam: medicalExam as boolean,
+        reportOfCompliance: reportOfCompliance as boolean,
+        studentPersonnelRatio:
+          field(data, "studentPersonnelRatio") ||
+          field(data, "participantPersonnelRatio") ||
+          null,
       };
     }
 
@@ -1296,6 +1423,19 @@ export async function reviewSapfRequest(
           comment: comment || null,
         },
       });
+
+      if (part4 && shouldReplaceAttachments) {
+        await tx.sAPFAttachment.deleteMany({
+          where: { requestId: request.id },
+        });
+        if (part4.hasAttachments && uploadedAttachments.length > 0) {
+          await Promise.all(
+            uploadedAttachments.map((attachment) =>
+              tx.sAPFAttachment.create({ data: attachment }),
+            ),
+          );
+        }
+      }
 
       if (nextStep) {
         await tx.approvalStep.update({

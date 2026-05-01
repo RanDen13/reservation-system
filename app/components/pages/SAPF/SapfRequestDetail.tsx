@@ -18,6 +18,7 @@ import {
   CheckCircle,
   FileDown,
   MessageSquare,
+  Paperclip,
   RefreshCcw,
   XCircle,
 } from "lucide-react";
@@ -25,6 +26,13 @@ import { useState } from "react";
 import ModalBase from "../../Popup/ModalBase";
 import { addConcernMessage, reviewSapfRequest } from "./SapfActions";
 import SapfReadonlyDetails from "./SapfReadonlyDetails";
+
+const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
+
+function formatFileSize(bytes: number) {
+  if (!bytes) return "0 MB";
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
 
 function statusClass(status: string) {
   if (status === "APPROVED") return "bg-emerald-100 text-emerald-700";
@@ -221,6 +229,10 @@ function ReviewControls({
   const [selectedAction, setSelectedAction] = useState<
     "approve" | "return" | "reject" | null
   >(null);
+  const [hasAttachments, setHasAttachments] = useState("");
+  const [attachmentTotal, setAttachmentTotal] = useState(0);
+  const [attachmentNames, setAttachmentNames] = useState<string[]>([]);
+  const [attachmentInputKey, setAttachmentInputKey] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   if (me?.role === "SUPER_ADMIN") return null;
   const step = request.approvalSteps?.find(
@@ -238,6 +250,10 @@ function ReviewControls({
       return;
     }
     setSelectedAction(null);
+    setHasAttachments("");
+    setAttachmentTotal(0);
+    setAttachmentNames([]);
+    setAttachmentInputKey((key) => key + 1);
     popup.showSuccess(result.message || "Review saved.");
     await onRefresh();
   };
@@ -267,6 +283,37 @@ function ReviewControls({
       : selectedAction === "return"
         ? "What should the officer revise?"
         : "Why is this request rejected?";
+  const attachmentLimitExceeded = attachmentTotal > MAX_ATTACHMENT_BYTES;
+
+  const yesNoField = (name: string, label: string) => (
+    <div className="space-y-2">
+      <p className="text-sm font-semibold text-gray-950">{label}</p>
+      <div className="flex flex-wrap gap-4">
+        <label className="inline-flex items-center gap-2 text-sm text-gray-900">
+          <input
+            form={approveFormId}
+            type="radio"
+            name={name}
+            value="true"
+            required
+            className="h-4 w-4 accent-blue-700"
+          />
+          Yes
+        </label>
+        <label className="inline-flex items-center gap-2 text-sm text-gray-900">
+          <input
+            form={approveFormId}
+            type="radio"
+            name={name}
+            value="false"
+            required
+            className="h-4 w-4 accent-blue-700"
+          />
+          No
+        </label>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-4 rounded-lg border bg-blue-50 p-4">
@@ -276,62 +323,127 @@ function ReviewControls({
       </div>
 
       {step.position === "SDS" && (
-        <div className="grid gap-3 md:grid-cols-2">
-          <div>
-            <Label>Parent&apos;s Consent Form</Label>
-            <Input
-              form={approveFormId}
-              name="parentsConsent"
-              placeholder="Yes / Not Applicable"
-            />
-          </div>
-          <div>
-            <Label>Attachments</Label>
-            <Input
-              form={approveFormId}
-              name="attachments"
-              placeholder="List attachments"
-            />
-          </div>
-          <div>
-            <Label>Academic Class Interruption</Label>
-            <Input
-              form={approveFormId}
-              name="academicInterruption"
-              placeholder="Yes / None"
-            />
-          </div>
-          <div>
-            <Label>Academic Remarks</Label>
-            <Input
-              form={approveFormId}
-              name="academicRemarks"
-              placeholder="Remarks"
-            />
-          </div>
-          <div>
-            <Label>Medical Exam Request</Label>
-            <Input
-              form={approveFormId}
-              name="medicalExam"
-              placeholder="Yes / Not Applicable"
-            />
-          </div>
-          <div>
-            <Label>Report of Compliance</Label>
-            <Input
-              form={approveFormId}
-              name="reportOfCompliance"
-              placeholder="Yes / Not Applicable"
-            />
-          </div>
-          <div>
-            <Label>Student-Personnel Ratio</Label>
-            <Input
-              form={approveFormId}
-              name="studentPersonnelRatio"
-              placeholder="e.g. 1:30"
-            />
+        <div className="grid gap-3">
+          <div className="grid gap-3">
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="rounded-md border bg-white p-3 shadow-xs">
+                {yesNoField("parentsConsent", "Parent's Consent Form")}
+              </div>
+              <div className="rounded-md border bg-white p-3 shadow-xs">
+                <div className="space-y-2">
+                  <p className="flex items-center gap-2 text-sm font-semibold text-gray-950">
+                    <Paperclip className="h-4 w-4" />
+                    Attachments
+                  </p>
+                  <div className="flex flex-wrap gap-4">
+                    <label className="inline-flex items-center gap-2 text-sm text-gray-900">
+                      <input
+                        form={approveFormId}
+                        type="radio"
+                        name="hasAttachments"
+                        value="true"
+                        required
+                        checked={hasAttachments === "true"}
+                        onChange={(event) =>
+                          setHasAttachments(event.target.value)
+                        }
+                        className="h-4 w-4 accent-blue-700"
+                      />
+                      Yes
+                    </label>
+                    <label className="inline-flex items-center gap-2 text-sm text-gray-900">
+                      <input
+                        form={approveFormId}
+                        type="radio"
+                        name="hasAttachments"
+                        value="false"
+                        required
+                        checked={hasAttachments === "false"}
+                        onChange={(event) => {
+                          setHasAttachments(event.target.value);
+                          setAttachmentTotal(0);
+                          setAttachmentNames([]);
+                          setAttachmentInputKey((key) => key + 1);
+                        }}
+                        className="h-4 w-4 accent-blue-700"
+                      />
+                      No
+                    </label>
+                  </div>
+                  <Input
+                    key={attachmentInputKey}
+                    form={approveFormId}
+                    type="file"
+                    name="attachmentFiles"
+                    multiple
+                    disabled={hasAttachments !== "true"}
+                    onChange={(event) => {
+                      const files = Array.from(event.target.files || []);
+                      setAttachmentTotal(
+                        files.reduce((sum, file) => sum + file.size, 0),
+                      );
+                      setAttachmentNames(
+                        files.map(
+                          (file) =>
+                            `${file.name} (${formatFileSize(file.size)})`,
+                        ),
+                      );
+                    }}
+                    className="bg-white"
+                  />
+                  <div
+                    className={`text-xs ${
+                      attachmentLimitExceeded ? "text-red-600" : "text-gray-600"
+                    }`}
+                  >
+                    {formatFileSize(attachmentTotal)} / 25 MB
+                  </div>
+                  {attachmentNames.length > 0 && (
+                    <ul className="space-y-1 text-xs text-gray-700">
+                      {attachmentNames.map((name) => (
+                        <li key={name}>{name}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="rounded-md border bg-white p-3 shadow-xs">
+                <div className="space-y-3">
+                  {yesNoField(
+                    "academicInterruption",
+                    "Academic Class Interruption",
+                  )}
+                  <div>
+                    <Label>Academic Interruption Remarks</Label>
+                    <Input
+                      form={approveFormId}
+                      name="academicInterruptionRemarks"
+                      placeholder="Remarks"
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-md border bg-white p-3 shadow-xs">
+                {yesNoField("medicalExam", "Medical Exam Request")}
+              </div>
+            </div>
+            <div className="grid gap-3 md:grid-cols-[2fr_1fr]">
+              <div className="rounded-md border bg-white p-3 shadow-xs">
+                {yesNoField("reportOfCompliance", "Report of Compliance")}
+              </div>
+              <div className="rounded-md border bg-white p-3 shadow-xs">
+                <Label>Student-Personnel Ratio</Label>
+                <Input
+                  form={approveFormId}
+                  name="studentPersonnelRatio"
+                  placeholder="e.g. 1:30"
+                  className="mt-1"
+                />
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -401,7 +513,10 @@ function ReviewControls({
                   </Button>
                   <Button
                     type="submit"
-                    disabled={submitting}
+                    disabled={
+                      submitting ||
+                      (selectedAction === "approve" && attachmentLimitExceeded)
+                    }
                     variant={
                       selectedAction === "reject" ? "destructive" : "default"
                     }
