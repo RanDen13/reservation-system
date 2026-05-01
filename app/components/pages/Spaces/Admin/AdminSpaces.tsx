@@ -107,9 +107,9 @@ export default function AdminSpaces({
               </div>
               <div>
                 <h3 className="text-2xl font-bold">
-                  {eventSpaces.reduce((sum, s) => sum + s.totalBookings, 0)}
+                  {eventSpaces.filter((s) => s.status === "UNDER_MAINTENANCE").length}
                 </h3>
-                <p className="text-sm text-gray-600">Total Bookings</p>
+                <p className="text-sm text-gray-600">Under Maintenance</p>
               </div>
             </div>
           </CardContent>

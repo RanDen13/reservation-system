@@ -12,7 +12,11 @@ const layout = async ({ children }: { children: React.ReactNode }) => {
     redirect("/login");
   }
 
-  const userRole = session.user.role as "admin" | "user";
+  const userRole = session.user.role?.toUpperCase() as
+    | "OFFICER"
+    | "APPROVER"
+    | "ADMIN"
+    | "SUPER_ADMIN";
 
   return (
     <div className="flex min-h-screen bg-gray-50">

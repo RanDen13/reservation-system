@@ -30,7 +30,6 @@ export default function EventSpaceCard({
     capacity,
     status,
     pricePerHour,
-    totalBookings,
     amenities = [],
   } = eventSpace;
   const [showEditPopup, setShowEditPopup] = useState<boolean>(false);
@@ -80,8 +79,6 @@ export default function EventSpaceCard({
                   ? "bg-emerald-500 text-white"
                   : status === "UNDER_MAINTENANCE"
                   ? "bg-amber-500 text-white"
-                  : status === "BOOKED"
-                  ? "bg-red-500 text-white"
                   : "bg-gray-500 text-white"
               }`}
             >
@@ -89,8 +86,6 @@ export default function EventSpaceCard({
                 ? "Active"
                 : status === "UNDER_MAINTENANCE"
                 ? "Maintenance"
-                : status === "BOOKED"
-                ? "Booked"
                 : "Inactive"}
             </span>
           </div>
@@ -112,10 +107,10 @@ export default function EventSpaceCard({
                 <Users className="w-4 h-4 text-sky-600" />
                 <span>Capacity: {capacity} people</span>
               </div>
-              {showAdminActions && totalBookings !== undefined && (
+              {showAdminActions && (
                 <div className="flex items-center gap-2 text-sm text-gray-700">
                   <Calendar className="w-4 h-4 text-sky-600" />
-                  <span>{totalBookings} total bookings</span>
+                  <span>Managed by super admin</span>
                 </div>
               )}
             </div>
@@ -150,7 +145,7 @@ export default function EventSpaceCard({
             {/* Price */}
             <p className="text-sm font-semibold text-emerald-600 mb-4">
               {pricePerHour === 0
-                ? "Free for students"
+                ? "Free for officers"
                 : `₱${pricePerHour.toFixed(2)}/hour`}
             </p>
           </div>

@@ -1,243 +1,175 @@
+import { provisionCredentialAccount, type ManagedRole } from "@/lib/account-provisioning";
 import { prisma } from "@/lib/prisma";
-import bcrypt from "bcrypt";
 import { v4 as uuid } from "uuid";
 
+async function createAccount(
+  email: string,
+  password: string,
+  name: string,
+  role: ManagedRole,
+) {
+  return provisionCredentialAccount(
+    {
+      email,
+      password,
+      name,
+      role,
+    },
+    {
+      allowExisting: true,
+      resetPassword: true,
+    },
+  );
+}
+
 async function main() {
-  console.log("🌱 Seeding admin user...");
+  console.log("Seeding officer-only SAPF reservation system...");
 
-  // Create admin user directly via Prisma (avoids importing browser auth client)
-  const adminId = uuid();
-  const adminPassword = await bcrypt.hash("admin123", 10);
+  const superAdmin = await createAccount(
+    "superadmin@lcup.edu.ph",
+    "superadmin123",
+    "Super Admin",
+    "SUPER_ADMIN",
+  );
+  await createAccount("officer@lcup.edu.ph", "officer123", "Org Officer", "OFFICER");
+  const adviser = await createAccount("adviser@lcup.edu.ph", "adviser123", "Club Adviser", "APPROVER");
+  const dean = await createAccount("dean@lcup.edu.ph", "dean12345", "College Dean", "APPROVER");
+  const sds = await createAccount("sds@lcup.edu.ph", "sds12345", "SDS Admin", "ADMIN");
+  const sas = await createAccount("sas@lcup.edu.ph", "sas12345", "SAS Director", "APPROVER");
+  const finance = await createAccount("finance@lcup.edu.ph", "finance123", "VP Finance", "APPROVER");
+  const vpaa = await createAccount("vpaa@lcup.edu.ph", "vpaa12345", "VPAA", "APPROVER");
+  const president = await createAccount(
+    "president@lcup.edu.ph",
+    "president123",
+    "University President",
+    "APPROVER",
+  );
 
-  await prisma.user.create({
-    data: {
-      id: adminId,
-      name: "Admin",
-      email: "admin@admin.com",
-      emailVerified: false,
-      role: "admin",
-    },
-  });
+  await Promise.all(
+    [
+      { userId: adviser.id, position: "ADVISER" },
+      { userId: dean.id, position: "DEAN" },
+      { userId: sds.id, position: "SDS" },
+      { userId: sas.id, position: "SAS" },
+      { userId: finance.id, position: "ADDITIONAL_SIGNATORY" },
+      { userId: vpaa.id, position: "VPAA" },
+      { userId: president.id, position: "UNIVERSITY_PRESIDENT" },
+    ].map(({ userId, position }) =>
+      prisma.approverPositionUser.upsert({
+        where: {
+          userId_position: {
+            userId,
+            position: position as any,
+          },
+        },
+        update: {
+          active: true,
+        },
+        create: {
+          id: uuid(),
+          userId,
+          position: position as any,
+        },
+      }),
+    ),
+  );
 
-  await prisma.account.create({
-    data: {
-      id: uuid(),
-      userId: adminId,
-      accountId: adminId,
-      providerId: "credential",
-      password: adminPassword,
-    },
-  });
+  const amenities = await Promise.all(
+    [
+      ["a1", "WiFi", "wifi"],
+      ["a2", "Projector", "projector"],
+      ["a3", "Sound System", "sound"],
+      ["a4", "Stage", "stage"],
+      ["a5", "Air Conditioning", "air"],
+      ["a6", "Chairs and Tables", "chairs"],
+    ].map(([id, name, icon]) =>
+      prisma.amenity.upsert({
+        where: { id },
+        update: { name, icon },
+        create: { id, name, icon },
+      }),
+    ),
+  );
 
-  // Create regular user
-  const userId = uuid();
-  const userPassword = await bcrypt.hash("user1234", 10);
+  const [wifi, projector, sound, stage, air, chairs] = amenities;
 
-  await prisma.user.create({
-    data: {
-      id: userId,
-      name: "User",
-      email: "user@user.com",
-      emailVerified: false,
-      role: "user",
-    },
-  });
-
-  await prisma.account.create({
-    data: {
-      id: uuid(),
-      userId: userId,
-      accountId: userId,
-      providerId: "credential",
-      password: userPassword,
-    },
-  });
-
-  console.log("🌱 Seeding amenities...");
-
-  // Create amenities first
-  const wifi = await prisma.amenity.create({
-    data: { id: "a1", name: "WiFi", icon: "📶" },
-  });
-
-  const projector = await prisma.amenity.create({
-    data: { id: "a2", name: "Projector", icon: "📽️" },
-  });
-
-  const whiteboard = await prisma.amenity.create({
-    data: { id: "a3", name: "Whiteboard", icon: "🖊️" },
-  });
-
-  const videoConferencing = await prisma.amenity.create({
-    data: { id: "a4", name: "Video Conferencing", icon: "📹" },
-  });
-
-  const soundSystem = await prisma.amenity.create({
-    data: { id: "a5", name: "Sound System", icon: "🔊" },
-  });
-
-  const stage = await prisma.amenity.create({
-    data: { id: "a6", name: "Stage", icon: "🎭" },
-  });
-
-  const airConditioning = await prisma.amenity.create({
-    data: { id: "a7", name: "Air Conditioning", icon: "❄️" },
-  });
-
-  const tvDisplay = await prisma.amenity.create({
-    data: { id: "a8", name: "TV Display", icon: "📺" },
-  });
-
-  const computers = await prisma.amenity.create({
-    data: { id: "a9", name: "Computers", icon: "💻" },
-  });
-
-  const coffeeMachine = await prisma.amenity.create({
-    data: { id: "a10", name: "Coffee Machine", icon: "☕" },
-  });
-
-  const sofas = await prisma.amenity.create({
-    data: { id: "a11", name: "Sofas", icon: "🛋️" },
-  });
-
-  const podium = await prisma.amenity.create({
-    data: { id: "a12", name: "Podium", icon: "🎤" },
-  });
-
-  console.log("🌱 Seeding event spaces...");
-
-  // Create event spaces and link to existing amenities
-  await prisma.eventSpace.create({
-    data: {
-      id: "1",
-      name: "Conference Room A",
-      capacity: 20,
-      location: "Building A, 2nd Floor",
-      description:
-        "Modern conference room with video conferencing capabilities",
-      status: "ACTIVE",
-      pricePerHour: 0,
-      totalBookings: 45,
-      amenities: {
-        connect: [
-          { id: wifi.id },
-          { id: projector.id },
-          { id: whiteboard.id },
-          { id: videoConferencing.id },
-        ],
-      },
-    },
-  });
-
-  await prisma.eventSpace.create({
-    data: {
-      id: "2",
+  await prisma.eventSpace.upsert({
+    where: { id: "venue-auditorium" },
+    update: {},
+    create: {
+      id: "venue-auditorium",
       name: "Main Auditorium",
       capacity: 200,
       location: "Main Building, Ground Floor",
-      description: "Large auditorium perfect for seminars and presentations",
+      description: "Large venue for assemblies, seminars, and major programs.",
       status: "ACTIVE",
       pricePerHour: 0,
-      totalBookings: 78,
       amenities: {
         connect: [
-          { id: soundSystem.id },
           { id: projector.id },
+          { id: sound.id },
           { id: stage.id },
-          { id: airConditioning.id },
+          { id: air.id },
+          { id: chairs.id },
         ],
       },
     },
   });
 
-  await prisma.eventSpace.create({
-    data: {
-      id: "3",
-      name: "Meeting Room B",
-      capacity: 10,
-      location: "Building B, 3rd Floor",
-      description: "Intimate meeting space for small group discussions",
-      status: "UNDER_MAINTENANCE",
-      pricePerHour: 0,
-      totalBookings: 32,
-      amenities: {
-        connect: [{ id: wifi.id }, { id: tvDisplay.id }, { id: whiteboard.id }],
-      },
-    },
-  });
-
-  await prisma.eventSpace.create({
-    data: {
-      id: "4",
-      name: "Computer Laboratory 1",
-      capacity: 40,
-      location: "IT Building, 1st Floor",
-      description: "Fully equipped computer lab with modern workstations",
+  await prisma.eventSpace.upsert({
+    where: { id: "venue-gym" },
+    update: {},
+    create: {
+      id: "venue-gym",
+      name: "Gymnasium",
+      capacity: 350,
+      location: "Sports Complex",
+      description: "Open floor venue for large organization activities.",
       status: "ACTIVE",
       pricePerHour: 0,
-      totalBookings: 56,
       amenities: {
-        connect: [
-          { id: wifi.id },
-          { id: computers.id },
-          { id: projector.id },
-          { id: airConditioning.id },
-        ],
+        connect: [{ id: sound.id }, { id: chairs.id }],
       },
     },
   });
 
-  await prisma.eventSpace.create({
-    data: {
-      id: "5",
-      name: "Student Lounge",
-      capacity: 30,
-      location: "Student Center, 2nd Floor",
-      description: "Casual meeting space with comfortable seating",
+  await prisma.eventSpace.upsert({
+    where: { id: "venue-function-hall" },
+    update: {},
+    create: {
+      id: "venue-function-hall",
+      name: "Function Hall",
+      capacity: 120,
+      location: "Administration Building, 2nd Floor",
+      description: "Flexible indoor venue for councils, seminars, and receptions.",
       status: "ACTIVE",
       pricePerHour: 0,
-      totalBookings: 23,
       amenities: {
-        connect: [
-          { id: wifi.id },
-          { id: coffeeMachine.id },
-          { id: sofas.id },
-          { id: tvDisplay.id },
-        ],
+        connect: [{ id: wifi.id }, { id: projector.id }, { id: air.id }],
       },
     },
   });
 
-  await prisma.eventSpace.create({
+  await prisma.venueBlock.create({
     data: {
-      id: "6",
-      name: "Lecture Hall 101",
-      capacity: 100,
-      location: "Academic Building, 1st Floor",
-      description: "Traditional lecture hall with tiered seating",
-      status: "ACTIVE",
-      pricePerHour: 0,
-      totalBookings: 67,
-      amenities: {
-        connect: [
-          { id: projector.id },
-          { id: soundSystem.id },
-          { id: podium.id },
-          { id: airConditioning.id },
-        ],
-      },
+      id: uuid(),
+      title: "University Foundation Week",
+      reason: "University event",
+      startAt: new Date("2026-06-20T08:00:00"),
+      endAt: new Date("2026-06-20T18:00:00"),
+      createdById: superAdmin.id,
     },
   });
 
-  console.log("✅ Seeding completed successfully!");
-  console.log(`- Created 2 users (admin@admin.com, user@user.com)`);
-  console.log(`- Created 12 amenities`);
-  console.log(`- Created 6 event spaces with linked amenities`);
+  console.log("Seed complete.");
+  console.log("Super admin: superadmin@lcup.edu.ph / superadmin123");
+  console.log("Officer: officer@lcup.edu.ph / officer123");
 }
 
 main()
-  .catch((err) => {
-    console.error("❌ Error during seeding:", err);
+  .catch((error) => {
+    console.error("Seed failed:", error);
+    process.exit(1);
   })
   .finally(async () => {
     await prisma.$disconnect();

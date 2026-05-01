@@ -108,7 +108,7 @@ const CreateEventSpacePopup = ({ onClose }: { onClose: () => void }) => {
       statusPopup.showSuccess("Event space created successfully.");
       router.refresh();
       onClose();
-    } catch (error) {
+    } catch {
       statusPopup.showError(
         "An error occurred while creating the event space."
       );
@@ -283,7 +283,6 @@ const CreateEventSpacePopup = ({ onClose }: { onClose: () => void }) => {
                     <SelectItem value="UNDER_MAINTENANCE">
                       Under Maintenance
                     </SelectItem>
-                    <SelectItem value="BOOKED">Booked</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -303,7 +302,7 @@ const CreateEventSpacePopup = ({ onClose }: { onClose: () => void }) => {
                   min={0}
                 />
                 <p className="text-xs text-gray-500">
-                  Set to 0 for free spaces (students)
+                  Set to 0 for free officer reservations
                 </p>
               </div>
 

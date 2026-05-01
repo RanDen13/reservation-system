@@ -7,6 +7,8 @@ import z from "zod";
 
 export type EventSpaceData = EventSpace & {
   amenities?: Amenity[];
+  sapfRequests?: any[];
+  venueBlocks?: any[];
 };
 
 export const IMAGE_SCHEMA = z

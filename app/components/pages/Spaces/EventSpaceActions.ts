@@ -13,6 +13,10 @@ import {
   updateEventSpaceSchema,
 } from "./schema";
 
+function isSuperAdmin(role?: string | null) {
+  return role?.toUpperCase() === "SUPER_ADMIN";
+}
+
 export async function getAllEventSpaces(): Promise<
   ActionResult<EventSpaceData[]>
 > {
@@ -47,7 +51,7 @@ export async function getAllEventSpaces(): Promise<
 }
 
 export async function getEventSpaceById(
-  id: string
+  id: string,
 ): Promise<ActionResult<EventSpaceData>> {
   try {
     const session = await auth.api.getSession({
@@ -63,6 +67,42 @@ export async function getEventSpaceById(
       where: { id },
       include: {
         amenities: true,
+        sapfRequests: {
+          where: {
+            status: {
+              in: [
+                "SUBMITTED",
+                "IN_REVIEW",
+                "RETURNED_FOR_REVISION",
+                "APPROVED",
+              ] as any,
+            },
+          },
+          select: {
+            id: true,
+            requestNumber: true,
+            title: true,
+            organization: true,
+            startAt: true,
+            endAt: true,
+            status: true,
+          },
+          orderBy: {
+            startAt: "asc",
+          },
+        },
+        venueBlocks: {
+          select: {
+            id: true,
+            title: true,
+            reason: true,
+            startAt: true,
+            endAt: true,
+          },
+          orderBy: {
+            startAt: "asc",
+          },
+        },
       },
     });
     if (!space) {
@@ -90,10 +130,10 @@ export async function getAllAmenities(): Promise<ActionResult<Amenity[]>> {
     const session = await auth.api.getSession({
       headers: await headers(),
     });
-    if (!session?.user) {
+    if (!session?.user || !isSuperAdmin(session.user.role)) {
       return {
         success: false,
-        message: "Unauthorized access.",
+        message: "Only super admins can update venues.",
       };
     }
 
@@ -115,21 +155,21 @@ export async function getAllAmenities(): Promise<ActionResult<Amenity[]>> {
 }
 
 export async function createEventSpace(
-  data: FormData
+  data: FormData,
 ): Promise<ActionResult<EventSpaceData>> {
   try {
     const session = await auth.api.getSession({
       headers: await headers(),
     });
-    if (!session?.user) {
+    if (!session?.user || !isSuperAdmin(session.user.role)) {
       return {
         success: false,
-        message: "Unauthorized access.",
+        message: "Only super admins can delete venues.",
       };
     }
 
     const validation = await createEventSpaceSchema.safeParseAsync(
-      Object.fromEntries(data)
+      Object.fromEntries(data),
     );
     if (!validation.success) {
       console.error("Validation error:", validation.error);
@@ -179,7 +219,7 @@ export async function createEventSpace(
 }
 
 export async function updateEventSpace(
-  data: FormData
+  data: FormData,
 ): Promise<ActionResult<void>> {
   try {
     const session = await auth.api.getSession({
@@ -193,7 +233,7 @@ export async function updateEventSpace(
     }
 
     const validatedData = await updateEventSpaceSchema.safeParseAsync(
-      Object.fromEntries(data)
+      Object.fromEntries(data),
     );
     if (!validatedData.success) {
       console.error("Validation error:", validatedData.error);
@@ -247,7 +287,7 @@ export async function updateEventSpace(
 }
 
 export async function deleteEventSpace(
-  id: string
+  id: string,
 ): Promise<ActionResult<void>> {
   try {
     const session = await auth.api.getSession({

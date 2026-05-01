@@ -1,4 +1,4 @@
-import SapfBookingsPage from "@/app/components/pages/SAPF/SapfBookingsPage";
+import SapfAccountsPage from "@/app/components/pages/SAPF/SapfAccountsPage";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -12,7 +12,11 @@ const page = async () => {
     redirect("/login");
   }
 
-  return <SapfBookingsPage />;
+  if (session.user.role?.toUpperCase() !== "SUPER_ADMIN") {
+    redirect("/user/dashboard");
+  }
+
+  return <SapfAccountsPage />;
 };
 
 export default page;

@@ -1,4 +1,4 @@
-import SapfBookingsPage from "@/app/components/pages/SAPF/SapfBookingsPage";
+import SapfApprovalsPage from "@/app/components/pages/SAPF/SapfApprovalsPage";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -12,7 +12,7 @@ const page = async () => {
     redirect("/login");
   }
 
-  return <SapfBookingsPage />;
+  return <SapfApprovalsPage />;
 };
 
 export default page;

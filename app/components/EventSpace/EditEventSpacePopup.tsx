@@ -120,7 +120,7 @@ const EditEventSpacePopup = ({
       statusPopup.showSuccess("Event space updated successfully.");
       router.refresh();
       onClose();
-    } catch (error) {
+    } catch {
       statusPopup.showError(
         "An error occurred while updating the event space."
       );
@@ -305,7 +305,6 @@ const EditEventSpacePopup = ({
                     <SelectItem value="UNDER_MAINTENANCE">
                       Under Maintenance
                     </SelectItem>
-                    <SelectItem value="BOOKED">Booked</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -326,7 +325,7 @@ const EditEventSpacePopup = ({
                   min={0}
                 />
                 <p className="text-xs text-gray-500">
-                  Set to 0 for free spaces (students)
+                  Set to 0 for free officer reservations
                 </p>
               </div>
 

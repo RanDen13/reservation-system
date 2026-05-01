@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LCUP Event Space Reservation",
+  title: "LCUP SAPF Reservation",
   description:
-    "Reserve campus event spaces at La Consolacion University Philippines. Real-time availability, easy scheduling, and seamless booking management.",
+    "Officer-only SAPF venue reservation and approval workflow for La Consolacion University Philippines.",
 };
 
 export default function RootLayout({

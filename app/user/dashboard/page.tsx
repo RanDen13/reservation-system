@@ -1,6 +1,4 @@
-import AdminDashboard from "@/app/components/pages/Dashboard/Admin";
-import StudentDashboard from "@/app/components/pages/Dashboard/Student";
-import ErrorPopup from "@/app/components/Popup/ErrorPopup";
+import SapfDashboard from "@/app/components/pages/SAPF/SapfDashboard";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -14,13 +12,7 @@ const page = async () => {
     redirect("/login");
   }
 
-  if (session.user.role === "admin") {
-    return <AdminDashboard />;
-  } else if (session.user.role === "user") {
-    return <StudentDashboard />;
-  }
-
-  return <ErrorPopup message="Unauthorized access." />;
+  return <SapfDashboard />;
 };
 
 export default page;

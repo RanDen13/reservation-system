@@ -1,6 +1,6 @@
 import AdminSpaces from "@/app/components/pages/Spaces/Admin";
 import { getAllEventSpaces } from "@/app/components/pages/Spaces/EventSpaceActions";
-import StudentSpaces from "@/app/components/pages/Spaces/Student";
+import OfficerSpaces from "@/app/components/pages/Spaces/Officer";
 import ErrorPopup from "@/app/components/Popup/ErrorPopup";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -22,10 +22,12 @@ const page = async () => {
     );
   }
 
-  if (session.user.role === "admin") {
+  const role = session.user.role?.toUpperCase();
+
+  if (role === "SUPER_ADMIN") {
     return <AdminSpaces eventSpaces={result.data || []} />;
-  } else if (session.user.role === "user") {
-    return <StudentSpaces eventSpaces={result.data || []} />;
+  } else if (["OFFICER", "APPROVER", "ADMIN"].includes(role || "")) {
+    return <OfficerSpaces eventSpaces={result.data || []} />;
   }
 
   return <ErrorPopup message="Unauthorized access." />;
