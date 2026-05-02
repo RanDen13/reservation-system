@@ -130,6 +130,9 @@ export default function SapfBookingForm({
   const part1 = initialRequest?.sapfPart1 || {};
   const part2 = initialRequest?.sapfPart2 || {};
   const part3 = initialRequest?.sapfPart3 || "";
+  const [selectedSetting, setSelectedSetting] = useState(
+    part1.setting || "In-Campus",
+  );
   const selectedCoreValues = new Set<string>(
     Array.isArray(part1.coreValues) ? part1.coreValues : [],
   );
@@ -530,7 +533,11 @@ export default function SapfBookingForm({
           </div>
           <div>
             <Label>Setting</Label>
-            <Select name="setting" defaultValue={part1.setting || "In-Campus"}>
+            <Select
+              name="setting"
+              value={selectedSetting}
+              onValueChange={setSelectedSetting}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -540,6 +547,59 @@ export default function SapfBookingForm({
               </SelectContent>
             </Select>
           </div>
+          {selectedSetting === "Off-Campus" ? (
+            <div className="md:col-span-2">
+              <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+                <div className="border-b bg-orange-50 px-4 py-3">
+                  <p className="text-sm font-bold tracking-wide text-orange-600">
+                    OFF-CAMPUS AGREEMENT{" "}
+                    <span className="font-normal italic text-muted-foreground">
+                      This section is only for off-campus activity.
+                    </span>
+                  </p>
+                </div>
+                <div className="grid md:grid-cols-[220px_1fr]">
+                  <div className="border-b bg-muted/40 p-4 md:border-r md:border-b-0">
+                    <p className="text-center text-sm text-foreground">
+                      Kindly select if you understand the agreement.
+                    </p>
+                    <div className="mt-4 grid gap-2">
+                      {["I Agree", "I Disagree"].map((value) => (
+                        <label
+                          key={value}
+                          className="flex cursor-pointer items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
+                        >
+                          <input
+                            type="radio"
+                            name="offCampAgree"
+                            value={value}
+                            required
+                            defaultChecked={part1.offCampAgree === value}
+                            className="h-4 w-4 accent-primary"
+                          />
+                          {value}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="p-4 text-sm leading-6 text-foreground">
+                    We understand and acknowledge the importance of complying
+                    with CHED CMO No. 63, s. 2017. We hereby commit to
+                    submitting all required documents, including the Report of
+                    Compliance, at least{" "}
+                    <span className="font-semibold">30 days</span> prior to the
+                    scheduled activity. Failure to meet this requirement may
+                    result in the{" "}
+                    <span className="font-semibold">
+                      non-approval or cancellation
+                    </span>{" "}
+                    of the proposed activity. We accept full responsibility for
+                    adhering to this policy.
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
           <div>
             <Label>Personnel-In-Charge</Label>
             <Input

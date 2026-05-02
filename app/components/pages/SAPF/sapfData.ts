@@ -118,6 +118,7 @@ export function getSapfParts(request: any) {
     venue: venueNames(request),
     department: request.department || "",
     setting: request.setting || "",
+    offCampAgree: request.offCampAgree || "",
     personnelInCharge: request.personnelInCharge || "",
     activityType: request.activityType || "",
     attire: request.attire || "",

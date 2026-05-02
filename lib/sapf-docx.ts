@@ -146,6 +146,7 @@ export async function renderSapfDocx({ request }: { request: any }) {
     modalityHybrid: marker(same(part1.modality, "Hybrid")),
     settingInCampus: marker(same(part1.setting, "In-Campus")),
     settingOffCampus: marker(same(part1.setting, "Off-Campus")),
+    offCampAgree: same(part1.setting, "Off-Campus") ? part1.offCampAgree : "",
     activityTypeCoCurricular: marker(same(part1.activityType, "Co-Curricular")),
     activityTypeExtraCurricular: marker(
       same(part1.activityType, "Extra-Curricular"),

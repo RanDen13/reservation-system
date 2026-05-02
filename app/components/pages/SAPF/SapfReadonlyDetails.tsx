@@ -225,6 +225,12 @@ export default function SapfReadonlyDetails({
           <ReadOnlyField label="Venue" value={part1.venue} />
           <ReadOnlyField label="Modality" value={part1.modality} />
           <ReadOnlyField label="Setting" value={part1.setting} />
+          {part1.setting === "Off-Campus" ? (
+            <ReadOnlyField
+              label="Off-Campus Agreement"
+              value={part1.offCampAgree}
+            />
+          ) : null}
           <ReadOnlyField
             label="Personnel-In-Charge"
             value={part1.personnelInCharge}

@@ -314,6 +314,7 @@ function buildSapfPayload(data: FormData) {
     venue: field(data, "venue"),
     department: field(data, "department"),
     setting: field(data, "setting"),
+    offCampAgree: field(data, "offCampAgree"),
     personnelInCharge: field(data, "personnelInCharge"),
     activityType: field(data, "activityType"),
     attire: field(data, "attire"),
@@ -347,6 +348,8 @@ function sapfColumnData(sapf: ReturnType<typeof buildSapfPayload>) {
     programCourse: sapf.programCourse || null,
     venue: sapf.venue || null,
     setting: sapf.setting || null,
+    offCampAgree:
+      sapf.setting === "Off-Campus" ? sapf.offCampAgree || null : null,
     personnelInCharge: sapf.personnelInCharge || null,
     activityType: sapf.activityType || null,
     attire: sapf.attire || null,

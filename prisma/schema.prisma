@@ -159,6 +159,7 @@ model SAPFRequest {
   programCourse               String?
   venue                       String?
   setting                     String?
+  offCampAgree                String?
   personnelInCharge           String?
   activityType                String?
   attire                      String?
