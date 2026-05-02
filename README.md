@@ -36,6 +36,54 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
+## Docker Deployment
+
+### Building the Docker Image
+
+The provided `Dockerfile` uses a multi-stage build to optimize image size:
+
+```bash
+docker build -t reservation-system:latest .
+```
+
+### Running with Docker Compose (Recommended)
+
+Use the provided `docker-compose.yml` to run the app with environment variables properly configured:
+
+```bash
+# Edit docker-compose.yml to set your environment variables
+docker-compose up -d
+```
+
+**Important: Environment Variables**
+
+The app requires the following environment variables for proper operation:
+
+- `BETTER_AUTH_URL`: The public URL of your app (e.g., `https://yourdomain.com`)
+- `NEXT_PUBLIC_URL`: Alternative fallback URL
+- `BETTER_AUTH_SECRET`: Secret key for authentication (generate a random string)
+- `DATABASE_URL`: Path to SQLite database (e.g., `file:./data/dev.db`)
+- `SMTP_*`: Email configuration variables
+
+### Running with Docker CLI
+
+If using Docker directly without Compose:
+
+```bash
+docker run -d \
+  -p 3000:3000 \
+  -e BETTER_AUTH_URL=https://yourdomain.com \
+  -e NEXT_PUBLIC_URL=https://yourdomain.com \
+  -e BETTER_AUTH_SECRET=your-secret-key \
+  -e DATABASE_URL=file:./data/dev.db \
+  -v $(pwd)/data:/app/data \
+  reservation-system:latest
+```
+
+### Native Bindings
+
+The Dockerfile includes build tools (`python3`, `make`, `g++`) in the runtime stage to properly compile the `better-sqlite3` native binding. This ensures compatibility with the Node.js runtime environment.
+
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.

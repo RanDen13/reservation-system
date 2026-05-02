@@ -6,7 +6,10 @@ import { randomInt } from "node:crypto";
 import { sendEmail } from "./email";
 import { prisma } from "./prisma";
 
-const appUrl = process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
+const appUrl =
+  process.env.BETTER_AUTH_URL ||
+  process.env.NEXT_PUBLIC_URL ||
+  "http://localhost:3000";
 const magicCodeAlphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 const magicCodeLength = 10;
 const magicCodeGroupSize = 5;
