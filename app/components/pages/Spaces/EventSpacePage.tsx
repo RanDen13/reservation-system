@@ -69,6 +69,27 @@ function addCalendarDays(date: Date, days: number) {
   return result;
 }
 
+function getRequestSchedule(initialRequest?: any) {
+  if (!initialRequest) {
+    return {
+      date: "",
+      startTime: "",
+      endTime: "",
+    };
+  }
+
+  const startAt = new Date(initialRequest.startAt);
+  const endAt = new Date(initialRequest.endAt);
+
+  return {
+    date: Number.isNaN(startAt.getTime())
+      ? ""
+      : format(startAt, "yyyy-MM-dd"),
+    startTime: Number.isNaN(startAt.getTime()) ? "" : format(startAt, "HH:mm"),
+    endTime: Number.isNaN(endAt.getTime()) ? "" : format(endAt, "HH:mm"),
+  };
+}
+
 function SapfForm({
   eventSpace,
   approvers,
@@ -82,9 +103,10 @@ function SapfForm({
 }) {
   const popup = usePopup();
   const router = useRouter();
-  const [selectedDate, setSelectedDate] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
+  const initialSchedule = getRequestSchedule(initialRequest);
+  const [selectedDate, setSelectedDate] = useState(initialSchedule.date);
+  const [startTime, setStartTime] = useState(initialSchedule.startTime);
+  const [endTime, setEndTime] = useState(initialSchedule.endTime);
   const isEditing = Boolean(initialRequest);
   const lockApprovalChain = initialRequest?.status === "RETURNED_FOR_REVISION";
   const formKey = initialRequest?.id || "new";
@@ -115,20 +137,6 @@ function SapfForm({
   );
   const minimumBookingDate = toDateInputValue(earliestBookingDate);
   const earliestBookingDateLabel = format(earliestBookingDate, "MMM d, yyyy");
-
-  useEffect(() => {
-    if (!initialRequest) return;
-    const startAt = new Date(initialRequest.startAt);
-    const endAt = new Date(initialRequest.endAt);
-
-    if (!Number.isNaN(startAt.getTime())) {
-      setSelectedDate(format(startAt, "yyyy-MM-dd"));
-      setStartTime(format(startAt, "HH:mm"));
-    }
-    if (!Number.isNaN(endAt.getTime())) {
-      setEndTime(format(endAt, "HH:mm"));
-    }
-  }, [initialRequest]);
 
   const handleSave = async (formData: FormData) => {
     const activityDate = String(formData.get("activityDate") ?? "");
@@ -793,6 +801,7 @@ const EventSpacePage = ({
               Approved reservations and venue blocks cannot be submitted over.
             </div>
             <SapfForm
+              key={editingRequest?.id || "new"}
               eventSpace={eventSpace}
               approvers={approvers}
               onSaved={refresh}

@@ -1065,6 +1065,12 @@ export async function saveSapfRequest(
         return created;
       });
     } else {
+      const returnedStep = isSubmit
+        ? [...existing.approvalSteps]
+            .filter((step) => step.status === "RETURNED")
+            .sort((a, b) => a.stepOrder - b.stepOrder)[0]
+        : null;
+
       request = await prisma.$transaction(async (tx) => {
         const updated = await tx.sAPFRequest.update({
           where: { id: existing.id },
@@ -1072,11 +1078,35 @@ export async function saveSapfRequest(
             ...requestData,
             status: isSubmit ? ("IN_REVIEW" as any) : existing.status,
             currentStepOrder: isSubmit
-              ? (existing.currentStepOrder ?? 1)
+              ? (returnedStep?.stepOrder ?? existing.currentStepOrder ?? 1)
               : existing.currentStepOrder,
           },
         });
         await replaceSapfListRows(tx, updated.id, sapf);
+
+        if (returnedStep) {
+          await tx.approvalStep.update({
+            where: { id: returnedStep.id },
+            data: {
+              status: "ACTIVE" as any,
+              comment: null,
+              actedAt: null,
+            },
+          });
+          await tx.approvalStep.updateMany({
+            where: {
+              requestId: existing.id,
+              stepOrder: { gt: returnedStep.stepOrder },
+              status: { in: ["ACTIVE", "RETURNED", "SKIPPED"] as any },
+            },
+            data: {
+              status: "PENDING" as any,
+              comment: null,
+              actedAt: null,
+            },
+          });
+        }
+
         return updated;
       });
     }
@@ -1092,19 +1122,6 @@ export async function saveSapfRequest(
             status: step.status as any,
           })),
         });
-      } else {
-        const returnedStep = existing.approvalSteps.find(
-          (step) => step.status === "RETURNED",
-        );
-        if (returnedStep) {
-          await prisma.approvalStep.update({
-            where: { id: returnedStep.id },
-            data: {
-              status: "ACTIVE" as any,
-              comment: null,
-            },
-          });
-        }
       }
 
       const firstStep = await prisma.approvalStep.findFirst({
