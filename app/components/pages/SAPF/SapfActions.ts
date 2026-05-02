@@ -2353,6 +2353,46 @@ export async function updateManagedRole(
   }
 }
 
+export async function updateManagedName(
+  data: FormData,
+): Promise<ActionResult<void>> {
+  try {
+    const user = await getSessionUser();
+    if (!user || !requireRole(user.role, ["SUPER_ADMIN"])) {
+      return {
+        success: false,
+        message: "Only super admins can change user names.",
+      };
+    }
+
+    const userId = field(data, "userId");
+    const name = field(data, "name");
+    if (!userId) {
+      return { success: false, message: "User is required." };
+    }
+    if (name.length < 2) {
+      return { success: false, message: "Name must be at least 2 characters." };
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { name },
+    });
+
+    revalidatePath("/user/accounts");
+    revalidatePath("/user/dashboard");
+    revalidatePath("/user/approvals");
+    revalidatePath("/user/bookings");
+    return { success: true, message: "Name updated." };
+  } catch (error) {
+    console.error("Account name update failed:", error);
+    return {
+      success: false,
+      message: (error as Error).message || "Failed to update name.",
+    };
+  }
+}
+
 export async function updateApproverPosition(
   data: FormData,
 ): Promise<ActionResult<void>> {

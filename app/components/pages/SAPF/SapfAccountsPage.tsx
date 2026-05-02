@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/app/components/ui/select";
 import { format } from "date-fns";
-import { Plus, RefreshCcw, UserPlus, Users } from "lucide-react";
+import { Pencil, Plus, RefreshCcw, UserPlus, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   createManagedAccount,
@@ -29,6 +29,7 @@ import {
   getAccountsWorkspace,
   reactivateAccount,
   sendMagicEmail,
+  updateManagedName,
   updateApproverPosition,
   updateManagedRole,
 } from "./SapfActions";
@@ -89,6 +90,8 @@ function AccountRow({
   const [savingPosition, setSavingPosition] = useState(false);
   const [savingAction, setSavingAction] = useState(false);
   const [actionValue, setActionValue] = useState("");
+  const [editingName, setEditingName] = useState(false);
+  const [savingName, setSavingName] = useState(false);
   const canEditPosition =
     approverRoleOptions.includes(
       role as (typeof approverRoleOptions)[number],
@@ -146,6 +149,12 @@ function AccountRow({
 
   const handleActionChange = async (nextAction: string) => {
     if (!nextAction) return;
+    if (nextAction === "EDIT_NAME") {
+      setEditingName(true);
+      setActionValue("");
+      return;
+    }
+
     setActionValue(nextAction);
 
     const actionLabel = nextAction.replaceAll("_", " ").toLowerCase();
@@ -180,13 +189,46 @@ function AccountRow({
     await onUpdated();
   };
 
+  const handleNameUpdate = async (formData: FormData) => {
+    setSavingName(true);
+    formData.set("userId", user.id);
+    const result = await updateManagedName(formData);
+    setSavingName(false);
+
+    if (!result.success) {
+      popup.showError(result.message);
+      return;
+    }
+
+    popup.showSuccess(result.message || "Name updated.");
+    setEditingName(false);
+    await onUpdated();
+  };
+
   return (
-    <tr className="border-t">
-      <td className="px-4 py-3">
-        <p className="text-sm font-semibold text-foreground">{user.name}</p>
-        <p className="text-xs text-muted-foreground">{user.email}</p>
-      </td>
-      <td className="px-4 py-3">
+    <>
+      <tr className="border-t">
+        <td className="px-4 py-3">
+        <div className="flex items-start gap-2">
+          <div>
+            <p className="text-sm font-semibold text-foreground">
+              {user.name}
+            </p>
+            <p className="text-xs text-muted-foreground">{user.email}</p>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2"
+            onClick={() => setEditingName(true)}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            <span className="sr-only">Edit name</span>
+          </Button>
+        </div>
+        </td>
+        <td className="px-4 py-3">
         <Select
           value={role}
           onValueChange={handleRoleChange}
@@ -203,8 +245,8 @@ function AccountRow({
             ))}
           </SelectContent>
         </Select>
-      </td>
-      <td className="px-4 py-3">
+        </td>
+        <td className="px-4 py-3">
         <Select
           value={position}
           onValueChange={handlePositionChange}
@@ -223,14 +265,14 @@ function AccountRow({
             ))}
           </SelectContent>
         </Select>
-      </td>
-      <td className="px-4 py-3">
+        </td>
+        <td className="px-4 py-3">
         <StatusBadge status={user.status} />
-      </td>
-      <td className="px-4 py-3 text-sm text-muted-foreground">
+        </td>
+        <td className="px-4 py-3 text-sm text-muted-foreground">
         {format(new Date(user.createdAt), "MMM d, yyyy")}
-      </td>
-      <td className="px-4 py-3">
+        </td>
+        <td className="px-4 py-3">
         <Select
           value={actionValue}
           onValueChange={handleActionChange}
@@ -240,6 +282,7 @@ function AccountRow({
             <SelectValue placeholder="Select action" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="EDIT_NAME">Edit name</SelectItem>
             {user.status === "PENDING" && (
               <SelectItem value="RESEND_MAGIC">Resend magic code</SelectItem>
             )}
@@ -251,8 +294,46 @@ function AccountRow({
             )}
           </SelectContent>
         </Select>
-      </td>
-    </tr>
+        </td>
+      </tr>
+      {editingName && (
+        <ModalBase onClose={() => setEditingName(false)}>
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Edit User Name</CardTitle>
+              <CardDescription>{user.email}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form action={handleNameUpdate} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor={`edit-name-${user.id}`}>Name</Label>
+                  <Input
+                    id={`edit-name-${user.id}`}
+                    name="name"
+                    defaultValue={user.name}
+                    required
+                    minLength={2}
+                  />
+                </div>
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setEditingName(false)}
+                    disabled={savingName}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={savingName}>
+                    {savingName ? "Saving..." : "Save name"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </ModalBase>
+      )}
+    </>
   );
 }
 

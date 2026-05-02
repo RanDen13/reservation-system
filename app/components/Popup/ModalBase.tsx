@@ -22,13 +22,19 @@ const ModalBase = ({
       className={`fixed inset-0 z-9999 flex min-w-0 items-center justify-center bg-black/50 backdrop-blur-sm ${
         notTransparent ? `bg-opacity-100 ${bgColor}` : "bg-opacity-50"
       } ${className} animate-in fade-in duration-200`}
-      onClick={onClose}
     >
       <div className="max-h-100vh w-full items-center justify-center overflow-y-auto">
-        <div className="flex flex-1 items-center justify-center p-5">
+        <div
+          className="flex flex-1 items-center justify-center p-5"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              onClose?.();
+            }
+          }}
+        >
           <div
             className="w-auto animate-in zoom-in-95 duration-200"
-            onClick={(event) => event.stopPropagation()}
+            onMouseDown={(event) => event.stopPropagation()}
           >
             {children}
           </div>
