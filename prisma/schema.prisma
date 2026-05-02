@@ -184,6 +184,8 @@ model SAPFRequest {
   medicalExam                 Boolean?
   reportOfCompliance          Boolean?
   studentPersonnelRatio       String?
+  conductedRemarks            String?
+  cancelledRemarks            String?
   verificationToken           String?           @unique
   approvedAt                  DateTime?
   createdAt                   DateTime          @default(now())

@@ -1914,6 +1914,71 @@ export async function updateSdsClearance(
   }
 }
 
+export async function updateSdsEvaluation(
+  data: FormData,
+): Promise<ActionResult<void>> {
+  try {
+    const user = await getSessionUser();
+    if (!user || !requireRole(user.role, ["APPROVER", "ADMIN"])) {
+      return { success: false, message: "SDS access required." };
+    }
+
+    const requestId = field(data, "requestId");
+    const request = await prisma.sAPFRequest.findUnique({
+      where: { id: requestId },
+      include: {
+        approvalSteps: true,
+      },
+    });
+
+    if (!request) {
+      return {
+        success: false,
+        message: "Venue reservation request not found.",
+      };
+    }
+
+    const sdsStep = request.approvalSteps.find(
+      (step) => step.position === "SDS" && step.reviewerId === user.id,
+    );
+
+    if (!sdsStep) {
+      return {
+        success: false,
+        message: "Only the assigned SDS reviewer can edit Part 6.",
+      };
+    }
+
+    if (request.status !== "APPROVED") {
+      return {
+        success: false,
+        message: "Part 6 is available only after the request is completed.",
+      };
+    }
+
+    await prisma.sAPFRequest.update({
+      where: { id: request.id },
+      data: {
+        conductedRemarks: field(data, "conductedRemarks"),
+        cancelledRemarks: field(data, "cancelledRemarks"),
+      },
+    });
+
+    revalidatePath("/user/dashboard");
+    revalidatePath("/user/approvals");
+    revalidatePath(`/user/approvals/${request.id}`);
+    revalidatePath(`/user/bookings/${request.id}`);
+
+    return { success: true, message: "Part 6 evaluation updated." };
+  } catch (error) {
+    console.error("SDS evaluation update failed:", error);
+    return {
+      success: false,
+      message: (error as Error).message || "Failed to update Part 6.",
+    };
+  }
+}
+
 export async function addConcernMessage(
   data: FormData,
 ): Promise<ActionResult<void>> {

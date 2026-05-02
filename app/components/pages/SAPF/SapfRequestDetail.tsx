@@ -29,6 +29,7 @@ import {
   addConcernMessage,
   reviewSapfRequest,
   updateSdsClearance,
+  updateSdsEvaluation,
 } from "./SapfActions";
 import SapfReadonlyDetails from "./SapfReadonlyDetails";
 
@@ -815,6 +816,94 @@ function SdsClearanceEditControls({
   );
 }
 
+function SdsEvaluationControls({
+  request,
+  me,
+  onRefresh,
+}: {
+  request: any;
+  me: any;
+  onRefresh: () => Promise<void>;
+}) {
+  const popup = usePopup();
+  const part6 = request.sapfPart6 || {};
+  const [submitting, setSubmitting] = useState(false);
+  const canEdit =
+    request.status === "APPROVED" &&
+    request.approvalSteps?.some(
+      (item: any) => item.position === "SDS" && item.reviewerId === me?.id,
+    );
+
+  if (!canEdit) return null;
+
+  const handleSubmit = async (formData: FormData) => {
+    setSubmitting(true);
+    const result = await updateSdsEvaluation(formData);
+    setSubmitting(false);
+    if (!result.success) {
+      popup.showError(result.message);
+      return;
+    }
+    popup.showSuccess(result.message || "Part 6 evaluation updated.");
+    await onRefresh();
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-orange-600">Part 6: Evaluation</CardTitle>
+        <CardDescription>
+          SDS can update this evaluation after the request is completed.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form action={handleSubmit} className="space-y-4">
+          <input type="hidden" name="requestId" value={request.id} />
+          <div className="grid overflow-hidden rounded-md border md:grid-cols-2">
+            <div className="border-b md:border-r md:border-b-0">
+              <div className="border-b bg-amber-100 px-3 py-2 text-center text-sm font-bold text-foreground">
+                CONDUCTED
+              </div>
+              <div className="p-3">
+                <Label htmlFor="conductedRemarks">
+                  Remarks: {"{conductedRemarks}"}
+                </Label>
+                <Textarea
+                  id="conductedRemarks"
+                  name="conductedRemarks"
+                  defaultValue={part6.conductedRemarks || ""}
+                  className="mt-2 min-h-28 resize-y border-0 bg-transparent p-0 shadow-none focus-visible:ring-0"
+                />
+              </div>
+            </div>
+            <div>
+              <div className="border-b bg-amber-100 px-3 py-2 text-center text-sm font-bold text-foreground">
+                CANCELED
+              </div>
+              <div className="p-3">
+                <Label htmlFor="cancelledRemarks">
+                  Remarks: {"{cancelledRemarks}"}
+                </Label>
+                <Textarea
+                  id="cancelledRemarks"
+                  name="cancelledRemarks"
+                  defaultValue={part6.cancelledRemarks || ""}
+                  className="mt-2 min-h-28 resize-y border-0 bg-transparent p-0 shadow-none focus-visible:ring-0"
+                />
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button type="submit" disabled={submitting}>
+              {submitting ? "Saving..." : "Save Part 6"}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function RequestDetail({
   request,
   me,
@@ -854,6 +943,13 @@ export function RequestDetail({
       )}
       {showReviewControls && (
         <SdsClearanceEditControls
+          request={request}
+          me={me}
+          onRefresh={onRefresh}
+        />
+      )}
+      {showReviewControls && (
+        <SdsEvaluationControls
           request={request}
           me={me}
           onRefresh={onRefresh}

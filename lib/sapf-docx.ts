@@ -83,6 +83,7 @@ export async function renderSapfDocx({ request }: { request: any }) {
   const part1 = sapf.part1;
   const part2 = sapf.part2;
   const part4 = sapf.part4 || {};
+  const part6 = sapf.part6 || {};
   const startAt = asDate(request.startAt);
   const endAt = asDate(request.endAt);
   const createdAt = request.createdAt ? asDate(request.createdAt) : new Date();
@@ -232,6 +233,8 @@ export async function renderSapfDocx({ request }: { request: any }) {
     reportComplianceYes: marker(positive(part4.reportOfCompliance)),
     reportComplianceNotApplicable: marker(negative(part4.reportOfCompliance)),
     studentPersonnelRatio: part4.studentPersonnelRatio,
+    conductedRemarks: part6.conductedRemarks,
+    cancelledRemarks: part6.cancelledRemarks,
 
     preparedBy: request.officer?.name || "",
     adviserName,

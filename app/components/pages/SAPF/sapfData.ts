@@ -165,11 +165,17 @@ export function getSapfParts(request: any) {
     studentPersonnelRatio: request.studentPersonnelRatio || "",
   };
 
+  const part6 = {
+    conductedRemarks: request.conductedRemarks || "",
+    cancelledRemarks: request.cancelledRemarks || "",
+  };
+
   return {
     part1,
     part2,
     part3: request.otherDetails || "",
     part4: hasAnyValue(part4) ? part4 : null,
+    part6: hasAnyValue(part6) ? part6 : null,
   };
 }
 
@@ -185,5 +191,6 @@ export function normalizeSapfRequest<T extends Record<string, any>>(
     sapfPart2: sapf.part2,
     sapfPart3: sapf.part3,
     sapfPart4: sapf.part4,
+    sapfPart6: sapf.part6,
   };
 }
