@@ -110,18 +110,18 @@ model User {
 }
 
 model EventSpace {
-  id           String           @id
-  name         String
-  location     String
-  capacity     Int
-  description  String
-  amenities    Amenity[]
-  status       EventSpaceStatus @default(ACTIVE)
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-  image        Bytes?
+  id                String             @id
+  name              String
+  location          String
+  capacity          Int
+  description       String
+  amenities         Amenity[]
+  status            EventSpaceStatus   @default(ACTIVE)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  image             Bytes?
   sapfRequestVenues SAPFRequestVenue[]
-  venueBlocks  VenueBlock[]
+  venueBlocks       VenueBlock[]
 
   @@map("event_space")
 }
@@ -145,6 +145,7 @@ model SAPFRequest {
   officer                     User              @relation("OfficerRequests", fields: [officerId], references: [id], onDelete: Cascade)
   title                       String
   organization                String
+  departmentCategory          String?
   department                  String
   attendeeCount               String
   startAt                     DateTime
@@ -165,6 +166,7 @@ model SAPFRequest {
   rationale                   String?
   objectives                  String?
   programFlow                 String?
+  emergencyPlan               String?
   budget                      String?
   sourceOfBudget              String?
   budgetDetails               String?
@@ -172,6 +174,7 @@ model SAPFRequest {
   foodPax                     String?
   roomVenueDetails            String?
   microphoneQty               String?
+  extraProvisions             String?
   otherSupport                String?
   otherDetails                String?
   parentsConsent              Boolean?

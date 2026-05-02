@@ -81,7 +81,7 @@ async function main() {
       ["a3", "Sound System", "sound"],
       ["a4", "Stage", "stage"],
       ["a5", "Air Conditioning", "air"],
-      ["a6", "Chairs and Tables", "chairs"],
+      ["a6", "One Long Table", "chairs"],
     ].map(([id, name, icon]) =>
       prisma.amenity.upsert({
         where: { id },

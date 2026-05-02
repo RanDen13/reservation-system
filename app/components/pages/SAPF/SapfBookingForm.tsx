@@ -44,6 +44,7 @@ import { EventSpaceData } from "../Spaces/schema";
 import { saveSapfRequest } from "./SapfActions";
 import {
   CORE_VALUE_OPTIONS,
+  DEPARTMENT_CATEGORY_OPTIONS,
   GRADUATE_ATTRIBUTE_OPTIONS,
   SUPPORT_REQUEST_OPTIONS,
 } from "./sapfData";
@@ -453,6 +454,30 @@ export default function SapfBookingForm({
 
       <Card>
         <CardHeader>
+          <CardTitle>Department Category</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Label>Department Category</Label>
+          <Select
+            name="departmentCategory"
+            defaultValue={part1.departmentCategory || "College"}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select department category" />
+            </SelectTrigger>
+            <SelectContent>
+              {DEPARTMENT_CATEGORY_OPTIONS.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Part 1: Activity Details</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
@@ -678,6 +703,15 @@ export default function SapfBookingForm({
               ) : null}
             </div>
           </div>
+          <div className="md:col-span-2">
+            <Label>Emergency Plan</Label>
+            <Textarea
+              name="emergencyPlan"
+              rows={4}
+              placeholder="Emergency plan for the activity"
+              defaultValue={part1.emergencyPlan || ""}
+            />
+          </div>
           <div>
             <Label>Budget</Label>
             <Input name="budget" defaultValue={part1.budget || ""} />
@@ -760,6 +794,19 @@ export default function SapfBookingForm({
                 </div>
               );
             })}
+          </div>
+          <div className="md:col-span-2">
+            <Label htmlFor="extraProvisions">
+              Provision For Students With Diverse Needs
+            </Label>
+            <Textarea
+              id="extraProvisions"
+              name="extraProvisions"
+              rows={3}
+              placeholder="Enter provisions, accommodations, or accessibility needs."
+              defaultValue={part2.extraProvisions || ""}
+              className="mt-2"
+            />
           </div>
           <div className="md:col-span-2">
             <Label htmlFor="otherSupport">Other Support Requests</Label>

@@ -14,6 +14,14 @@ export const GRADUATE_ATTRIBUTE_OPTIONS = [
   "EGA 4: Transformative Lifelong Learner",
 ];
 
+export const DEPARTMENT_CATEGORY_OPTIONS = [
+  "College",
+  "Alternative Education",
+  "Graduate Studies",
+  "Extensions Office",
+  "COM",
+];
+
 export const SUPPORT_REQUEST_OPTIONS = [
   "Budget",
   "Vehicle",
@@ -22,7 +30,7 @@ export const SUPPORT_REQUEST_OPTIONS = [
   "Sound System",
   "Microphone",
   "LCD Projector",
-  "Chairs and Tables",
+  "One Long Table",
 ];
 
 function valuesFromRows(rows: any[] | undefined) {
@@ -104,6 +112,7 @@ export function getSapfParts(request: any) {
     activityTitle: request.title || "",
     organization: request.organization || "",
     activityDate: request.startAt || "",
+    departmentCategory: request.departmentCategory || "",
     modality: request.modality || "",
     programCourse: request.programCourse || "",
     venue: venueNames(request),
@@ -121,6 +130,7 @@ export function getSapfParts(request: any) {
     graduateAttributes,
     programFlow: request.programFlow || "",
     programFlowAttachments,
+    emergencyPlan: request.emergencyPlan || "",
     budget: request.budget || "",
     sourceOfBudget: request.sourceOfBudget || "",
   };
@@ -132,6 +142,7 @@ export function getSapfParts(request: any) {
     foodPax: request.foodPax || "",
     roomVenueDetails: request.roomVenueDetails || "",
     microphoneQty: request.microphoneQty || "",
+    extraProvisions: request.extraProvisions || "",
     otherSupport: request.otherSupport || "",
   };
 

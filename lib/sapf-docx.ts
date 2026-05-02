@@ -95,7 +95,9 @@ export async function renderSapfDocx({ request }: { request: any }) {
     programIncludes(program, "press conference"),
     programIncludes(program, "seminar", "convention"),
   ].some(Boolean);
-  const departmentCategory = short(part1.department).toLowerCase();
+  const departmentCategory = short(
+    part1.departmentCategory || part1.department,
+  ).toLowerCase();
   const additionalSignatoryName = (request.approvalSteps || [])
     .filter((step: any) => step.position === "ADDITIONAL_SIGNATORY")
     .map((step: any) => step.reviewer?.name)
@@ -114,6 +116,7 @@ export async function renderSapfDocx({ request }: { request: any }) {
     activityDate: format(startAt, "MMMM d, yyyy"),
     programCourse: part1.programCourse,
     venue: part1.venue,
+    departmentCategory: part1.departmentCategory,
     department: part1.department,
     personnelInCharge: part1.personnelInCharge,
     attire: part1.attire,
@@ -121,6 +124,7 @@ export async function renderSapfDocx({ request }: { request: any }) {
     rationale: part1.rationale,
     objectives: part1.objectives,
     programFlow: part1.programFlow,
+    emergencyPlan: part1.emergencyPlan,
     budget: part1.budget,
     sourceOfBudget: part1.sourceOfBudget,
     otherDetails: sapf.part3,
@@ -213,9 +217,8 @@ export async function renderSapfDocx({ request }: { request: any }) {
     supportLcdProjector: marker(
       includes(part2.supportRequests, "LCD Projector"),
     ),
-    supportChairsTables: marker(
-      includes(part2.supportRequests, "Chairs and Tables"),
-    ),
+    supportLongTable: marker(includes(part2.supportRequests, "One Long Table")),
+    extraProvisions: part2.extraProvisions,
     otherSupport: part2.otherSupport,
 
     parentsConsentYes: marker(positive(part4.parentsConsent)),

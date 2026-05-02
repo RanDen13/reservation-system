@@ -293,6 +293,7 @@ function buildSapfPayload(data: FormData) {
   return {
     activityTitle: field(data, "activityTitle"),
     organization: field(data, "organization"),
+    departmentCategory: field(data, "departmentCategory"),
     modality: field(data, "modality"),
     programCourse: field(data, "programCourse"),
     venue: field(data, "venue"),
@@ -309,6 +310,7 @@ function buildSapfPayload(data: FormData) {
     coreValues,
     graduateAttributes,
     programFlow: field(data, "programFlow"),
+    emergencyPlan: field(data, "emergencyPlan"),
     budget: field(data, "budget"),
     sourceOfBudget: field(data, "sourceOfBudget"),
     supportRequests,
@@ -317,6 +319,7 @@ function buildSapfPayload(data: FormData) {
     foodPax: field(data, "foodPax"),
     roomVenueDetails: field(data, "roomVenueDetails"),
     microphoneQty: field(data, "microphoneQty"),
+    extraProvisions: field(data, "extraProvisions"),
     otherSupport: field(data, "otherSupport"),
     otherDetails: field(data, "otherDetails"),
   };
@@ -324,6 +327,7 @@ function buildSapfPayload(data: FormData) {
 
 function sapfColumnData(sapf: ReturnType<typeof buildSapfPayload>) {
   return {
+    departmentCategory: sapf.departmentCategory || null,
     modality: sapf.modality || null,
     programCourse: sapf.programCourse || null,
     venue: sapf.venue || null,
@@ -336,6 +340,7 @@ function sapfColumnData(sapf: ReturnType<typeof buildSapfPayload>) {
     rationale: sapf.rationale || null,
     objectives: sapf.objectives || null,
     programFlow: sapf.programFlow || null,
+    emergencyPlan: sapf.emergencyPlan || null,
     budget: sapf.budget || null,
     sourceOfBudget: sapf.sourceOfBudget || null,
     budgetDetails: sapf.budgetDetails || null,
@@ -343,6 +348,7 @@ function sapfColumnData(sapf: ReturnType<typeof buildSapfPayload>) {
     foodPax: sapf.foodPax || null,
     roomVenueDetails: sapf.roomVenueDetails || null,
     microphoneQty: sapf.microphoneQty || null,
+    extraProvisions: sapf.extraProvisions || null,
     otherSupport: sapf.otherSupport || null,
     otherDetails: sapf.otherDetails || null,
   };

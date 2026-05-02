@@ -203,6 +203,18 @@ export default function SapfReadonlyDetails({
 
       <Card>
         <CardHeader>
+          <CardTitle>Department Category</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ReadOnlyField
+            label="Department Category"
+            value={part1.departmentCategory}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Part 1: Activity Details</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
@@ -241,6 +253,11 @@ export default function SapfReadonlyDetails({
           <ReadOnlyLongField
             label="Program Flow"
             value={part1.programFlow}
+            rows="min-h-20"
+          />
+          <ReadOnlyLongField
+            label="Emergency Plan"
+            value={part1.emergencyPlan}
             rows="min-h-20"
           />
           <div className="md:col-span-2">
@@ -283,6 +300,11 @@ export default function SapfReadonlyDetails({
                 part2.microphoneQty,
               ),
             }}
+          />
+          <ReadOnlyLongField
+            label="Provision For Students With Diverse Needs"
+            value={part2.extraProvisions}
+            rows="min-h-20"
           />
           <ReadOnlyField
             label="Other Support Requests"
