@@ -27,7 +27,16 @@ import {
 } from "@/app/components/ui/select";
 import { Textarea } from "@/app/components/ui/textarea";
 import { format } from "date-fns";
-import { CalendarDays, ChevronsUpDown, Info, Save, Search, Send, X } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronsUpDown,
+  Info,
+  Paperclip,
+  Save,
+  Search,
+  Send,
+  X,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { EventSpaceData } from "../Spaces/schema";
@@ -39,6 +48,12 @@ import {
 } from "./sapfData";
 
 const MIN_BOOKING_ADVANCE_DAYS = 30;
+const MAX_PROGRAM_FLOW_ATTACHMENT_BYTES = 25 * 1024 * 1024;
+
+function formatFileSize(bytes: number) {
+  if (!bytes) return "0 MB";
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
 
 function toDateInputValue(date: Date) {
   const year = date.getFullYear();
@@ -100,6 +115,11 @@ export default function SapfBookingForm({
   const [endTime, setEndTime] = useState(initialSchedule.endTime);
   const [selectedVenueIds, setSelectedVenueIds] =
     useState<string[]>(initialVenueIds);
+  const [programFlowAttachmentTotal, setProgramFlowAttachmentTotal] =
+    useState(0);
+  const [programFlowAttachmentNames, setProgramFlowAttachmentNames] = useState<
+    string[]
+  >([]);
   const [venuePopoverOpen, setVenuePopoverOpen] = useState(false);
   const [venueSearch, setVenueSearch] = useState("");
   const isEditing = Boolean(initialRequest);
@@ -143,6 +163,8 @@ export default function SapfBookingForm({
       : selectedVenues.length === 1
         ? selectedVenues[0].name
         : `${selectedVenues.length} venues selected`;
+  const programFlowAttachmentLimitExceeded =
+    programFlowAttachmentTotal > MAX_PROGRAM_FLOW_ATTACHMENT_BYTES;
   const largestSelectedCapacity = selectedVenues.reduce(
     (max, venue) => Math.max(max, venue.capacity),
     1,
@@ -190,6 +212,11 @@ export default function SapfBookingForm({
       selectedEndTime <= selectedStartTime
     ) {
       popup.showError("End time must be later than start time.");
+      return;
+    }
+
+    if (programFlowAttachmentLimitExceeded) {
+      popup.showError("Program flow attachments must total 25 MB or less.");
       return;
     }
 
@@ -556,6 +583,51 @@ export default function SapfBookingForm({
               rows={3}
               defaultValue={part1.programFlow || ""}
             />
+            <div className="mt-3 rounded-md border bg-muted p-3">
+              <Label className="flex items-center gap-2">
+                <Paperclip className="h-4 w-4" />
+                Program Flow Attachments
+              </Label>
+              <Input
+                type="file"
+                name="programFlowAttachments"
+                multiple
+                onChange={(event) => {
+                  const files = Array.from(event.target.files || []);
+                  setProgramFlowAttachmentTotal(
+                    files.reduce((sum, file) => sum + file.size, 0),
+                  );
+                  setProgramFlowAttachmentNames(
+                    files.map(
+                      (file) => `${file.name} (${formatFileSize(file.size)})`,
+                    ),
+                  );
+                }}
+                className="mt-2 bg-background"
+              />
+              <div
+                className={`mt-1 text-xs ${
+                  programFlowAttachmentLimitExceeded
+                    ? "text-red-600"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {formatFileSize(programFlowAttachmentTotal)} / 25 MB
+              </div>
+              {programFlowAttachmentNames.length > 0 ? (
+                <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                  {programFlowAttachmentNames.map((name) => (
+                    <li key={name}>{name}</li>
+                  ))}
+                </ul>
+              ) : part1.programFlowAttachments?.length ? (
+                <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                  {part1.programFlowAttachments.map((attachment: any) => (
+                    <li key={attachment.id}>{attachment.fileName}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
           </div>
           <div>
             <Label>Budget</Label>

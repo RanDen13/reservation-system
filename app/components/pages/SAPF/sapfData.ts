@@ -74,6 +74,7 @@ function attachmentRows(rows: any[] | undefined) {
       fileName: row?.fileName || row?.name || "Attachment",
       mimeType: row?.mimeType || row?.type || "application/octet-stream",
       size: Number(row?.size || 0),
+      purpose: row?.purpose || "SDS_CLEARANCE",
       createdAt: row?.createdAt,
     }))
     .filter((row) => row.id && row.fileName);
@@ -91,6 +92,13 @@ export function getSapfParts(request: any) {
   const coreValues = valuesFromRows(request.coreValues);
   const graduateAttributes = valuesFromRows(request.graduateAttributes);
   const supportRequests = valuesFromRows(request.supportRequests);
+  const attachments = attachmentRows(request.attachments);
+  const programFlowAttachments = attachments.filter(
+    (attachment) => attachment.purpose === "PROGRAM_FLOW",
+  );
+  const sdsAttachments = attachments.filter(
+    (attachment) => attachment.purpose !== "PROGRAM_FLOW",
+  );
 
   const part1 = {
     activityTitle: request.title || "",
@@ -112,6 +120,7 @@ export function getSapfParts(request: any) {
     coreValues,
     graduateAttributes,
     programFlow: request.programFlow || "",
+    programFlowAttachments,
     budget: request.budget || "",
     sourceOfBudget: request.sourceOfBudget || "",
   };
@@ -126,17 +135,16 @@ export function getSapfParts(request: any) {
     otherSupport: request.otherSupport || "",
   };
 
-  const attachments = attachmentRows(request.attachments);
   const hasAttachments =
     nullableBoolean(request.hasAttachments) ??
-    (attachments.length ? true : null);
+    (sdsAttachments.length ? true : null);
   const academicInterruptionRemarks =
     request.academicInterruptionRemarks || request.academicRemarks || "";
 
   const part4 = {
     parentsConsent: nullableBoolean(request.parentsConsent),
     hasAttachments,
-    attachments,
+    attachments: sdsAttachments,
     attachmentsForDocument: "-",
     academicInterruption: nullableBoolean(request.academicInterruption),
     academicInterruptionRemarks,

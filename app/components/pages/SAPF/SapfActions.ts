@@ -28,11 +28,13 @@ const requiredFixedPositions = [
 ] as const;
 const MIN_BOOKING_ADVANCE_DAYS = 30;
 const MAX_SDS_ATTACHMENT_BYTES = 25 * 1024 * 1024;
+const MAX_PROGRAM_FLOW_ATTACHMENT_BYTES = 25 * 1024 * 1024;
 const sapfAttachmentMetadataSelect = {
   id: true,
   fileName: true,
   mimeType: true,
   size: true,
+  purpose: true,
   createdAt: true,
 } as const;
 
@@ -391,6 +393,29 @@ async function replaceSapfListRows(
         })
       : Promise.resolve(),
   ]);
+}
+
+async function programFlowAttachments(data: FormData, requestId: string) {
+  const files = uploadFiles(data, "programFlowAttachments");
+  const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+
+  if (totalSize > MAX_PROGRAM_FLOW_ATTACHMENT_BYTES) {
+    throw new Error(
+      `Program flow attachments must total 25 MB or less. Current total is ${formatMegabytes(totalSize)}.`,
+    );
+  }
+
+  return Promise.all(
+    files.map(async (file) => ({
+      id: uuid(),
+      requestId,
+      fileName: file.name || "program-flow-attachment",
+      mimeType: file.type || "application/octet-stream",
+      size: file.size,
+      purpose: "PROGRAM_FLOW",
+      data: new Uint8Array(await file.arrayBuffer()) as Uint8Array<ArrayBuffer>,
+    })),
+  );
 }
 
 async function buildApprovalChain(data: FormData) {
@@ -1071,6 +1096,15 @@ export async function saveSapfRequest(
     }
 
     let request;
+    let uploadedProgramFlowAttachments: Array<{
+      id: string;
+      requestId: string;
+      fileName: string;
+      mimeType: string;
+      size: number;
+      purpose: string;
+      data: Uint8Array<ArrayBuffer>;
+    }> = [];
 
     const requestData = {
       title,
@@ -1103,6 +1137,17 @@ export async function saveSapfRequest(
             eventSpaceId: venueId,
           })),
         });
+        uploadedProgramFlowAttachments = await programFlowAttachments(
+          data,
+          created.id,
+        );
+        if (uploadedProgramFlowAttachments.length > 0) {
+          await Promise.all(
+            uploadedProgramFlowAttachments.map((attachment) =>
+              tx.sAPFAttachment.create({ data: attachment }),
+            ),
+          );
+        }
         await replaceSapfListRows(tx, created.id, sapf);
         return created;
       });
@@ -1134,6 +1179,23 @@ export async function saveSapfRequest(
             eventSpaceId: venueId,
           })),
         });
+        uploadedProgramFlowAttachments = await programFlowAttachments(
+          data,
+          updated.id,
+        );
+        if (uploadedProgramFlowAttachments.length > 0) {
+          await tx.sAPFAttachment.deleteMany({
+            where: {
+              requestId: updated.id,
+              purpose: "PROGRAM_FLOW",
+            },
+          });
+          await Promise.all(
+            uploadedProgramFlowAttachments.map((attachment) =>
+              tx.sAPFAttachment.create({ data: attachment }),
+            ),
+          );
+        }
         await replaceSapfListRows(tx, updated.id, sapf);
 
         if (returnedStep) {
@@ -1404,7 +1466,7 @@ async function parseSdsClearancePayload(data: FormData, requestId: string) {
   }
 
   const existingAttachmentCount = await prisma.sAPFAttachment.count({
-    where: { requestId },
+    where: { requestId, purpose: "SDS_CLEARANCE" },
   });
 
   if (
@@ -1426,6 +1488,7 @@ async function parseSdsClearancePayload(data: FormData, requestId: string) {
             fileName: file.name || "attachment",
             mimeType: file.type || "application/octet-stream",
             size: file.size,
+            purpose: "SDS_CLEARANCE",
             data: new Uint8Array(
               await file.arrayBuffer(),
             ) as Uint8Array<ArrayBuffer>,
@@ -1613,6 +1676,7 @@ export async function reviewSapfRequest(
       fileName: string;
       mimeType: string;
       size: number;
+      purpose: string;
       data: Uint8Array<ArrayBuffer>;
     }> = [];
     let shouldReplaceAttachments = false;
@@ -1670,7 +1734,10 @@ export async function reviewSapfRequest(
 
       if (part4 && shouldReplaceAttachments) {
         await tx.sAPFAttachment.deleteMany({
-          where: { requestId: request.id },
+          where: {
+            requestId: request.id,
+            purpose: "SDS_CLEARANCE",
+          },
         });
         if (part4.hasAttachments && uploadedAttachments.length > 0) {
           await Promise.all(
@@ -1802,7 +1869,10 @@ export async function updateSdsClearance(
     await prisma.$transaction(async (tx) => {
       if (shouldReplaceAttachments) {
         await tx.sAPFAttachment.deleteMany({
-          where: { requestId: request.id },
+          where: {
+            requestId: request.id,
+            purpose: "SDS_CLEARANCE",
+          },
         });
         if (part4.hasAttachments && uploadedAttachments.length > 0) {
           await Promise.all(

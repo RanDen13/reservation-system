@@ -224,9 +224,11 @@ model SAPFAttachment {
   mimeType  String
   size      Int
   data      Bytes
+  purpose   String      @default("SDS_CLEARANCE")
   createdAt DateTime    @default(now())
 
   @@index([requestId])
+  @@index([purpose])
   @@map("sapf_attachment")
 }
 

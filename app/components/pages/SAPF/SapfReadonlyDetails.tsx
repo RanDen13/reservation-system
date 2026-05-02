@@ -71,17 +71,19 @@ function ReadOnlyLongField({
 function ReadOnlyAttachments({
   requestId,
   attachments,
+  label = "Attachments",
 }: {
   requestId: string;
   attachments?: any[];
+  label?: string;
 }) {
   if (!attachments?.length) {
-    return <ReadOnlyField label="Attachments" value="-" />;
+    return <ReadOnlyField label={label} value="-" />;
   }
 
   return (
     <div>
-      <p className="text-sm font-medium text-muted-foreground">Attachments</p>
+      <p className="text-sm font-medium text-muted-foreground">{label}</p>
       <div className="mt-1 min-h-10 space-y-1 rounded-md border bg-muted px-3 py-2 text-sm text-foreground">
         {attachments.map((attachment) => (
           <a
@@ -222,6 +224,13 @@ export default function SapfReadonlyDetails({
             value={part1.programFlow}
             rows="min-h-20"
           />
+          <div className="md:col-span-2">
+            <ReadOnlyAttachments
+              requestId={request.id}
+              attachments={part1.programFlowAttachments}
+              label="Program Flow Attachments"
+            />
+          </div>
           <ReadOnlyField label="Budget" value={part1.budget} />
           <ReadOnlyField
             label="Source of Budget"
