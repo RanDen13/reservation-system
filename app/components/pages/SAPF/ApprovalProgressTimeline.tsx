@@ -11,11 +11,13 @@ function statusLabel(status: string) {
 
 function stepLabel(step: any) {
   if (step.position === "SAS") return "SAS";
+  if (step.position === "VPAA_ASSISTANT") return "VPAA Assistant";
   if (step.position === "VPAA") return "VPAA";
   if (step.position === "UNIVERSITY_PRESIDENT") return "University President";
 
   return String(step.label || "")
     .replace(/^Sas$/i, "SAS")
+    .replace(/^Vpaa assistant$/i, "VPAA Assistant")
     .replace(/^Vpaa$/i, "VPAA")
     .replace(/^University president$/i, "University President");
 }

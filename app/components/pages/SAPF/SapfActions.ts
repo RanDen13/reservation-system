@@ -16,6 +16,7 @@ const approverPositionValues = [
   "SDS",
   "SAS",
   "ADDITIONAL_SIGNATORY",
+  "VPAA_ASSISTANT",
   "VPAA",
   "UNIVERSITY_PRESIDENT",
 ] as const;
@@ -23,6 +24,7 @@ const requiredFixedPositions = [
   "DEAN",
   "SDS",
   "SAS",
+  "VPAA_ASSISTANT",
   "VPAA",
   "UNIVERSITY_PRESIDENT",
 ] as const;
@@ -41,6 +43,19 @@ const sapfAttachmentMetadataSelect = {
 type UserRoleValue = (typeof roleValues)[number];
 type ApproverRoleValue = (typeof approverRoleValues)[number];
 type ApproverPositionValue = (typeof approverPositionValues)[number];
+
+function approverPositionLabel(position: string) {
+  if (position === "SDS") return "SDS/Admin";
+  if (position === "SAS") return "SAS";
+  if (position === "VPAA") return "VPAA";
+  if (position === "VPAA_ASSISTANT") return "VPAA Assistant";
+  if (position === "UNIVERSITY_PRESIDENT") return "University President";
+
+  return position
+    .replaceAll("_", " ")
+    .toLowerCase()
+    .replace(/^\w/, (c) => c.toUpperCase());
+}
 
 function jsonSafe<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));
@@ -468,13 +483,7 @@ async function buildApprovalChain(data: FormData) {
       id: uuid(),
       stepOrder: steps.length + 1,
       position,
-      label:
-        position === "SDS"
-          ? "SDS/Admin"
-          : position
-              .replaceAll("_", " ")
-              .toLowerCase()
-              .replace(/^\w/, (c) => c.toUpperCase()),
+      label: approverPositionLabel(position),
       reviewerId: match.userId,
       status: "PENDING",
     });

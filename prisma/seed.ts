@@ -37,6 +37,12 @@ async function main() {
   const sds = await createAccount("sds@lcup.edu.ph", "sds12345", "SDS Admin", "ADMIN");
   const sas = await createAccount("sas@lcup.edu.ph", "sas12345", "SAS Director", "APPROVER");
   const finance = await createAccount("finance@lcup.edu.ph", "finance123", "VP Finance", "APPROVER");
+  const vpaaAssistant = await createAccount(
+    "vpaa.assistant@lcup.edu.ph",
+    "vpaaasst123",
+    "VPAA Assistant",
+    "APPROVER",
+  );
   const vpaa = await createAccount("vpaa@lcup.edu.ph", "vpaa12345", "VPAA", "APPROVER");
   const president = await createAccount(
     "president@lcup.edu.ph",
@@ -52,6 +58,7 @@ async function main() {
       { userId: sds.id, position: "SDS" },
       { userId: sas.id, position: "SAS" },
       { userId: finance.id, position: "ADDITIONAL_SIGNATORY" },
+      { userId: vpaaAssistant.id, position: "VPAA_ASSISTANT" },
       { userId: vpaa.id, position: "VPAA" },
       { userId: president.id, position: "UNIVERSITY_PRESIDENT" },
     ].map(({ userId, position }) =>

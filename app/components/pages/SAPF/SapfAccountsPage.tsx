@@ -43,6 +43,7 @@ const positionOptions = [
   "SDS",
   "SAS",
   "ADDITIONAL_SIGNATORY",
+  "VPAA_ASSISTANT",
   "VPAA",
   "UNIVERSITY_PRESIDENT",
 ] as const;

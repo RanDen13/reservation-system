@@ -242,6 +242,7 @@ export async function renderSapfDocx({ request }: { request: any }) {
     deanName,
     sasName: stepName(request, "SAS"),
     additionalSignatoryName,
+    vpaaAsst: stepName(request, "VPAA_ASSISTANT"),
     vpaaName: stepName(request, "VPAA"),
     presidentName: stepName(request, "UNIVERSITY_PRESIDENT"),
   });
