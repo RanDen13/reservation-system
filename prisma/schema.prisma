@@ -146,7 +146,7 @@ model SAPFRequest {
   title                       String
   organization                String
   department                  String
-  attendeeCount               Int
+  attendeeCount               String
   startAt                     DateTime
   endAt                       DateTime
   status                      SAPFRequestStatus @default(DRAFT)

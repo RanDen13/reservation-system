@@ -101,11 +101,6 @@ function formatMegabytes(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-function numberField(data: FormData, key: string, fallback = 0) {
-  const parsed = Number(data.get(key) ?? fallback);
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
 function localDateTime(date: string, time: string) {
   return new Date(`${date}T${time}:00`);
 }
@@ -307,7 +302,7 @@ function buildSapfPayload(data: FormData) {
     activityType: field(data, "activityType"),
     attire: field(data, "attire"),
     scope: field(data, "scope"),
-    noOfParticipants: numberField(data, "noOfParticipants", 1),
+    noOfParticipants: field(data, "noOfParticipants"),
     program: field(data, "program"),
     rationale: field(data, "rationale"),
     objectives: field(data, "objectives"),
@@ -1042,12 +1037,11 @@ export async function saveSapfRequest(
       };
     }
 
-    const attendeeCount = numberField(data, "noOfParticipants", 1);
-    const maxCapacity = Math.max(...selectedVenues.map((venue) => venue.capacity));
-    if (attendeeCount > maxCapacity) {
+    const attendeeCount = field(data, "noOfParticipants");
+    if (!attendeeCount) {
       return {
         success: false,
-        message: `No. of participants (${attendeeCount}) exceeds selected venue capacity (${maxCapacity}).`,
+        message: "No. of participants is required.",
       };
     }
 

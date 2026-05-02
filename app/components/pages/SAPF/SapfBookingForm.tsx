@@ -165,10 +165,6 @@ export default function SapfBookingForm({
         : `${selectedVenues.length} venues selected`;
   const programFlowAttachmentLimitExceeded =
     programFlowAttachmentTotal > MAX_PROGRAM_FLOW_ATTACHMENT_BYTES;
-  const largestSelectedCapacity = selectedVenues.reduce(
-    (max, venue) => Math.max(max, venue.capacity),
-    1,
-  );
   const earliestBookingDate = useMemo(
     () => addCalendarDays(new Date(), MIN_BOOKING_ADVANCE_DAYS),
     [],
@@ -511,9 +507,8 @@ export default function SapfBookingForm({
             <Label>No. of Participants</Label>
             <Input
               name="noOfParticipants"
-              type="number"
-              min="1"
-              max={largestSelectedCapacity}
+              type="text"
+              placeholder="e.g., 50 or 50-500"
               required
               defaultValue={part1.noOfParticipants || ""}
             />
