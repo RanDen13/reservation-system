@@ -1317,6 +1317,91 @@ async function getOrCreateThread(request: any, step: any) {
   });
 }
 
+async function parseSdsClearancePayload(data: FormData, requestId: string) {
+  const parentsConsent = booleanField(data, "parentsConsent");
+  const hasAttachments = booleanField(data, "hasAttachments");
+  const academicInterruption = booleanField(data, "academicInterruption");
+  const medicalExam = booleanField(data, "medicalExam");
+  const reportOfCompliance = booleanField(data, "reportOfCompliance");
+  const missingFields = [
+    ["Parent's Consent Form", parentsConsent],
+    ["Attachments", hasAttachments],
+    ["Academic Class Interruption", academicInterruption],
+    ["Medical Exam Request", medicalExam],
+    ["Report of Compliance", reportOfCompliance],
+  ]
+    .filter(([, value]) => value === null)
+    .map(([label]) => label);
+
+  if (missingFields.length > 0) {
+    throw new Error(
+      `Please choose Yes or No for: ${missingFields.join(", ")}.`,
+    );
+  }
+
+  const attachmentFiles = uploadFiles(data, "attachmentFiles");
+  const totalAttachmentSize = attachmentFiles.reduce(
+    (sum, file) => sum + file.size,
+    0,
+  );
+
+  if (totalAttachmentSize > MAX_SDS_ATTACHMENT_BYTES) {
+    throw new Error(
+      `Attachments must total 25 MB or less. Current total is ${formatMegabytes(totalAttachmentSize)}.`,
+    );
+  }
+
+  const existingAttachmentCount = await prisma.sAPFAttachment.count({
+    where: { requestId },
+  });
+
+  if (
+    hasAttachments === true &&
+    attachmentFiles.length === 0 &&
+    existingAttachmentCount === 0
+  ) {
+    throw new Error(
+      "Add at least one attachment or choose No for attachments.",
+    );
+  }
+
+  const uploadedAttachments =
+    hasAttachments === true
+      ? await Promise.all(
+          attachmentFiles.map(async (file) => ({
+            id: uuid(),
+            requestId,
+            fileName: file.name || "attachment",
+            mimeType: file.type || "application/octet-stream",
+            size: file.size,
+            data: new Uint8Array(
+              await file.arrayBuffer(),
+            ) as Uint8Array<ArrayBuffer>,
+          })),
+        )
+      : [];
+  const shouldReplaceAttachments =
+    hasAttachments === false || uploadedAttachments.length > 0;
+
+  return {
+    part4: {
+      parentsConsent: parentsConsent as boolean,
+      hasAttachments: hasAttachments as boolean,
+      academicInterruption: academicInterruption as boolean,
+      academicInterruptionRemarks:
+        field(data, "academicInterruptionRemarks") || null,
+      medicalExam: medicalExam as boolean,
+      reportOfCompliance: reportOfCompliance as boolean,
+      studentPersonnelRatio:
+        field(data, "studentPersonnelRatio") ||
+        field(data, "participantPersonnelRatio") ||
+        null,
+    },
+    uploadedAttachments,
+    shouldReplaceAttachments,
+  };
+}
+
 export async function reviewSapfRequest(
   data: FormData,
 ): Promise<ActionResult<void>> {
@@ -1480,87 +1565,10 @@ export async function reviewSapfRequest(
     let shouldReplaceAttachments = false;
 
     if (step.position === "SDS") {
-      const parentsConsent = booleanField(data, "parentsConsent");
-      const hasAttachments = booleanField(data, "hasAttachments");
-      const academicInterruption = booleanField(data, "academicInterruption");
-      const medicalExam = booleanField(data, "medicalExam");
-      const reportOfCompliance = booleanField(data, "reportOfCompliance");
-      const missingFields = [
-        ["Parent's Consent Form", parentsConsent],
-        ["Attachments", hasAttachments],
-        ["Academic Class Interruption", academicInterruption],
-        ["Medical Exam Request", medicalExam],
-        ["Report of Compliance", reportOfCompliance],
-      ]
-        .filter(([, value]) => value === null)
-        .map(([label]) => label);
-
-      if (missingFields.length > 0) {
-        return {
-          success: false,
-          message: `Please choose Yes or No for: ${missingFields.join(", ")}.`,
-        };
-      }
-
-      const attachmentFiles = uploadFiles(data, "attachmentFiles");
-      const totalAttachmentSize = attachmentFiles.reduce(
-        (sum, file) => sum + file.size,
-        0,
-      );
-
-      if (totalAttachmentSize > MAX_SDS_ATTACHMENT_BYTES) {
-        return {
-          success: false,
-          message: `Attachments must total 25 MB or less. Current total is ${formatMegabytes(totalAttachmentSize)}.`,
-        };
-      }
-
-      const existingAttachmentCount = await prisma.sAPFAttachment.count({
-        where: { requestId: request.id },
-      });
-
-      if (
-        hasAttachments === true &&
-        attachmentFiles.length === 0 &&
-        existingAttachmentCount === 0
-      ) {
-        return {
-          success: false,
-          message: "Add at least one attachment or choose No for attachments.",
-        };
-      }
-
-      uploadedAttachments =
-        hasAttachments === true
-          ? await Promise.all(
-              attachmentFiles.map(async (file) => ({
-                id: uuid(),
-                requestId: request.id,
-                fileName: file.name || "attachment",
-                mimeType: file.type || "application/octet-stream",
-                size: file.size,
-                data: new Uint8Array(
-                  await file.arrayBuffer(),
-                ) as Uint8Array<ArrayBuffer>,
-              })),
-            )
-          : [];
-      shouldReplaceAttachments =
-        hasAttachments === false || uploadedAttachments.length > 0;
-
-      part4 = {
-        parentsConsent: parentsConsent as boolean,
-        hasAttachments: hasAttachments as boolean,
-        academicInterruption: academicInterruption as boolean,
-        academicInterruptionRemarks:
-          field(data, "academicInterruptionRemarks") || null,
-        medicalExam: medicalExam as boolean,
-        reportOfCompliance: reportOfCompliance as boolean,
-        studentPersonnelRatio:
-          field(data, "studentPersonnelRatio") ||
-          field(data, "participantPersonnelRatio") ||
-          null,
-      };
+      const parsed = await parseSdsClearancePayload(data, request.id);
+      part4 = parsed.part4;
+      uploadedAttachments = parsed.uploadedAttachments;
+      shouldReplaceAttachments = parsed.shouldReplaceAttachments;
     }
 
     const nextStep = request.approvalSteps.find(
@@ -1686,6 +1694,99 @@ export async function reviewSapfRequest(
     return {
       success: false,
       message: (error as Error).message || "Failed to review request.",
+    };
+  }
+}
+
+export async function updateSdsClearance(
+  data: FormData,
+): Promise<ActionResult<void>> {
+  try {
+    const user = await getSessionUser();
+    if (!user || !requireRole(user.role, ["APPROVER", "ADMIN"])) {
+      return { success: false, message: "SDS access required." };
+    }
+
+    const requestId = field(data, "requestId");
+    const request = await prisma.sAPFRequest.findUnique({
+      where: { id: requestId },
+      include: {
+        approvalSteps: true,
+      },
+    });
+
+    if (!request) {
+      return {
+        success: false,
+        message: "Venue reservation request not found.",
+      };
+    }
+
+    const sdsStep = request.approvalSteps.find(
+      (step) =>
+        step.position === "SDS" &&
+        step.reviewerId === user.id &&
+        step.status === "APPROVED",
+    );
+
+    if (!sdsStep) {
+      return {
+        success: false,
+        message: "You can only edit SDS clearance after approving this step.",
+      };
+    }
+
+    if (["APPROVED", "REJECTED", "CANCELLED"].includes(request.status)) {
+      return {
+        success: false,
+        message: "SDS clearance is locked after the request is completed.",
+      };
+    }
+
+    const { part4, uploadedAttachments, shouldReplaceAttachments } =
+      await parseSdsClearancePayload(data, request.id);
+
+    await prisma.$transaction(async (tx) => {
+      if (shouldReplaceAttachments) {
+        await tx.sAPFAttachment.deleteMany({
+          where: { requestId: request.id },
+        });
+        if (part4.hasAttachments && uploadedAttachments.length > 0) {
+          await Promise.all(
+            uploadedAttachments.map((attachment) =>
+              tx.sAPFAttachment.create({ data: attachment }),
+            ),
+          );
+        }
+      }
+
+      await tx.sAPFRequest.update({
+        where: { id: request.id },
+        data: part4,
+      });
+      await tx.approvalAction.create({
+        data: {
+          id: uuid(),
+          requestId: request.id,
+          stepId: sdsStep.id,
+          actorId: user.id,
+          action: "COMMENTED" as any,
+          comment: "SDS Office Clearance updated.",
+        },
+      });
+    });
+
+    revalidatePath("/user/dashboard");
+    revalidatePath("/user/approvals");
+    revalidatePath(`/user/approvals/${request.id}`);
+    revalidatePath(`/user/bookings/${request.id}`);
+
+    return { success: true, message: "SDS clearance updated." };
+  } catch (error) {
+    console.error("SDS clearance update failed:", error);
+    return {
+      success: false,
+      message: (error as Error).message || "Failed to update SDS clearance.",
     };
   }
 }

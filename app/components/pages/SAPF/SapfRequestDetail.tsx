@@ -25,7 +25,11 @@ import {
 import { useState } from "react";
 import ModalBase from "../../Popup/ModalBase";
 import ApprovalProgressTimeline from "./ApprovalProgressTimeline";
-import { addConcernMessage, reviewSapfRequest } from "./SapfActions";
+import {
+  addConcernMessage,
+  reviewSapfRequest,
+  updateSdsClearance,
+} from "./SapfActions";
 import SapfReadonlyDetails from "./SapfReadonlyDetails";
 
 const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
@@ -569,6 +573,240 @@ function ReviewControls({
   );
 }
 
+function SdsClearanceEditControls({
+  request,
+  me,
+  onRefresh,
+}: {
+  request: any;
+  me: any;
+  onRefresh: () => Promise<void>;
+}) {
+  const popup = usePopup();
+  const part4 = request.sapfPart4 || {};
+  const initialHasAttachments =
+    typeof part4.hasAttachments === "boolean" ? String(part4.hasAttachments) : "";
+  const [hasAttachments, setHasAttachments] = useState(initialHasAttachments);
+  const [attachmentTotal, setAttachmentTotal] = useState(0);
+  const [attachmentNames, setAttachmentNames] = useState<string[]>([]);
+  const [attachmentInputKey, setAttachmentInputKey] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
+  const attachmentLimitExceeded = attachmentTotal > MAX_ATTACHMENT_BYTES;
+  const formId = `sds-clearance-form-${request.id}`;
+
+  const sdsStep = request.approvalSteps?.find(
+    (item: any) =>
+      item.position === "SDS" &&
+      item.reviewerId === me?.id &&
+      item.status === "APPROVED",
+  );
+  const isLocked = ["APPROVED", "REJECTED", "CANCELLED"].includes(
+    request.status,
+  );
+
+  if (!sdsStep || isLocked) return null;
+
+  const yesNoField = (name: string, label: string, value: any) => (
+    <div className="space-y-2">
+      <p className="text-sm font-semibold text-foreground">{label}</p>
+      <div className="flex flex-wrap gap-4">
+        <label className="inline-flex items-center gap-2 text-sm text-foreground">
+          <input
+            form={formId}
+            type="radio"
+            name={name}
+            value="true"
+            required
+            defaultChecked={value === true}
+            className="h-4 w-4 accent-primary"
+          />
+          Yes
+        </label>
+        <label className="inline-flex items-center gap-2 text-sm text-foreground">
+          <input
+            form={formId}
+            type="radio"
+            name={name}
+            value="false"
+            required
+            defaultChecked={value === false}
+            className="h-4 w-4 accent-primary"
+          />
+          No
+        </label>
+      </div>
+    </div>
+  );
+
+  const handleSubmit = async (formData: FormData) => {
+    setSubmitting(true);
+    const result = await updateSdsClearance(formData);
+    setSubmitting(false);
+    if (!result.success) {
+      popup.showError(result.message);
+      return;
+    }
+    setAttachmentTotal(0);
+    setAttachmentNames([]);
+    setAttachmentInputKey((key) => key + 1);
+    popup.showSuccess(result.message || "SDS clearance updated.");
+    await onRefresh();
+  };
+
+  return (
+    <div className="space-y-4 rounded-lg border bg-muted p-4">
+      <div>
+        <p className="font-semibold text-foreground">
+          Update SDS Office Clearance
+        </p>
+        <p className="text-sm text-muted-foreground">
+          You can revise Part 4 until the request is fully completed.
+        </p>
+      </div>
+
+      <form id={formId} action={handleSubmit} className="grid gap-3">
+        <input type="hidden" name="requestId" value={request.id} />
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="rounded-md border bg-card p-3 shadow-xs">
+            {yesNoField(
+              "parentsConsent",
+              "Parent's Consent Form",
+              part4.parentsConsent,
+            )}
+          </div>
+          <div className="rounded-md border bg-card p-3 shadow-xs">
+            <div className="space-y-2">
+              <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <Paperclip className="h-4 w-4" />
+                Attachments
+              </p>
+              <div className="flex flex-wrap gap-4">
+                <label className="inline-flex items-center gap-2 text-sm text-foreground">
+                  <input
+                    type="radio"
+                    name="hasAttachments"
+                    value="true"
+                    required
+                    checked={hasAttachments === "true"}
+                    onChange={(event) => setHasAttachments(event.target.value)}
+                    className="h-4 w-4 accent-primary"
+                  />
+                  Yes
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm text-foreground">
+                  <input
+                    type="radio"
+                    name="hasAttachments"
+                    value="false"
+                    required
+                    checked={hasAttachments === "false"}
+                    onChange={(event) => {
+                      setHasAttachments(event.target.value);
+                      setAttachmentTotal(0);
+                      setAttachmentNames([]);
+                      setAttachmentInputKey((key) => key + 1);
+                    }}
+                    className="h-4 w-4 accent-primary"
+                  />
+                  No
+                </label>
+              </div>
+              <Input
+                key={attachmentInputKey}
+                type="file"
+                name="attachmentFiles"
+                multiple
+                disabled={hasAttachments !== "true"}
+                onChange={(event) => {
+                  const files = Array.from(event.target.files || []);
+                  setAttachmentTotal(
+                    files.reduce((sum, file) => sum + file.size, 0),
+                  );
+                  setAttachmentNames(
+                    files.map(
+                      (file) => `${file.name} (${formatFileSize(file.size)})`,
+                    ),
+                  );
+                }}
+                className="bg-background"
+              />
+              <div
+                className={`text-xs ${
+                  attachmentLimitExceeded
+                    ? "text-red-600"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {formatFileSize(attachmentTotal)} / 25 MB
+              </div>
+              {attachmentNames.length > 0 && (
+                <ul className="space-y-1 text-xs text-muted-foreground">
+                  {attachmentNames.map((name) => (
+                    <li key={name}>{name}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="rounded-md border bg-card p-3 shadow-xs">
+            <div className="space-y-3">
+              {yesNoField(
+                "academicInterruption",
+                "Academic Class Interruption",
+                part4.academicInterruption,
+              )}
+              <div>
+                <Label>Academic Interruption Remarks</Label>
+                <Input
+                  name="academicInterruptionRemarks"
+                  placeholder="Remarks"
+                  defaultValue={part4.academicInterruptionRemarks || ""}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+          </div>
+          <div className="rounded-md border bg-card p-3 shadow-xs">
+            {yesNoField("medicalExam", "Medical Exam Request", part4.medicalExam)}
+          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-[2fr_1fr]">
+          <div className="rounded-md border bg-card p-3 shadow-xs">
+            {yesNoField(
+              "reportOfCompliance",
+              "Report of Compliance",
+              part4.reportOfCompliance,
+            )}
+          </div>
+          <div className="rounded-md border bg-card p-3 shadow-xs">
+            <Label>Student-Personnel Ratio</Label>
+            <Input
+              name="studentPersonnelRatio"
+              placeholder="e.g. 1:30"
+              defaultValue={part4.studentPersonnelRatio || ""}
+              className="mt-1"
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end">
+          <Button
+            type="submit"
+            disabled={submitting || attachmentLimitExceeded}
+            className="bg-emerald-600 hover:bg-emerald-700"
+          >
+            {submitting ? "Saving..." : "Update SDS Clearance"}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 export function RequestDetail({
   request,
   me,
@@ -585,10 +823,19 @@ export function RequestDetail({
   const activeReviewStep = request.approvalSteps?.find(
     (item: any) => item.status === "ACTIVE" && item.reviewerId === me?.id,
   );
+  const canEditApprovedSdsPart4 =
+    me?.role !== "SUPER_ADMIN" &&
+    !["APPROVED", "REJECTED", "CANCELLED"].includes(request.status) &&
+    request.approvalSteps?.some(
+      (item: any) =>
+        item.position === "SDS" &&
+        item.reviewerId === me?.id &&
+        item.status === "APPROVED",
+    );
   const hideReadOnlyPart4 =
     showReviewControls &&
     me?.role !== "SUPER_ADMIN" &&
-    activeReviewStep?.position === "SDS";
+    (activeReviewStep?.position === "SDS" || canEditApprovedSdsPart4);
 
   return (
     <div className="space-y-5">
@@ -596,6 +843,13 @@ export function RequestDetail({
       <SapfReadonlyDetails request={request} hidePart4={hideReadOnlyPart4} />
       {showReviewControls && (
         <ReviewControls request={request} me={me} onRefresh={onRefresh} />
+      )}
+      {showReviewControls && (
+        <SdsClearanceEditControls
+          request={request}
+          me={me}
+          onRefresh={onRefresh}
+        />
       )}
       <Card>
         <CardContent className="p-5">
