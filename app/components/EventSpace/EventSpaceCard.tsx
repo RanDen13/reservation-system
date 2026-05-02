@@ -31,7 +31,6 @@ export default function EventSpaceCard({
     location,
     capacity,
     status,
-    pricePerHour,
     amenities = [],
   } = eventSpace;
   const [showEditPopup, setShowEditPopup] = useState<boolean>(false);
@@ -144,12 +143,6 @@ export default function EventSpaceCard({
               </div>
             )}
 
-            {/* Price */}
-            <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 mb-4">
-              {pricePerHour === 0
-                ? "Free for officers"
-                : `₱${pricePerHour.toFixed(2)}/hour`}
-            </p>
           </div>
 
           {/* Actions */}

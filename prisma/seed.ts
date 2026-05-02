@@ -103,7 +103,6 @@ async function main() {
       location: "Main Building, Ground Floor",
       description: "Large venue for assemblies, seminars, and major programs.",
       status: "ACTIVE",
-      pricePerHour: 0,
       amenities: {
         connect: [
           { id: projector.id },
@@ -126,7 +125,6 @@ async function main() {
       location: "Sports Complex",
       description: "Open floor venue for large organization activities.",
       status: "ACTIVE",
-      pricePerHour: 0,
       amenities: {
         connect: [{ id: sound.id }, { id: chairs.id }],
       },
@@ -143,7 +141,6 @@ async function main() {
       location: "Administration Building, 2nd Floor",
       description: "Flexible indoor venue for councils, seminars, and receptions.",
       status: "ACTIVE",
-      pricePerHour: 0,
       amenities: {
         connect: [{ id: wifi.id }, { id: projector.id }, { id: air.id }],
       },

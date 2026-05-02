@@ -309,26 +309,6 @@ const EditEventSpacePopup = ({
                 </Select>
               </div>
 
-              {/* Price Per Hour */}
-              <div className="space-y-2">
-                <Label htmlFor="pricePerHour">
-                  Price Per Hour <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="pricePerHour"
-                  defaultValue={eventSpace.pricePerHour.toFixed(2)}
-                  type="number"
-                  step="0.01"
-                  name="pricePerHour"
-                  placeholder="0.00"
-                  required
-                  min={0}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Set to 0 for free officer reservations
-                </p>
-              </div>
-
               {/* Amenities */}
               <div className="space-y-2">
                 <Label>Amenities</Label>

@@ -48,7 +48,6 @@ export const createEventSpaceSchema = z.object({
     .transform((val) => JSON.parse(val))
     .pipe(z.array(z.string()).optional())
     .optional(),
-  pricePerHour: z.coerce.number().min(0, "Price must be non-negative"),
   image: IMAGE_SCHEMA.optional(),
 });
 
@@ -74,10 +73,6 @@ export const updateEventSpaceSchema = z.object({
     .string()
     .transform((val) => JSON.parse(val))
     .pipe(z.array(z.string()).optional())
-    .optional(),
-  pricePerHour: z.coerce
-    .number()
-    .min(0, "Price must be non-negative")
     .optional(),
   image: IMAGE_SCHEMA.optional(),
 });
