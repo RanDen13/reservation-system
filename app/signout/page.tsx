@@ -1,6 +1,5 @@
 "use client";
 
-import ErrorPopup from "@/app/components/Popup/ErrorPopup";
 import { Button } from "@/app/components/ui/button";
 import {
   Card,
@@ -13,6 +12,7 @@ import { signOut, useSession } from "@/lib/auth-client";
 import { motion } from "framer-motion";
 import { ArrowLeft, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const containerVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -22,15 +22,25 @@ const containerVariants = {
 export default function SignOutPage() {
   const router = useRouter();
   const session = useSession();
+  const [signingOut, setSigningOut] = useState(false);
 
-  if (!session.data?.user) {
+  useEffect(() => {
+    if (!session.isPending && !session.data?.user) {
+      router.replace("/");
+    }
+  }, [router, session.data?.user, session.isPending]);
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    await signOut();
+    router.replace("/");
+  };
+
+  if (session.isPending || !session.data?.user) {
     return (
-      <ErrorPopup
-        message="You are not signed in."
-        closeText="Go Back"
-        redirectTo={"/"}
-        notTransparent
-      />
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <p className="text-sm text-muted-foreground">Redirecting...</p>
+      </div>
     );
   }
 
@@ -101,12 +111,13 @@ export default function SignOutPage() {
             <CardContent className="space-y-3">
               <Button
                 type="button"
-                onClick={() => signOut()}
+                onClick={handleSignOut}
                 variant="destructive"
                 className="w-full h-12 text-base flex items-center justify-center gap-2 cursor-pointer"
+                disabled={signingOut}
               >
                 <LogOut className="w-5 h-5" />
-                <span>Sign out</span>
+                <span>{signingOut ? "Signing out..." : "Sign out"}</span>
               </Button>
 
               <Button
@@ -114,6 +125,7 @@ export default function SignOutPage() {
                 onClick={() => router.back()}
                 variant="outline"
                 className="w-full h-12 text-base flex items-center justify-center gap-2 cursor-pointer"
+                disabled={signingOut}
               >
                 <ArrowLeft className="w-5 h-5" />
                 <span>Go back</span>
