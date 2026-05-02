@@ -2,6 +2,19 @@
 
 import { usePopup } from "@/app/components/Popup/PopupProvider";
 import { Button } from "@/app/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/app/components/ui/card";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/app/components/ui/tabs";
 import { ArrowLeft, FileDown, RefreshCcw, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -49,6 +62,10 @@ export default function SapfBookingDetailPage({
   const canCancel =
     me?.role === "OFFICER" &&
     !["CANCELLED", "REJECTED"].includes(request.status);
+  const hasThreads = request.approvalSteps?.some(
+    (step: any) => step.concernThread,
+  );
+  const showChat = hasThreads && me?.role === "OFFICER";
 
   const handleCancel = async () => {
     const confirmed = await popup.showYesNo(
@@ -127,9 +144,37 @@ export default function SapfBookingDetailPage({
         </div>
       </div>
 
-      <RequestSummary request={request} showPdf={false} />
-      <SapfReadonlyDetails request={request} />
-      <ConcernThreads request={request} onRefresh={refresh} />
+      <Tabs defaultValue="details" className="space-y-4">
+        <TabsList
+          className={`grid w-full ${
+            showChat ? "grid-cols-2 md:w-[320px]" : "grid-cols-1 md:w-45"
+          }`}
+        >
+          <TabsTrigger value="details">Details</TabsTrigger>
+          {showChat && <TabsTrigger value="chat">Chat</TabsTrigger>}
+        </TabsList>
+
+        <TabsContent value="details" className="space-y-4">
+          <RequestSummary request={request} showPdf={false} />
+          <SapfReadonlyDetails request={request} />
+        </TabsContent>
+
+        {showChat && (
+          <TabsContent value="chat">
+            <Card>
+              <CardHeader>
+                <CardTitle>Concern Threads</CardTitle>
+                <CardDescription>
+                  Private discussion between officer and reviewer.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ConcernThreads request={request} onRefresh={refresh} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+      </Tabs>
     </div>
   );
 }
