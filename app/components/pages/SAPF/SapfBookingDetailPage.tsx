@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { cancelSapfRequest, getSapfRequestById } from "./SapfActions";
 import SapfReadonlyDetails from "./SapfReadonlyDetails";
-import { RequestSummary } from "./SapfRequestDetail";
+import { ConcernThreads, RequestSummary } from "./SapfRequestDetail";
 
 export default function SapfBookingDetailPage({
   requestId,
@@ -129,6 +129,7 @@ export default function SapfBookingDetailPage({
 
       <RequestSummary request={request} showPdf={false} />
       <SapfReadonlyDetails request={request} />
+      <ConcernThreads request={request} onRefresh={refresh} />
     </div>
   );
 }
