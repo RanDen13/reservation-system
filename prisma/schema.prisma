@@ -121,7 +121,7 @@ model EventSpace {
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
   image        Bytes?
-  sapfRequests SAPFRequest[]
+  sapfRequestVenues SAPFRequestVenue[]
   venueBlocks  VenueBlock[]
 
   @@map("event_space")
@@ -144,8 +144,6 @@ model SAPFRequest {
   requestNumber               String            @unique
   officerId                   String
   officer                     User              @relation("OfficerRequests", fields: [officerId], references: [id], onDelete: Cascade)
-  eventSpaceId                String
-  eventSpace                  EventSpace        @relation(fields: [eventSpaceId], references: [id], onDelete: Cascade)
   title                       String
   organization                String
   department                  String
@@ -192,6 +190,7 @@ model SAPFRequest {
   coreValues         SAPFCoreValue[]
   graduateAttributes SAPFGraduateAttribute[]
   supportRequests    SAPFSupportRequest[]
+  venues             SAPFRequestVenue[]
   attachments        SAPFAttachment[]
   approvalSteps      ApprovalStep[]
   approvalActions    ApprovalAction[]
@@ -199,10 +198,22 @@ model SAPFRequest {
   concernThreads     ConcernThread[]
 
   @@index([officerId])
-  @@index([eventSpaceId])
   @@index([status])
   @@index([startAt])
   @@map("sapf_request")
+}
+
+model SAPFRequestVenue {
+  id           String      @id
+  requestId    String
+  request      SAPFRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  eventSpaceId String
+  eventSpace   EventSpace  @relation(fields: [eventSpaceId], references: [id], onDelete: Cascade)
+  createdAt    DateTime    @default(now())
+
+  @@unique([requestId, eventSpaceId])
+  @@index([eventSpaceId])
+  @@map("sapf_request_venue")
 }
 
 model SAPFAttachment {

@@ -9,25 +9,33 @@ export async function getVenueCalendarData() {
         },
       },
       include: {
-        sapfRequests: {
+        sapfRequestVenues: {
           where: {
-            status: {
-              in: [
-                "SUBMITTED",
-                "IN_REVIEW",
-                "RETURNED_FOR_REVISION",
-                "APPROVED",
-              ] as any,
+            request: {
+              status: {
+                in: [
+                  "SUBMITTED",
+                  "IN_REVIEW",
+                  "RETURNED_FOR_REVISION",
+                  "APPROVED",
+                ] as any,
+              },
             },
           },
-          select: {
-            id: true,
-            startAt: true,
-            endAt: true,
-            status: true,
+          include: {
+            request: {
+              select: {
+                id: true,
+                startAt: true,
+                endAt: true,
+                status: true,
+              },
+            },
           },
           orderBy: {
-            startAt: "asc",
+            request: {
+              startAt: "asc",
+            },
           },
         },
         venueBlocks: {
@@ -50,5 +58,11 @@ export async function getVenueCalendarData() {
     }),
   ]);
 
-  return { venues, globalBlocks };
+  return {
+    venues: venues.map((venue: any) => ({
+      ...venue,
+      sapfRequests: venue.sapfRequestVenues.map((item: any) => item.request),
+    })),
+    globalBlocks,
+  };
 }

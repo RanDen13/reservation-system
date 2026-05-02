@@ -79,6 +79,14 @@ function attachmentRows(rows: any[] | undefined) {
     .filter((row) => row.id && row.fileName);
 }
 
+function venueNames(request: any) {
+  const joined = (request.venues || [])
+    .map((item: any) => item?.eventSpace?.name || item?.name)
+    .filter(Boolean);
+
+  return joined.length ? joined.join(", ") : request.venue || "";
+}
+
 export function getSapfParts(request: any) {
   const coreValues = valuesFromRows(request.coreValues);
   const graduateAttributes = valuesFromRows(request.graduateAttributes);
@@ -90,7 +98,7 @@ export function getSapfParts(request: any) {
     activityDate: request.startAt || "",
     modality: request.modality || "",
     programCourse: request.programCourse || "",
-    venue: request.venue || request.eventSpace?.name || "",
+    venue: venueNames(request),
     department: request.department || "",
     setting: request.setting || "",
     personnelInCharge: request.personnelInCharge || "",

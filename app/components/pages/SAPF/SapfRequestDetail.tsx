@@ -61,6 +61,14 @@ function formatDateRange(request: any) {
   )} to ${format(new Date(request.endAt), "h:mm a")}`;
 }
 
+function venueLabel(request: any) {
+  const names = (request.venues || [])
+    .map((item: any) => item?.eventSpace?.name || item?.name)
+    .filter(Boolean);
+
+  return names.length ? names.join(", ") : request.venue || "No venue";
+}
+
 export function RequestSummary({
   request,
   showBadges = true,
@@ -90,7 +98,7 @@ export function RequestSummary({
             {request.organization}
           </p>
           <p className="mt-2 text-sm text-foreground">
-            {request.eventSpace?.name} - {formatDateRange(request)}
+            {venueLabel(request)} - {formatDateRange(request)}
           </p>
           <p className="text-sm text-muted-foreground">
             Submitted: {format(new Date(request.createdAt), "MMM d, yyyy")}

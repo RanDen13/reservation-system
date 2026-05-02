@@ -105,12 +105,9 @@ export default function SapfBookingDetailPage({
         </div>
         <div className="flex flex-wrap gap-2">
           {me?.role === "OFFICER" &&
-            ["DRAFT", "RETURNED_FOR_REVISION"].includes(request.status) &&
-            request.eventSpace?.id && (
+            ["DRAFT", "RETURNED_FOR_REVISION"].includes(request.status) && (
               <Button asChild variant="outline">
-                <Link
-                  href={`/user/spaces/${request.eventSpace.id}?requestId=${request.id}`}
-                >
+                <Link href={`/user/bookings/create?requestId=${request.id}`}>
                   Edit and Resubmit
                 </Link>
               </Button>

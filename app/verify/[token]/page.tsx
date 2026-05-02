@@ -23,7 +23,14 @@ const page = async ({ params }: { params: Promise<{ token: string }> }) => {
           email: true,
         },
       },
-      eventSpace: true,
+      venues: {
+        include: {
+          eventSpace: true,
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
     },
   });
 
@@ -67,7 +74,9 @@ const page = async ({ params }: { params: Promise<{ token: string }> }) => {
             <p className="text-sm font-semibold text-gray-500">Venue</p>
             <p className="flex items-center gap-2">
               <MapPin className="h-4 w-4" />
-              {request.eventSpace.name}, {request.eventSpace.location}
+              {request.venues
+                .map((venue) => venue.eventSpace.name)
+                .join(", ")}
             </p>
           </div>
           <div className="grid gap-3 md:grid-cols-2">

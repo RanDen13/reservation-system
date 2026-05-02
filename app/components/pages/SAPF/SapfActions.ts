@@ -203,7 +203,7 @@ async function getFirstActiveApprover(position: string) {
 }
 
 async function detectConflicts(
-  eventSpaceId: string,
+  venueIds: string[],
   startAt: Date,
   endAt: Date,
   excludeRequestId?: string,
@@ -211,8 +211,12 @@ async function detectConflicts(
   const [requests, blocks] = await Promise.all([
     prisma.sAPFRequest.findMany({
       where: {
-        eventSpaceId,
         id: excludeRequestId ? { not: excludeRequestId } : undefined,
+        venues: {
+          some: {
+            eventSpaceId: { in: venueIds },
+          },
+        },
         status: {
           in: [
             "SUBMITTED",
@@ -233,7 +237,7 @@ async function detectConflicts(
     }),
     prisma.venueBlock.findMany({
       where: {
-        OR: [{ eventSpaceId }, { eventSpaceId: null }],
+        OR: [{ eventSpaceId: { in: venueIds } }, { eventSpaceId: null }],
       },
       select: {
         id: true,
@@ -260,6 +264,24 @@ async function detectConflicts(
     ),
     overlappingRequests,
     overlappingBlocks,
+  };
+}
+
+function requestVenueInclude() {
+  return {
+    include: {
+      eventSpace: {
+        select: {
+          id: true,
+          name: true,
+          location: true,
+          capacity: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "asc" as const,
+    },
   };
 }
 
@@ -473,28 +495,36 @@ export async function getPublicCalendarData(): Promise<ActionResult<any>> {
       },
       include: {
         amenities: true,
-        sapfRequests: {
+        sapfRequestVenues: {
           where: {
-            status: {
-              in: [
-                "SUBMITTED",
-                "IN_REVIEW",
-                "RETURNED_FOR_REVISION",
-                "APPROVED",
-              ] as any,
+            request: {
+              status: {
+                in: [
+                  "SUBMITTED",
+                  "IN_REVIEW",
+                  "RETURNED_FOR_REVISION",
+                  "APPROVED",
+                ] as any,
+              },
             },
           },
-          select: {
-            id: true,
-            requestNumber: true,
-            title: true,
-            organization: true,
-            startAt: true,
-            endAt: true,
-            status: true,
-          },
           orderBy: {
-            startAt: "asc",
+            request: {
+              startAt: "asc",
+            },
+          },
+          include: {
+            request: {
+              select: {
+                id: true,
+                requestNumber: true,
+                title: true,
+                organization: true,
+                startAt: true,
+                endAt: true,
+                status: true,
+              },
+            },
           },
         },
         venueBlocks: {
@@ -526,7 +556,13 @@ export async function getPublicCalendarData(): Promise<ActionResult<any>> {
 
     return {
       success: true,
-      data: jsonSafe({ venues, globalBlocks }),
+      data: jsonSafe({
+        venues: venues.map((venue: any) => ({
+          ...venue,
+          sapfRequests: venue.sapfRequestVenues.map((item: any) => item.request),
+        })),
+        globalBlocks,
+      }),
     };
   } catch (error) {
     return {
@@ -593,14 +629,7 @@ export async function getSapfWorkspace(): Promise<ActionResult<any>> {
           email: true,
         },
       },
-      eventSpace: {
-        select: {
-          id: true,
-          name: true,
-          location: true,
-          capacity: true,
-        },
-      },
+      venues: requestVenueInclude(),
       coreValues: {
         select: { value: true },
         orderBy: { createdAt: "asc" as const },
@@ -793,14 +822,7 @@ export async function getSapfRequestById(
           email: true,
         },
       },
-      eventSpace: {
-        select: {
-          id: true,
-          name: true,
-          location: true,
-          capacity: true,
-        },
-      },
+      venues: requestVenueInclude(),
       coreValues: {
         select: { value: true },
         orderBy: { createdAt: "asc" as const },
@@ -933,7 +955,15 @@ export async function saveSapfRequest(
       };
     }
 
-    const eventSpaceId = field(data, "eventSpaceId");
+    const venueIds = [
+      ...new Set(
+        data
+          .getAll("venueIds")
+          .map(String)
+          .map((value) => value.trim())
+          .filter(Boolean),
+      ),
+    ];
     const requestId = field(data, "requestId");
     const intent = field(data, "intent", "draft");
     const date = field(data, "activityDate");
@@ -943,7 +973,7 @@ export async function saveSapfRequest(
     const endAt = localDateTime(date, endTime);
     const isSubmit = intent === "submit";
 
-    if (!eventSpaceId || !date || !startTime || !endTime) {
+    if (venueIds.length === 0 || !date || !startTime || !endTime) {
       return {
         success: false,
         message: "Venue, date, start time, and end time are required.",
@@ -972,27 +1002,32 @@ export async function saveSapfRequest(
       };
     }
 
-    const eventSpace = await prisma.eventSpace.findUnique({
-      where: { id: eventSpaceId },
+    const selectedVenues = await prisma.eventSpace.findMany({
+      where: { id: { in: venueIds } },
+      orderBy: { name: "asc" },
     });
 
-    if (!eventSpace || eventSpace.status !== "ACTIVE") {
+    if (
+      selectedVenues.length !== venueIds.length ||
+      selectedVenues.some((venue) => venue.status !== "ACTIVE")
+    ) {
       return {
         success: false,
-        message: "Selected venue is not available for requests.",
+        message: "One or more selected venues are not available for requests.",
       };
     }
 
     const attendeeCount = numberField(data, "noOfParticipants", 1);
-    if (attendeeCount > eventSpace.capacity) {
+    const maxCapacity = Math.max(...selectedVenues.map((venue) => venue.capacity));
+    if (attendeeCount > maxCapacity) {
       return {
         success: false,
-        message: `No. of participants (${attendeeCount}) exceeds venue capacity (${eventSpace.capacity}).`,
+        message: `No. of participants (${attendeeCount}) exceeds selected venue capacity (${maxCapacity}).`,
       };
     }
 
     const conflict = await detectConflicts(
-      eventSpaceId,
+      venueIds,
       startAt,
       endAt,
       requestId || undefined,
@@ -1006,6 +1041,7 @@ export async function saveSapfRequest(
     }
 
     const sapf = buildSapfPayload(data);
+    sapf.venue = selectedVenues.map((venue) => venue.name).join(", ");
     const title = sapf.activityTitle || "Untitled activity";
     const organization = sapf.organization || "Unspecified organization";
     const department = sapf.department || "Unspecified department";
@@ -1037,7 +1073,6 @@ export async function saveSapfRequest(
     let request;
 
     const requestData = {
-      eventSpaceId,
       title,
       organization,
       department,
@@ -1061,6 +1096,13 @@ export async function saveSapfRequest(
             currentStepOrder: isSubmit ? 1 : null,
           },
         });
+        await tx.sAPFRequestVenue.createMany({
+          data: venueIds.map((venueId) => ({
+            id: uuid(),
+            requestId: created.id,
+            eventSpaceId: venueId,
+          })),
+        });
         await replaceSapfListRows(tx, created.id, sapf);
         return created;
       });
@@ -1081,6 +1123,16 @@ export async function saveSapfRequest(
               ? (returnedStep?.stepOrder ?? existing.currentStepOrder ?? 1)
               : existing.currentStepOrder,
           },
+        });
+        await tx.sAPFRequestVenue.deleteMany({
+          where: { requestId: updated.id },
+        });
+        await tx.sAPFRequestVenue.createMany({
+          data: venueIds.map((venueId) => ({
+            id: uuid(),
+            requestId: updated.id,
+            eventSpaceId: venueId,
+          })),
         });
         await replaceSapfListRows(tx, updated.id, sapf);
 
@@ -1420,6 +1472,7 @@ export async function reviewSapfRequest(
       where: { id: requestId },
       include: {
         officer: true,
+        venues: true,
         approvalSteps: {
           orderBy: { stepOrder: "asc" },
         },
@@ -1577,7 +1630,7 @@ export async function reviewSapfRequest(
 
     if (!nextStep) {
       const conflict = await detectConflicts(
-        request.eventSpaceId,
+        request.venues.map((venue) => venue.eventSpaceId),
         request.startAt,
         request.endAt,
         request.id,

@@ -189,6 +189,7 @@ export default function SapfReadonlyDetails({
           <ReadOnlyField label="Organization" value={part1.organization} />
           <ReadOnlyField label="Department" value={part1.department} />
           <ReadOnlyField label="Program/Course" value={part1.programCourse} />
+          <ReadOnlyField label="Venue" value={part1.venue} />
           <ReadOnlyField label="Modality" value={part1.modality} />
           <ReadOnlyField label="Setting" value={part1.setting} />
           <ReadOnlyField

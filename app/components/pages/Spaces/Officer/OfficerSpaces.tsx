@@ -8,9 +8,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/components/ui/card";
+import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
-import { Building2, Search, Users } from "lucide-react";
+import { Building2, Search, Send, Users } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { EventSpaceData } from "../schema";
 import UniversityWideBlocks from "../UniversityWideBlocks";
@@ -38,11 +40,23 @@ export default function OfficerSpaces({
   return (
     <div className="space-y-8 p-4 lg:p-8">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Browse Venues</h1>
-        <p className="mt-2 text-muted-foreground">
-          Open a venue to review details, check the calendar, and start a
-          reservation.
-        </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">
+              Browse Venues
+            </h1>
+            <p className="mt-2 text-muted-foreground">
+              Open a venue to review details, check the calendar, and start a
+              reservation.
+            </p>
+          </div>
+          <Button asChild className="bg-emerald-600 hover:bg-emerald-700">
+            <Link href="/user/bookings/create">
+              <Send className="mr-2 h-4 w-4" />
+              Create Booking
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <Card>

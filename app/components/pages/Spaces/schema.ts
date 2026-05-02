@@ -8,6 +8,7 @@ import z from "zod";
 export type EventSpaceData = EventSpace & {
   amenities?: Amenity[];
   sapfRequests?: any[];
+  sapfRequestVenues?: any[];
   venueBlocks?: any[];
   globalBlocks?: any[];
 };

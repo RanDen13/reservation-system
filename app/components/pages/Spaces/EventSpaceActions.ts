@@ -110,28 +110,36 @@ export async function getEventSpaceById(
         where: { id },
         include: {
           amenities: true,
-          sapfRequests: {
+          sapfRequestVenues: {
             where: {
-              status: {
-                in: [
-                  "SUBMITTED",
-                  "IN_REVIEW",
-                  "RETURNED_FOR_REVISION",
-                  "APPROVED",
-                ] as any,
+              request: {
+                status: {
+                  in: [
+                    "SUBMITTED",
+                    "IN_REVIEW",
+                    "RETURNED_FOR_REVISION",
+                    "APPROVED",
+                  ] as any,
+                },
               },
             },
-            select: {
-              id: true,
-              requestNumber: true,
-              title: true,
-              organization: true,
-              startAt: true,
-              endAt: true,
-              status: true,
+            include: {
+              request: {
+                select: {
+                  id: true,
+                  requestNumber: true,
+                  title: true,
+                  organization: true,
+                  startAt: true,
+                  endAt: true,
+                  status: true,
+                },
+              },
             },
             orderBy: {
-              startAt: "asc",
+              request: {
+                startAt: "asc",
+              },
             },
           },
           venueBlocks: {
@@ -175,6 +183,9 @@ export async function getEventSpaceById(
       success: true,
       data: {
         ...space,
+        sapfRequests: (space as any).sapfRequestVenues.map(
+          (item: any) => item.request,
+        ),
         globalBlocks,
       },
     };
