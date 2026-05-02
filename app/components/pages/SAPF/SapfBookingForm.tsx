@@ -38,6 +38,7 @@ import {
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import type { ChangeEvent } from "react";
 import { useMemo, useState } from "react";
 import { EventSpaceData } from "../Spaces/schema";
 import { saveSapfRequest } from "./SapfActions";
@@ -137,6 +138,59 @@ export default function SapfBookingForm({
   const selectedSupportRequests = new Set<string>(
     Array.isArray(part2.supportRequests) ? part2.supportRequests : [],
   );
+  const [selectedSupportValues, setSelectedSupportValues] = useState<string[]>(
+    Array.from(selectedSupportRequests),
+  );
+  const supportDetailFields: Record<
+    string,
+    {
+      name: string;
+      label: string;
+      placeholder: string;
+      defaultValue: string;
+      multiline?: boolean;
+    }
+  > = {
+    Budget: {
+      name: "budgetDetails",
+      label: "Budget Details",
+      placeholder: "Enter requested amount, purpose, and breakdown.",
+      defaultValue: part2.budgetDetails || "",
+      multiline: true,
+    },
+    Vehicle: {
+      name: "vehiclePassengers",
+      label: "Vehicle Passengers",
+      placeholder: "Enter number of passengers or trip details.",
+      defaultValue: part2.vehiclePassengers || "",
+    },
+    "Food/Snacks": {
+      name: "foodPax",
+      label: "Food/Snacks Pax",
+      placeholder: "Enter number of pax.",
+      defaultValue: part2.foodPax || "",
+    },
+    "Room/Venue": {
+      name: "roomVenueDetails",
+      label: "Room/Venue Details",
+      placeholder: "Enter room setup, venue notes, or special requirements.",
+      defaultValue: part2.roomVenueDetails || "",
+      multiline: true,
+    },
+    Microphone: {
+      name: "microphoneQty",
+      label: "Microphone Quantity",
+      placeholder: "Enter number of microphones needed.",
+      defaultValue: part2.microphoneQty || "",
+    },
+  };
+  const toggleSupportRequest = (value: string, checked: boolean) => {
+    setSelectedSupportValues((current) =>
+      checked
+        ? [...new Set([...current, value])]
+        : current.filter((item) => item !== value),
+    );
+  };
   const selectedAdviserId =
     initialRequest?.approvalSteps?.find(
       (step: any) => step.position === "ADVISER",
@@ -643,47 +697,80 @@ export default function SapfBookingForm({
           <CardTitle>Part 2: School Support</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
-          {SUPPORT_REQUEST_OPTIONS.map((value) => (
-            <label key={value} className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                name="supportRequests"
-                value={value}
-                defaultChecked={selectedSupportRequests.has(value)}
-              />
-              {value}
-            </label>
-          ))}
-          <Input
-            name="budgetDetails"
-            placeholder="Budget details"
-            defaultValue={part2.budgetDetails || ""}
-          />
-          <Input
-            name="vehiclePassengers"
-            placeholder="Vehicle passengers"
-            defaultValue={part2.vehiclePassengers || ""}
-          />
-          <Input
-            name="foodPax"
-            placeholder="Food/snacks pax"
-            defaultValue={part2.foodPax || ""}
-          />
-          <Input
-            name="roomVenueDetails"
-            placeholder="Room/venue details"
-            defaultValue={part2.roomVenueDetails || ""}
-          />
-          <Input
-            name="microphoneQty"
-            placeholder="Microphone quantity"
-            defaultValue={part2.microphoneQty || ""}
-          />
-          <Input
-            name="otherSupport"
-            placeholder="Other support requests"
-            defaultValue={part2.otherSupport || ""}
-          />
+          <div className="grid gap-3 md:col-span-2 md:grid-cols-2">
+            {SUPPORT_REQUEST_OPTIONS.map((value) => {
+              const detailField = supportDetailFields[value];
+              const checked = selectedSupportValues.includes(value);
+              const optionId = `support-${value
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, "-")}`;
+
+              return (
+                <div
+                  key={value}
+                  className={`rounded-lg border bg-background p-3 text-sm shadow-sm transition-colors hover:bg-muted/50 ${
+                    detailField && checked
+                      ? "border-primary/40 bg-primary/5 md:col-span-2"
+                      : ""
+                  }`}
+                >
+                  <span className="flex items-center gap-3 font-medium text-foreground">
+                    <input
+                      id={optionId}
+                      type="checkbox"
+                      name="supportRequests"
+                      value={value}
+                      checked={checked}
+                      onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                        toggleSupportRequest(value, event.target.checked)
+                      }
+                      className="h-4 w-4 rounded border-border accent-primary"
+                    />
+                    <label htmlFor={optionId} className="cursor-pointer">
+                      {value}
+                    </label>
+                  </span>
+                  {detailField && checked ? (
+                    <div className="mt-3 border-t pt-3">
+                      <Label
+                        htmlFor={detailField.name}
+                        className="text-xs font-medium text-muted-foreground"
+                      >
+                        {detailField.label}
+                      </Label>
+                      {detailField.multiline ? (
+                        <Textarea
+                          id={detailField.name}
+                          name={detailField.name}
+                          placeholder={detailField.placeholder}
+                          defaultValue={detailField.defaultValue}
+                          className="mt-2 min-h-24 resize-y"
+                        />
+                      ) : (
+                        <Input
+                          id={detailField.name}
+                          name={detailField.name}
+                          placeholder={detailField.placeholder}
+                          defaultValue={detailField.defaultValue}
+                          className="mt-2"
+                        />
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+          <div className="md:col-span-2">
+            <Label htmlFor="otherSupport">Other Support Requests</Label>
+            <Input
+              id="otherSupport"
+              name="otherSupport"
+              placeholder="Enter other support requests not listed above."
+              defaultValue={part2.otherSupport || ""}
+              className="mt-2"
+            />
+          </div>
         </CardContent>
       </Card>
 

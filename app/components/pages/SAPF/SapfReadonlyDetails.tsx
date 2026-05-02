@@ -10,6 +10,7 @@ import {
 } from "@/app/components/ui/card";
 import { format } from "date-fns";
 import { CalendarDays, Check, Clock } from "lucide-react";
+import type { ReactNode } from "react";
 import {
   CORE_VALUE_OPTIONS,
   getSapfParts,
@@ -104,11 +105,13 @@ function ReadOnlyChecklist({
   options,
   selected,
   columns = "sm:grid-cols-2",
+  detailsByOption = {},
 }: {
   label: string;
   options: string[];
   selected: string[];
   columns?: string;
+  detailsByOption?: Record<string, ReactNode>;
 }) {
   const selectedSet = new Set(selected);
 
@@ -118,21 +121,29 @@ function ReadOnlyChecklist({
       <div className={`mt-2 grid gap-2 ${columns}`}>
         {options.map((option) => {
           const checked = selectedSet.has(option);
+          const details = detailsByOption[option];
           return (
             <div
               key={option}
-              className="flex min-h-9 items-center gap-2 rounded-md border bg-muted px-3 py-2 text-sm text-foreground"
+              className={`min-h-9 rounded-md border bg-muted px-3 py-2 text-sm text-foreground ${
+                checked && details ? "sm:col-span-2" : ""
+              }`}
             >
-              <span
-                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
-                  checked
-                    ? "border-emerald-600 bg-emerald-600 text-white"
-                    : "border-border bg-background"
-                }`}
-              >
-                {checked && <Check className="h-3 w-3" />}
-              </span>
-              <span>{option}</span>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                    checked
+                      ? "border-emerald-600 bg-emerald-600 text-white"
+                      : "border-border bg-background"
+                  }`}
+                >
+                  {checked && <Check className="h-3 w-3" />}
+                </span>
+                <span>{option}</span>
+              </div>
+              {checked && details ? (
+                <div className="mt-3 border-t pt-3">{details}</div>
+              ) : null}
             </div>
           );
         })}
@@ -152,6 +163,14 @@ export default function SapfReadonlyDetails({
   const part1 = sapf.part1;
   const part2 = sapf.part2;
   const part4 = sapf.part4 || {};
+  const supportDetail = (label: string, value: any) => (
+    <div>
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <div className="mt-1 whitespace-pre-wrap rounded-md border bg-background px-3 py-2 text-sm">
+        {valueOrDash(value)}
+      </div>
+    </div>
+  );
   const startAt = new Date(request.startAt);
   const endAt = new Date(request.endAt);
 
@@ -248,20 +267,22 @@ export default function SapfReadonlyDetails({
             label="Requested Support"
             options={SUPPORT_REQUEST_OPTIONS}
             selected={part2.supportRequests}
-          />
-          <ReadOnlyField label="Budget Details" value={part2.budgetDetails} />
-          <ReadOnlyField
-            label="Vehicle Passengers"
-            value={part2.vehiclePassengers}
-          />
-          <ReadOnlyField label="Food/Snacks Pax" value={part2.foodPax} />
-          <ReadOnlyField
-            label="Room/Venue Details"
-            value={part2.roomVenueDetails}
-          />
-          <ReadOnlyField
-            label="Microphone Quantity"
-            value={part2.microphoneQty}
+            detailsByOption={{
+              Budget: supportDetail("Budget Details", part2.budgetDetails),
+              Vehicle: supportDetail(
+                "Vehicle Passengers",
+                part2.vehiclePassengers,
+              ),
+              "Food/Snacks": supportDetail("Food/Snacks Pax", part2.foodPax),
+              "Room/Venue": supportDetail(
+                "Room/Venue Details",
+                part2.roomVenueDetails,
+              ),
+              Microphone: supportDetail(
+                "Microphone Quantity",
+                part2.microphoneQty,
+              ),
+            }}
           />
           <ReadOnlyField
             label="Other Support Requests"

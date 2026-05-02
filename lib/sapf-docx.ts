@@ -141,9 +141,7 @@ export async function renderSapfDocx({ request }: { request: any }) {
     modalityHybrid: marker(same(part1.modality, "Hybrid")),
     settingInCampus: marker(same(part1.setting, "In-Campus")),
     settingOffCampus: marker(same(part1.setting, "Off-Campus")),
-    activityTypeCoCurricular: marker(
-      same(part1.activityType, "Co-Curricular"),
-    ),
+    activityTypeCoCurricular: marker(same(part1.activityType, "Co-Curricular")),
     activityTypeExtraCurricular: marker(
       same(part1.activityType, "Extra-Curricular"),
     ),
@@ -180,7 +178,10 @@ export async function renderSapfDocx({ request }: { request: any }) {
     ),
 
     egaCriticalCreative: marker(
-      includes(part1.graduateAttributes, "EGA 1: Critical and Creative Thinker"),
+      includes(
+        part1.graduateAttributes,
+        "EGA 1: Critical and Creative Thinker",
+      ),
     ),
     egaCatholicProfessional: marker(
       includes(
@@ -189,10 +190,7 @@ export async function renderSapfDocx({ request }: { request: any }) {
       ),
     ),
     egaResponsiveSteward: marker(
-      includes(
-        part1.graduateAttributes,
-        "EGA 3: Socially Responsive Steward",
-      ),
+      includes(part1.graduateAttributes, "EGA 3: Socially Responsive Steward"),
     ),
     egaLifelongLearner: marker(
       includes(
@@ -212,7 +210,9 @@ export async function renderSapfDocx({ request }: { request: any }) {
     supportSoundSystem: marker(includes(part2.supportRequests, "Sound System")),
     supportMicrophone: marker(includes(part2.supportRequests, "Microphone")),
     microphoneQty: part2.microphoneQty,
-    supportLcdProjector: marker(includes(part2.supportRequests, "LCD Projector")),
+    supportLcdProjector: marker(
+      includes(part2.supportRequests, "LCD Projector"),
+    ),
     supportChairsTables: marker(
       includes(part2.supportRequests, "Chairs and Tables"),
     ),
@@ -221,14 +221,9 @@ export async function renderSapfDocx({ request }: { request: any }) {
     parentsConsentYes: marker(positive(part4.parentsConsent)),
     parentsConsentNotApplicable: marker(negative(part4.parentsConsent)),
     attachments: part4.attachmentsForDocument || "-",
-    academicInterruptionYes: marker(
-      positive(part4.academicInterruption),
-    ),
-    academicInterruptionNone: marker(
-      negative(part4.academicInterruption),
-    ),
-    academicRemarks:
-      part4.academicInterruptionRemarks || part4.academicRemarks,
+    academicInterruptionYes: marker(positive(part4.academicInterruption)),
+    academicInterruptionNone: marker(negative(part4.academicInterruption)),
+    academicRemarks: part4.academicInterruptionRemarks || part4.academicRemarks,
     medicalExamYes: marker(positive(part4.medicalExam)),
     medicalExamNotApplicable: marker(negative(part4.medicalExam)),
     reportComplianceYes: marker(positive(part4.reportOfCompliance)),
@@ -237,10 +232,8 @@ export async function renderSapfDocx({ request }: { request: any }) {
 
     preparedBy: request.officer?.name || "",
     adviserName,
-    clubModerator: adviserName,
     sdsName: stepName(request, "SDS"),
     deanName,
-    departmentDean: deanName,
     sasName: stepName(request, "SAS"),
     additionalSignatoryName,
     vpaaName: stepName(request, "VPAA"),
