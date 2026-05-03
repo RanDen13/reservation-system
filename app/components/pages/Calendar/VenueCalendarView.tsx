@@ -11,7 +11,10 @@ import {
 } from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
-import { format } from "date-fns";
+import {
+  formatSapfDateTime,
+  formatSapfTime,
+} from "@/app/components/pages/SAPF/sapfSchedule";
 import { Building2, Clock, Search, Users } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -124,10 +127,8 @@ export default function VenueCalendarView({
                 )}
                 <p className="mt-2 flex items-center gap-2 text-sm text-violet-900 dark:text-violet-100">
                   <Clock className="h-4 w-4" />
-                  {format(
-                    new Date(block.startAt),
-                    "MMM d, yyyy h:mm a",
-                  )} to {format(new Date(block.endAt), "h:mm a")}
+                  {formatSapfDateTime(block.startAt)} to{" "}
+                  {formatSapfTime(block.endAt)}
                 </p>
               </div>
             ))}

@@ -7,7 +7,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/components/ui/card";
-import { format } from "date-fns";
+import {
+  formatSapfDateTime,
+  formatSapfTime,
+} from "@/app/components/pages/SAPF/sapfSchedule";
 import { CalendarX, Clock } from "lucide-react";
 
 export default function UniversityWideBlocks({ blocks }: { blocks: any[] }) {
@@ -44,10 +47,8 @@ export default function UniversityWideBlocks({ blocks }: { blocks: any[] }) {
                 )}
                 <p className="mt-3 flex items-center gap-2 text-sm text-violet-900 dark:text-violet-100">
                   <Clock className="h-4 w-4" />
-                  {format(
-                    new Date(block.startAt),
-                    "MMM d, yyyy h:mm a",
-                  )} to {format(new Date(block.endAt), "h:mm a")}
+                  {formatSapfDateTime(block.startAt)} to{" "}
+                  {formatSapfTime(block.endAt)}
                 </p>
               </div>
             ))}

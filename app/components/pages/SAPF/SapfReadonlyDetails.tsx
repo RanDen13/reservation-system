@@ -8,7 +8,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/components/ui/card";
-import { format } from "date-fns";
 import { CalendarDays, Check, Clock } from "lucide-react";
 import type { ReactNode } from "react";
 import {
@@ -17,6 +16,11 @@ import {
   GRADUATE_ATTRIBUTE_OPTIONS,
   SUPPORT_REQUEST_OPTIONS,
 } from "./sapfData";
+import {
+  formatSapfDateInputValue,
+  formatSapfDateTime,
+  formatSapfTime,
+} from "./sapfSchedule";
 
 function valueOrDash(value: any) {
   if (value === null || value === undefined || value === "") return "-";
@@ -187,15 +191,14 @@ export default function SapfReadonlyDetails({
         <CardContent className="grid gap-4 md:grid-cols-3">
           <ReadOnlyField
             label="Activity Date"
-            value={format(startAt, "yyyy-MM-dd")}
+            value={formatSapfDateInputValue(startAt)}
           />
-          <ReadOnlyField label="Start Time" value={format(startAt, "h:mm a")} />
-          <ReadOnlyField label="End Time" value={format(endAt, "h:mm a")} />
+          <ReadOnlyField label="Start Time" value={formatSapfTime(startAt)} />
+          <ReadOnlyField label="End Time" value={formatSapfTime(endAt)} />
           <div className="md:col-span-3">
             <Badge variant="outline" className="gap-2">
               <Clock className="h-3.5 w-3.5" />
-              {format(startAt, "MMM d, yyyy h:mm a")} to{" "}
-              {format(endAt, "h:mm a")}
+              {formatSapfDateTime(startAt)} to {formatSapfTime(endAt)}
             </Badge>
           </div>
         </CardContent>

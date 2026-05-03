@@ -2,6 +2,7 @@
 
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
+import { sapfCalendarDate } from "@/app/components/pages/SAPF/sapfSchedule";
 import {
   Select,
   SelectContent,
@@ -68,7 +69,7 @@ function statusClass(item: Pick<VenueCalendarItem, "status" | "scope">) {
 }
 
 function asDate(value: Date | string) {
-  return value instanceof Date ? value : new Date(value);
+  return sapfCalendarDate(value);
 }
 
 function itemTouchesDay(item: Pick<NormalizedCalendarItem, "startAt" | "endAt">, day: Date) {
@@ -111,9 +112,11 @@ export default function VenueMonthCalendar({
   description?: string;
   compact?: boolean;
 }) {
-  const [selectedDay, setSelectedDay] = useState(() => startOfDay(new Date()));
+  const [selectedDay, setSelectedDay] = useState(() =>
+    startOfDay(sapfCalendarDate(new Date())),
+  );
   const [visibleMonth, setVisibleMonth] = useState(() =>
-    startOfMonth(new Date()),
+    startOfMonth(sapfCalendarDate(new Date())),
   );
   const [calendarView, setCalendarView] = useState<CalendarView>("month");
 
@@ -168,7 +171,7 @@ export default function VenueMonthCalendar({
   };
 
   const goToday = () => {
-    const today = startOfDay(new Date());
+    const today = startOfDay(sapfCalendarDate(new Date()));
     setSelectedDay(today);
     setVisibleMonth(startOfMonth(today));
   };
@@ -514,7 +517,7 @@ function DayCalendar({
   });
   const laneCount = Math.max(1, laneEnds.length);
   const timelineHeight = hours.length * HOUR_HEIGHT;
-  const now = new Date();
+  const now = sapfCalendarDate(new Date());
   const showNow = isToday(selectedDay);
   const nowTop =
     ((now.getHours() * 60 + now.getMinutes() - DAY_START_HOUR * 60) / 60) *

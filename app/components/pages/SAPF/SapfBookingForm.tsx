@@ -26,7 +26,6 @@ import {
   SelectValue,
 } from "@/app/components/ui/select";
 import { Textarea } from "@/app/components/ui/textarea";
-import { format } from "date-fns";
 import {
   CalendarDays,
   ChevronsUpDown,
@@ -48,6 +47,13 @@ import {
   GRADUATE_ATTRIBUTE_OPTIONS,
   SUPPORT_REQUEST_OPTIONS,
 } from "./sapfData";
+import {
+  addSapfCalendarDays,
+  formatSapfDateForMessage,
+  formatSapfDateInputValue,
+  formatSapfTimeInputValue,
+  startOfSapfDay,
+} from "./sapfSchedule";
 
 const MIN_BOOKING_ADVANCE_DAYS = 30;
 const MAX_PROGRAM_FLOW_ATTACHMENT_BYTES = 25 * 1024 * 1024;
@@ -81,19 +87,6 @@ function positionLabel(position: string) {
     .replace(/^\w/, (c) => c.toUpperCase());
 }
 
-function toDateInputValue(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function addCalendarDays(date: Date, days: number) {
-  const result = new Date(date);
-  result.setDate(result.getDate() + days);
-  return result;
-}
-
 function getRequestSchedule(initialRequest?: any) {
   if (!initialRequest) {
     return { date: "", startTime: "", endTime: "" };
@@ -103,9 +96,9 @@ function getRequestSchedule(initialRequest?: any) {
   const endAt = new Date(initialRequest.endAt);
 
   return {
-    date: Number.isNaN(startAt.getTime()) ? "" : format(startAt, "yyyy-MM-dd"),
-    startTime: Number.isNaN(startAt.getTime()) ? "" : format(startAt, "HH:mm"),
-    endTime: Number.isNaN(endAt.getTime()) ? "" : format(endAt, "HH:mm"),
+    date: formatSapfDateInputValue(startAt),
+    startTime: formatSapfTimeInputValue(startAt),
+    endTime: formatSapfTimeInputValue(endAt),
   };
 }
 
@@ -246,11 +239,13 @@ export default function SapfBookingForm({
   const programFlowAttachmentLimitExceeded =
     programFlowAttachmentTotal > MAX_PROGRAM_FLOW_ATTACHMENT_BYTES;
   const earliestBookingDate = useMemo(
-    () => addCalendarDays(new Date(), MIN_BOOKING_ADVANCE_DAYS),
+    () => addSapfCalendarDays(startOfSapfDay(), MIN_BOOKING_ADVANCE_DAYS),
     [],
   );
-  const minimumBookingDate = toDateInputValue(earliestBookingDate);
-  const earliestBookingDateLabel = format(earliestBookingDate, "MMM d, yyyy");
+  const minimumBookingDate = formatSapfDateInputValue(earliestBookingDate);
+  const earliestBookingDateLabel = formatSapfDateForMessage(
+    earliestBookingDate,
+  );
   const adviserOptions = approvers.ADVISER || [];
   const missingRequiredPositions = lockApprovalChain
     ? []

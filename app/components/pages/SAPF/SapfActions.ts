@@ -8,6 +8,12 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { v4 as uuid } from "uuid";
 import { normalizeSapfRequest } from "./sapfData";
+import {
+  addSapfCalendarDays,
+  formatSapfDateForMessage,
+  sapfLocalDateTime,
+  startOfSapfDay,
+} from "./sapfSchedule";
 
 const roleValues = ["OFFICER", "APPROVER", "ADMIN", "SUPER_ADMIN"] as const;
 const approverRoleValues = ["APPROVER", "ADMIN", "SUPER_ADMIN"] as const;
@@ -160,30 +166,8 @@ function formatMegabytes(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-function localDateTime(date: string, time: string) {
-  return new Date(`${date}T${time}:00`);
-}
-
-function startOfLocalDay(date = new Date()) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function addCalendarDays(date: Date, days: number) {
-  const result = new Date(date);
-  result.setDate(result.getDate() + days);
-  return result;
-}
-
 function minimumBookingDate() {
-  return addCalendarDays(startOfLocalDay(), MIN_BOOKING_ADVANCE_DAYS);
-}
-
-function formatDateForMessage(date: Date) {
-  return date.toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+  return addSapfCalendarDays(startOfSapfDay(), MIN_BOOKING_ADVANCE_DAYS);
 }
 
 function hasOverlap(
@@ -1074,8 +1058,8 @@ export async function saveSapfRequest(
     const date = field(data, "activityDate");
     const startTime = field(data, "startTime");
     const endTime = field(data, "endTime");
-    const startAt = localDateTime(date, startTime);
-    const endAt = localDateTime(date, endTime);
+    const startAt = sapfLocalDateTime(date, startTime);
+    const endAt = sapfLocalDateTime(date, endTime);
     const isSubmit = intent === "submit";
 
     if (venueIds.length === 0 || !date || !startTime || !endTime) {
@@ -1103,7 +1087,7 @@ export async function saveSapfRequest(
     if (startAt < earliestBookingDate) {
       return {
         success: false,
-        message: `Reservations must be booked at least ${MIN_BOOKING_ADVANCE_DAYS} days in advance. Choose ${formatDateForMessage(earliestBookingDate)} or later.`,
+        message: `Reservations must be booked at least ${MIN_BOOKING_ADVANCE_DAYS} days in advance. Choose ${formatSapfDateForMessage(earliestBookingDate)} or later.`,
       };
     }
 
@@ -2837,11 +2821,11 @@ export async function createVenueBlock(
     }
 
     const eventSpaceId = field(data, "eventSpaceId");
-    const startAt = localDateTime(
+    const startAt = sapfLocalDateTime(
       field(data, "date"),
       field(data, "startTime"),
     );
-    const endAt = localDateTime(field(data, "date"), field(data, "endTime"));
+    const endAt = sapfLocalDateTime(field(data, "date"), field(data, "endTime"));
 
     if (
       !field(data, "title") ||

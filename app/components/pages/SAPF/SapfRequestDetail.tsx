@@ -39,6 +39,7 @@ import {
   updateSdsEvaluation,
 } from "./SapfActions";
 import SapfReadonlyDetails from "./SapfReadonlyDetails";
+import { formatSapfDate, formatSapfTime } from "./sapfSchedule";
 
 const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
 
@@ -63,10 +64,9 @@ function statusClass(status: string) {
 }
 
 function formatDateRange(request: any) {
-  return `${format(new Date(request.startAt), "MMM d, yyyy")} - ${format(
-    new Date(request.startAt),
-    "h:mm a",
-  )} to ${format(new Date(request.endAt), "h:mm a")}`;
+  return `${formatSapfDate(request.startAt)} - ${formatSapfTime(
+    request.startAt,
+  )} to ${formatSapfTime(request.endAt)}`;
 }
 
 function venueLabel(request: any) {
