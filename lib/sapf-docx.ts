@@ -17,7 +17,9 @@ const TEMPLATE_PATH = path.join(
 const APPROVED_IMAGE_PATH = path.join(process.cwd(), "public", "approved.png");
 const APPROVED_IMAGE_TOKEN = "__approved_stamp__";
 const BLANK_IMAGE_TOKEN = "__blank_stamp__";
-const APPROVED_STAMP_SIZE: [number, number] = [145, 33];
+const APPROVAL_STAMP_SIZE: [number, number] = [96, 22];
+const EMUS_PER_PIXEL = 9525;
+const APPROVAL_STAMP_VERTICAL_OFFSET = -18 * EMUS_PER_PIXEL;
 const BLANK_IMAGE = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lpKZ4wAAAABJRU5ErkJggg==",
   "base64",
@@ -159,12 +161,40 @@ function approvalImageToken(approved: boolean) {
   return approved ? APPROVED_IMAGE_TOKEN : BLANK_IMAGE_TOKEN;
 }
 
+function approvalStampXml(rId: number, size: [number, number]) {
+  const [width, height] = size;
+
+  return (
+    `<w:drawing>` +
+    `<wp:anchor distT="0" distB="0" distL="0" distR="0" simplePos="0" relativeHeight="251659264" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1">` +
+    `<wp:simplePos x="0" y="0"/>` +
+    `<wp:positionH relativeFrom="column"><wp:align>center</wp:align></wp:positionH>` +
+    `<wp:positionV relativeFrom="paragraph"><wp:posOffset>${APPROVAL_STAMP_VERTICAL_OFFSET}</wp:posOffset></wp:positionV>` +
+    `<wp:extent cx="${width}" cy="${height}"/>` +
+    `<wp:effectExtent l="0" t="0" r="0" b="0"/>` +
+    `<wp:wrapNone/>` +
+    `<wp:docPr id="${rId + 1000}" name="Approval Stamp" descr="approval stamp"/>` +
+    `<wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr>` +
+    `<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">` +
+    `<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">` +
+    `<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">` +
+    `<pic:nvPicPr><pic:cNvPr id="${rId + 1000}" name="Approval Stamp" descr="approval stamp"/><pic:cNvPicPr><a:picLocks noChangeAspect="1" noChangeArrowheads="1"/></pic:cNvPicPr></pic:nvPicPr>` +
+    `<pic:blipFill><a:blip r:embed="rId${rId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>` +
+    `<pic:spPr bwMode="auto"><a:xfrm><a:off x="0" y="0"/><a:ext cx="${width}" cy="${height}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/><a:ln><a:noFill/></a:ln></pic:spPr>` +
+    `</pic:pic>` +
+    `</a:graphicData>` +
+    `</a:graphic>` +
+    `</wp:anchor>` +
+    `</w:drawing>`
+  );
+}
+
 export async function renderSapfDocx({ request }: { request: any }) {
   const [{ Docxtemplater, ImageModule, PizZip }, { template, approvedImage }] =
     await Promise.all([loadSapfDocxDependencies(), loadSapfDocxAssets()]);
   const zip = new PizZip(template);
   const imageModule = new ImageModule({
-    centered: true,
+    centered: false,
     fileType: "docx",
     getImage(tagValue: unknown) {
       if (tagValue === BLANK_IMAGE_TOKEN) {
@@ -178,9 +208,10 @@ export async function renderSapfDocx({ request }: { request: any }) {
       return approvedImage;
     },
     getSize() {
-      return APPROVED_STAMP_SIZE;
+      return APPROVAL_STAMP_SIZE;
     },
   });
+  imageModule.getRenderedPartDocx = approvalStampXml;
   const doc = new Docxtemplater(zip, {
     paragraphLoop: true,
     linebreaks: true,
