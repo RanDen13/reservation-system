@@ -75,6 +75,27 @@ type ScheduleRow = {
   endTime: string;
 };
 
+const PROGRAM_OPTIONS = [
+  "Team Building",
+  "Leadership Summit",
+  "General Assembly",
+  "Competition",
+  "Press Conference",
+  "Seminar/Convention",
+  "Others",
+] as const;
+
+const PROGRAM_ALIASES: Record<string, (typeof PROGRAM_OPTIONS)[number]> = {
+  "team building": "Team Building",
+  "leadership summit": "Leadership Summit",
+  "general assembly": "General Assembly",
+  competition: "Competition",
+  "press conference": "Press Conference",
+  seminar: "Seminar/Convention",
+  convention: "Seminar/Convention",
+  "seminar/convention": "Seminar/Convention",
+};
+
 function formatFileSize(bytes: number) {
   if (!bytes) return "0 MB";
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -94,6 +115,23 @@ function positionLabel(position: string) {
     .replaceAll("_", " ")
     .toLowerCase()
     .replace(/^\w/, (c) => c.toUpperCase());
+}
+
+function programOptionForValue(value?: string) {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
+
+  return PROGRAM_ALIASES[normalized] || "Others";
+}
+
+function initialProgramState(value?: string) {
+  const trimmed = String(value || "").trim();
+  const option = trimmed ? programOptionForValue(trimmed) : "Team Building";
+  return {
+    option,
+    other: option === "Others" ? trimmed : "",
+  };
 }
 
 function createScheduleRow(
@@ -192,6 +230,9 @@ export default function SapfBookingForm({
   const part1 = initialRequest?.sapfPart1 || {};
   const part2 = initialRequest?.sapfPart2 || {};
   const part3 = initialRequest?.sapfPart3 || "";
+  const initialProgram = initialProgramState(part1.program);
+  const [selectedProgram, setSelectedProgram] = useState(initialProgram.option);
+  const [otherProgram, setOtherProgram] = useState(initialProgram.other);
   const [selectedSetting, setSelectedSetting] = useState(
     part1.setting || "In-Campus",
   );
@@ -914,11 +955,45 @@ export default function SapfBookingForm({
           </div>
           <div>
             <Label>Program</Label>
-            <Input
-              name="program"
-              placeholder="Seminar, General Assembly, Competition..."
-              defaultValue={part1.program || ""}
-            />
+            {selectedProgram !== "Others" ? (
+              <input type="hidden" name="program" value={selectedProgram} />
+            ) : null}
+            <Select
+              value={selectedProgram}
+              onValueChange={(value) =>
+                setSelectedProgram(value as (typeof PROGRAM_OPTIONS)[number])
+              }
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PROGRAM_OPTIONS.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedProgram === "Others" ? (
+              <div className="mt-3 border-t pt-3">
+                <Label
+                  htmlFor="program-other"
+                  className="text-xs font-medium text-muted-foreground"
+                >
+                  Other Program
+                </Label>
+                <Input
+                  id="program-other"
+                  name="program"
+                  value={otherProgram}
+                  onChange={(event) => setOtherProgram(event.target.value)}
+                  placeholder="Enter program"
+                  className="mt-2"
+                  required
+                />
+              </div>
+            ) : null}
           </div>
           <div className="md:col-span-2">
             <Label>Rationale</Label>
