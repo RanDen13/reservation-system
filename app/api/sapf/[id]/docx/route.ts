@@ -1,7 +1,6 @@
 import { normalizeSapfRequest } from "@/app/components/pages/SAPF/sapfData";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { renderSapfDocx } from "@/lib/sapf-docx";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
@@ -91,6 +90,7 @@ export async function GET(
     );
   }
 
+  const { renderSapfDocx } = await import("@/lib/sapf-docx");
   const bytes = await renderSapfDocx({
     request: normalizeSapfRequest(sapf),
   });

@@ -5,10 +5,8 @@ import {
   sapfCalendarDate,
 } from "@/app/components/pages/SAPF/sapfSchedule";
 import { format } from "date-fns";
-import Docxtemplater from "docxtemplater";
 import { readFile } from "fs/promises";
 import path from "path";
-import PizZip from "pizzip";
 
 const TEMPLATE_PATH = path.join(
   process.cwd(),
@@ -16,6 +14,55 @@ const TEMPLATE_PATH = path.join(
   "templates",
   "student-activity-proposal-form-v2.docx",
 );
+const APPROVED_IMAGE_PATH = path.join(process.cwd(), "public", "approved.png");
+const APPROVED_IMAGE_TOKEN = "__approved_stamp__";
+const BLANK_IMAGE_TOKEN = "__blank_stamp__";
+const APPROVED_STAMP_SIZE: [number, number] = [145, 33];
+const BLANK_IMAGE = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lpKZ4wAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+type SapfDocxDependencies = {
+  Docxtemplater: any;
+  ImageModule: any;
+  PizZip: any;
+};
+
+type SapfDocxAssets = {
+  template: Buffer;
+  approvedImage: Buffer;
+};
+
+let dependenciesPromise: Promise<SapfDocxDependencies> | undefined;
+let assetsPromise: Promise<SapfDocxAssets> | undefined;
+
+function moduleDefault<T>(module: T): T {
+  return (module as any).default || module;
+}
+
+function loadSapfDocxDependencies() {
+  dependenciesPromise ??= Promise.all([
+    import("docxtemplater"),
+    import("docxtemplater-image-module-free"),
+    import("pizzip"),
+  ]).then(([docxtemplater, imageModule, pizzip]) => ({
+    Docxtemplater: moduleDefault(docxtemplater),
+    ImageModule: moduleDefault(imageModule),
+    PizZip: moduleDefault(pizzip),
+  }));
+
+  return dependenciesPromise;
+}
+
+function loadSapfDocxAssets() {
+  assetsPromise ??= Promise.all([
+    readFile(TEMPLATE_PATH),
+    readFile(APPROVED_IMAGE_PATH),
+  ]).then(([template, approvedImage]) => ({ template, approvedImage }));
+
+  return assetsPromise;
+}
 
 function asDate(value: any) {
   return value instanceof Date ? value : new Date(value);
@@ -94,6 +141,12 @@ function stepName(request: any, position: string) {
   );
 }
 
+function stepApproved(request: any, position: string) {
+  return (request.approvalSteps || []).some(
+    (step: any) => step.position === position && step.status === "APPROVED",
+  );
+}
+
 function stepTitle(request: any, position: string) {
   const reviewer = request.approvalSteps?.find(
     (step: any) => step.position === position,
@@ -102,12 +155,36 @@ function stepTitle(request: any, position: string) {
   return credentialAccount?.title || "";
 }
 
+function approvalImageToken(approved: boolean) {
+  return approved ? APPROVED_IMAGE_TOKEN : BLANK_IMAGE_TOKEN;
+}
+
 export async function renderSapfDocx({ request }: { request: any }) {
-  const template = await readFile(TEMPLATE_PATH);
+  const [{ Docxtemplater, ImageModule, PizZip }, { template, approvedImage }] =
+    await Promise.all([loadSapfDocxDependencies(), loadSapfDocxAssets()]);
   const zip = new PizZip(template);
+  const imageModule = new ImageModule({
+    centered: true,
+    fileType: "docx",
+    getImage(tagValue: unknown) {
+      if (tagValue === BLANK_IMAGE_TOKEN) {
+        return BLANK_IMAGE;
+      }
+
+      if (tagValue !== APPROVED_IMAGE_TOKEN) {
+        throw new Error(`Unknown SAPF approval image token: ${tagValue}`);
+      }
+
+      return approvedImage;
+    },
+    getSize() {
+      return APPROVED_STAMP_SIZE;
+    },
+  });
   const doc = new Docxtemplater(zip, {
     paragraphLoop: true,
     linebreaks: true,
+    modules: [imageModule],
   });
 
   const sapf = request.sapf || getSapfParts(request);
@@ -144,6 +221,7 @@ export async function renderSapfDocx({ request }: { request: any }) {
       return {
         name,
         title,
+        signatoryApproval: approvalImageToken(step.status === "APPROVED"),
         signatoryName: name,
         signatoryTitle: title,
       };
@@ -152,7 +230,7 @@ export async function renderSapfDocx({ request }: { request: any }) {
   const deanName = stepName(request, "DEAN");
   const adviserName = stepName(request, "ADVISER");
 
-  doc.render({
+  const data = {
     year: schoolYear(startAt),
     schoolYear: schoolYear(startAt),
     proposalDate: format(createdAt, "MMMM d, yyyy"),
@@ -283,18 +361,32 @@ export async function renderSapfDocx({ request }: { request: any }) {
     cancelledRemarks: short(part6.cancelledRemarks),
 
     preparedBy: request.officer?.name || "",
+    adviserApproval: approvalImageToken(stepApproved(request, "ADVISER")),
     adviserName,
+    sdsApproval: approvalImageToken(stepApproved(request, "SDS")),
     sdsName: stepName(request, "SDS"),
+    deanApproval: approvalImageToken(stepApproved(request, "DEAN")),
     deanName,
     deanTitle: stepTitle(request, "DEAN"),
+    sasApproval: approvalImageToken(stepApproved(request, "SAS")),
     sasName: stepName(request, "SAS"),
     additionalSignatoryName,
     additionalSignatories,
     additionalAssignatories: additionalSignatories,
+    vpaaAsstApproval: approvalImageToken(
+      stepApproved(request, "VPAA_ASSISTANT"),
+    ),
     vpaaAsst: stepName(request, "VPAA_ASSISTANT"),
+    vpaaApproval: approvalImageToken(stepApproved(request, "VPAA")),
+    vpaaAprroval: approvalImageToken(stepApproved(request, "VPAA")),
     vpaaName: stepName(request, "VPAA"),
+    presidentApproval: approvalImageToken(
+      stepApproved(request, "UNIVERSITY_PRESIDENT"),
+    ),
     presidentName: stepName(request, "UNIVERSITY_PRESIDENT"),
-  });
+  };
+
+  await doc.renderAsync(data);
 
   return doc.getZip().generate({
     type: "nodebuffer",
