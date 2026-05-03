@@ -1,5 +1,6 @@
 "use client";
 
+import AppLogo from "@/app/components/AppLogo";
 import { ModeToggle } from "@/app/components/mode-toggle";
 import { Button } from "@/app/components/ui/button";
 import {
@@ -136,9 +137,10 @@ export default function Home() {
           >
             <motion.p
               variants={fadeInUp}
-              className="mb-5 inline-flex items-center rounded-full border border-white/25 bg-white/10 px-5 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200 backdrop-blur"
+              className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200 backdrop-blur"
             >
-              Zerve
+              <AppLogo className="h-4 w-4 shrink-0" variant="light" />
+              <span>Zerve</span>
             </motion.p>
             <motion.h1
               variants={fadeInUp}

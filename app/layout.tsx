@@ -25,6 +25,10 @@ export const metadata: Metadata = {
   title: "Zerve",
   description:
     "Officer-only venue reservation and approval workflow for La Consolacion University Philippines.",
+  icons: {
+    icon: "/logo_app.png",
+    apple: "/logo_app.png",
+  },
 };
 
 export default function RootLayout({

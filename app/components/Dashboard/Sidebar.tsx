@@ -1,5 +1,6 @@
 "use client";
 
+import AppLogo from "@/app/components/AppLogo";
 import { ModeToggle } from "@/app/components/mode-toggle";
 import { Button } from "@/app/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -94,9 +95,9 @@ export default function Sidebar({
             <motion.div
               whileHover={{ rotate: -4, scale: 1.04 }}
               transition={{ type: "spring", stiffness: 320, damping: 20 }}
-              className="flex h-10 w-10 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
+              className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-sidebar-primary/10 p-1.5 text-sidebar-primary-foreground shadow-sm"
             >
-              <Building2 className="h-6 w-6" />
+              <AppLogo className="h-full w-full" variant="adaptive" priority />
             </motion.div>
             <div>
               <h2 className="text-base font-bold leading-tight">Zerve</h2>
