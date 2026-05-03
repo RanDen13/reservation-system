@@ -31,7 +31,12 @@ export async function getVenueCalendarData() {
             request: {
               select: {
                 id: true,
+                requestNumber: true,
+                title: true,
+                organization: true,
+                department: true,
                 status: true,
+                createdAt: true,
                 schedules: {
                   select: {
                     id: true,

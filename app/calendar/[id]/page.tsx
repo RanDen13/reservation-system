@@ -14,11 +14,15 @@ function calendarItems(venue: any, globalBlocks: any[]): VenueCalendarItem[] {
     ...(venue.sapfRequests || []).flatMap((request: any) =>
       (request.schedules || []).map((schedule: any) => ({
         id: schedule.id,
-        title:
-          request.status === "APPROVED"
-            ? "Booked reservation"
-            : "Pending reservation",
-        subtitle: null,
+        title: `${request.requestNumber} - ${request.title}`,
+        subtitle: [
+          request.organization,
+          request.department,
+          `Request ID: ${request.id}`,
+          request.status?.replaceAll("_", " "),
+        ]
+          .filter(Boolean)
+          .join(" • "),
         startAt: schedule.startAt,
         endAt: schedule.endAt,
         status:
@@ -32,7 +36,9 @@ function calendarItems(venue: any, globalBlocks: any[]): VenueCalendarItem[] {
       (block.schedules || []).map((schedule: any) => ({
         id: schedule.id,
         title: block.title,
-        subtitle: block.reason || "Venue block",
+        subtitle: [block.reason || "Venue block", `Block ID: ${block.id}`]
+          .filter(Boolean)
+          .join(" • "),
         startAt: schedule.startAt,
         endAt: schedule.endAt,
         status: "BLOCKED" as const,
@@ -43,7 +49,12 @@ function calendarItems(venue: any, globalBlocks: any[]): VenueCalendarItem[] {
       (block.schedules || []).map((schedule: any) => ({
         id: schedule.id,
         title: block.title,
-        subtitle: block.reason || "University-wide block",
+        subtitle: [
+          block.reason || "University-wide block",
+          `Block ID: ${block.id}`,
+        ]
+          .filter(Boolean)
+          .join(" • "),
         startAt: schedule.startAt,
         endAt: schedule.endAt,
         status: "BLOCKED" as const,
