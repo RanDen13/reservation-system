@@ -38,9 +38,9 @@ const EditEventSpacePopup = ({
   const [amenities, setAmenities] = useState<Amenity[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [descriptionLength, setDescriptionLength] = useState(0);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imageUpdated, setImageUpdated] = useState(false);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagesUpdated, setImagesUpdated] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const statusPopup = usePopup();
   const router = useRouter();
@@ -55,24 +55,34 @@ const EditEventSpacePopup = ({
     fetchAmenities();
   }, []);
 
-  const handleImageChange = (file: File) => {
-    if (file && file.type.startsWith("image/")) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-        setImageUpdated(true);
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleImageChange = (files: FileList | File[]) => {
+    const nextFiles = Array.from(files).filter((file) =>
+      file.type.startsWith("image/"),
+    );
+    if (nextFiles.length === 0) return;
+
+    imagePreviews.forEach((preview) => URL.revokeObjectURL(preview));
+    const previews = nextFiles.map((file) => URL.createObjectURL(file));
+    setImageFiles(nextFiles);
+    setImagePreviews(previews);
+    setImagesUpdated(true);
+  };
+
+  const removeImageAt = (index: number) => {
+    setImageFiles((current) => current.filter((_, idx) => idx !== index));
+    setImagePreviews((current) => {
+      const preview = current[index];
+      if (preview) URL.revokeObjectURL(preview);
+      return current.filter((_, idx) => idx !== index);
+    });
+    setImagesUpdated(true);
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      handleImageChange(file);
+    if (e.dataTransfer.files?.length) {
+      handleImageChange(e.dataTransfer.files);
     }
   };
 
@@ -89,11 +99,8 @@ const EditEventSpacePopup = ({
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    // Manually append the image file if it was updated
-    if (imageUpdated && imageFile) {
-      formData.set("image", imageFile);
-    } else {
-      formData.delete("image");
+    if (imagesUpdated && imageFiles.length > 0) {
+      imageFiles.forEach((file) => formData.append("images", file));
     }
 
     console.log("data:", Object.fromEntries(formData.entries()));
@@ -152,7 +159,7 @@ const EditEventSpacePopup = ({
             <div className="space-y-4">
               {/* Image Upload */}
               <div className="space-y-2">
-                <Label>Space Image</Label>
+                <Label>Space Images</Label>
                 <div
                   className={`relative border-2 border-dashed rounded-lg transition-colors ${
                     isDragging
@@ -163,59 +170,101 @@ const EditEventSpacePopup = ({
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                 >
-                  {imagePreview || eventSpace.image ? (
-                    <div className="relative h-48 w-full group">
-                      <Image
-                        src={
-                          imagePreview ||
-                          `data:image/jpeg;base64,${Buffer.from(
-                            eventSpace.image!,
-                          ).toString("base64")}`
-                        }
-                        alt="Preview"
-                        fill
-                        className="object-cover rounded-lg"
-                      />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                        <label className="cursor-pointer">
+                  {(() => {
+                    const existingImages = eventSpace.images?.length
+                      ? eventSpace.images.map(
+                          (image) =>
+                            `data:image/jpeg;base64,${Buffer.from(image.data).toString("base64")}`,
+                        )
+                      : eventSpace.image
+                        ? [
+                            `data:image/jpeg;base64,${Buffer.from(eventSpace.image).toString("base64")}`,
+                          ]
+                        : [];
+                    const displayImages = imagePreviews.length
+                      ? imagePreviews
+                      : existingImages;
+
+                    if (displayImages.length === 0) {
+                      return (
+                        <label className="flex flex-col items-center justify-center h-48 cursor-pointer">
                           <input
                             type="file"
                             accept="image/*"
+                            multiple
                             className="hidden"
                             onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleImageChange(file);
+                              if (e.target.files) handleImageChange(e.target.files);
                             }}
                           />
-                          <div className="bg-card text-foreground rounded-lg px-4 py-2 flex items-center gap-2">
-                            <Upload className="w-4 h-4" />
-                            <span className="text-sm font-medium">
-                              Change Image
-                            </span>
-                          </div>
+                          <Upload className="w-12 h-12 text-muted-foreground mb-3" />
+                          <p className="text-sm font-semibold text-foreground">
+                            Click or drag to upload
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            PNG, JPG, GIF, WebP, SVG up to 10MB each (max 8)
+                          </p>
                         </label>
+                      );
+                    }
+
+                    return (
+                      <div className="space-y-3 p-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-semibold text-foreground">
+                              {displayImages.length} image
+                              {displayImages.length === 1 ? "" : "s"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Uploading new images will replace this gallery.
+                            </p>
+                          </div>
+                          <label className="cursor-pointer">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              className="hidden"
+                              onChange={(e) => {
+                                if (e.target.files) handleImageChange(e.target.files);
+                              }}
+                            />
+                            <div className="bg-card text-foreground rounded-lg px-3 py-1.5 flex items-center gap-2">
+                              <Upload className="w-4 h-4" />
+                              <span className="text-xs font-medium">
+                                Replace Images
+                              </span>
+                            </div>
+                          </label>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                          {displayImages.map((preview, index) => (
+                            <div
+                              key={`${preview}-${index}`}
+                              className="group relative h-24 overflow-hidden rounded-md border"
+                            >
+                              <Image
+                                src={preview}
+                                alt={`Preview ${index + 1}`}
+                                fill
+                                className="object-cover"
+                              />
+                              {imagePreviews.length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeImageAt(index)}
+                                  className="absolute right-2 top-2 rounded-full bg-black/60 p-1 text-white opacity-0 transition group-hover:opacity-100"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <label className="flex flex-col items-center justify-center h-48 cursor-pointer">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleImageChange(file);
-                        }}
-                      />
-                      <Upload className="w-12 h-12 text-muted-foreground mb-3" />
-                      <p className="text-sm font-semibold text-foreground">
-                        Click or drag to upload
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        PNG, JPG, GIF, WebP, SVG up to 10MB
-                      </p>
-                    </label>
-                  )}
+                    );
+                  })()}
                 </div>
               </div>
 

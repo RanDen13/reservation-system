@@ -2,29 +2,32 @@ import {
   Amenity,
   EventSpace,
   EventSpaceStatus,
+  EventSpaceImage,
 } from "@/generated/prisma/browser";
 import z from "zod";
 
 export type EventSpaceData = EventSpace & {
   amenities?: Amenity[];
+  images?: EventSpaceImage[];
   sapfRequests?: any[];
   sapfRequestVenues?: any[];
   venueBlocks?: any[];
   globalBlocks?: any[];
 };
 
+export const IMAGE_MIME_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/gif",
+  "image/webp",
+  "image/svg+xml",
+] as const;
+
 export const IMAGE_SCHEMA = z
   .instanceof(File)
   .refine(
-    (file) =>
-      [
-        "image/png",
-        "image/jpeg",
-        "image/jpg",
-        "image/gif",
-        "image/webp",
-        "image/svg+xml",
-      ].includes(file.type),
+    (file) => IMAGE_MIME_TYPES.includes(file.type as any),
     { message: "Invalid image file type" }
   )
   .transform((file) => file.bytes());
@@ -48,7 +51,6 @@ export const createEventSpaceSchema = z.object({
     .transform((val) => JSON.parse(val))
     .pipe(z.array(z.string()).optional())
     .optional(),
-  image: IMAGE_SCHEMA.optional(),
 });
 
 export const updateEventSpaceSchema = z.object({
@@ -74,5 +76,4 @@ export const updateEventSpaceSchema = z.object({
     .transform((val) => JSON.parse(val))
     .pipe(z.array(z.string()).optional())
     .optional(),
-  image: IMAGE_SCHEMA.optional(),
 });

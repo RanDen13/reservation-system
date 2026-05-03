@@ -9,6 +9,11 @@ export async function getVenueCalendarData() {
         },
       },
       include: {
+        images: {
+          orderBy: {
+            sortOrder: "asc",
+          },
+        },
         sapfRequestVenues: {
           where: {
             request: {
@@ -62,6 +67,10 @@ export async function getVenueCalendarData() {
     venues: venues.map((venue: any) => ({
       ...venue,
       sapfRequests: venue.sapfRequestVenues.map((item: any) => item.request),
+      imagesData: (venue.images || []).map(
+        (img: any) =>
+          `data:image/jpeg;base64,${Buffer.from(img.data).toString("base64")}`,
+      ),
     })),
     globalBlocks,
   };

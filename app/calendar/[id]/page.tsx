@@ -1,7 +1,7 @@
+import VenueImageCarousel from "@/app/components/EventSpace/VenueImageCarousel";
 import VenueMonthCalendar, {
   VenueCalendarItem,
 } from "@/app/components/pages/Calendar/VenueMonthCalendar";
-import DraggableVenueImage from "@/app/components/DraggableVenueImage";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
 import { getVenueCalendarData } from "@/lib/venue-calendar-data";
@@ -58,9 +58,15 @@ const page = async ({ params }: { params: Promise<{ id: string }> }) => {
     notFound();
   }
 
-  const imageSrc = venue.image
+  const imagesFromImagesData = venue.imagesData || [];
+  const fallbackImage = venue.image
     ? `data:image/jpeg;base64,${Buffer.from(venue.image).toString("base64")}`
     : null;
+  const images = imagesFromImagesData.length
+    ? imagesFromImagesData
+    : fallbackImage
+      ? [fallbackImage]
+      : [];
 
   return (
     <main className="min-h-screen bg-background p-4 lg:p-8">
@@ -72,7 +78,11 @@ const page = async ({ params }: { params: Promise<{ id: string }> }) => {
           </Link>
         </Button>
 
-        <DraggableVenueImage src={imageSrc} alt={venue.name} />
+        <VenueImageCarousel
+          images={images}
+          alt={venue.name}
+          className="h-80 sm:h-96 lg:h-[32rem]"
+        />
 
         <div>
           <h1 className="text-3xl font-bold text-foreground">{venue.name}</h1>

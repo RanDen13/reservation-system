@@ -9,9 +9,39 @@ import { v4 as uuid } from "uuid";
 import { prettifyError } from "zod";
 import {
   createEventSpaceSchema,
+  IMAGE_MIME_TYPES,
   EventSpaceData,
   updateEventSpaceSchema,
 } from "./schema";
+
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_IMAGE_COUNT = 8;
+
+function extractImageFiles(data: FormData) {
+  return data
+    .getAll("images")
+    .filter((item): item is File => item instanceof File && item.size > 0);
+}
+
+function validateImageFiles(files: File[]) {
+  if (files.length > MAX_IMAGE_COUNT) {
+    return `You can upload up to ${MAX_IMAGE_COUNT} images.`;
+  }
+
+  const invalidType = files.find(
+    (file) => !IMAGE_MIME_TYPES.includes(file.type as any),
+  );
+  if (invalidType) {
+    return "Invalid image file type.";
+  }
+
+  const tooLarge = files.find((file) => file.size > MAX_IMAGE_BYTES);
+  if (tooLarge) {
+    return "Each image must be 10 MB or less.";
+  }
+
+  return null;
+}
 
 function isSuperAdmin(role?: string | null) {
   return role?.toUpperCase() === "SUPER_ADMIN";
@@ -34,6 +64,10 @@ export async function getAllEventSpaces(): Promise<
     const spaces = await prisma.eventSpace.findMany({
       include: {
         amenities: true,
+        images: {
+          orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+          take: 1,
+        },
       },
     });
 
@@ -110,6 +144,9 @@ export async function getEventSpaceById(
         where: { id },
         include: {
           amenities: true,
+          images: {
+            orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+          },
           sapfRequestVenues: {
             where: {
               request: {
@@ -252,6 +289,14 @@ export async function createEventSpace(
       };
     }
     const validatedData = validation.data;
+    const imageFiles = extractImageFiles(data);
+    const imageError = validateImageFiles(imageFiles);
+    if (imageError) {
+      return {
+        success: false,
+        message: imageError,
+      };
+    }
 
     // Parse amenities from JSON string if present
     const amenitiesData = data.get("amenities");
@@ -260,22 +305,41 @@ export async function createEventSpace(
       : validatedData.amenities;
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { amenities: _amenities, image, ...restData } = validatedData;
+    const { amenities: _amenities, ...restData } = validatedData;
 
-    const newSpace = await prisma.eventSpace.create({
-      data: {
-        id: uuid(),
-        ...restData,
-        image: image ? Buffer.from(await image) : undefined,
-        amenities: amenities
-          ? {
-              connect: amenities.map((id: string) => ({ id })),
-            }
-          : undefined,
-      },
-      include: {
-        amenities: true,
-      },
+    const imageBuffers = await Promise.all(
+      imageFiles.map(async (file) => Buffer.from(await file.arrayBuffer())),
+    );
+
+    const newSpace = await prisma.$transaction(async (tx) => {
+      const created = await tx.eventSpace.create({
+        data: {
+          id: uuid(),
+          ...restData,
+          image: imageBuffers[0] || undefined,
+          amenities: amenities
+            ? {
+                connect: amenities.map((id: string) => ({ id })),
+              }
+            : undefined,
+        },
+        include: {
+          amenities: true,
+        },
+      });
+
+      if (imageBuffers.length > 0) {
+        await tx.eventSpaceImage.createMany({
+          data: imageBuffers.map((buffer, index) => ({
+            id: uuid(),
+            eventSpaceId: created.id,
+            data: buffer,
+            sortOrder: index,
+          })),
+        });
+      }
+
+      return created;
     });
 
     return {
@@ -316,11 +380,21 @@ export async function updateEventSpace(
       };
     }
 
-    const {
-      id,
-      amenities: validatedAmenities,
-      ...updateData
-    } = validatedData.data;
+    const { id, amenities: validatedAmenities, ...updateData } =
+      validatedData.data;
+
+    const imageFiles = extractImageFiles(data);
+    const imageError = validateImageFiles(imageFiles);
+    if (imageError) {
+      return {
+        success: false,
+        message: imageError,
+      };
+    }
+
+    const imageBuffers = await Promise.all(
+      imageFiles.map(async (file) => Buffer.from(await file.arrayBuffer())),
+    );
 
     // Parse amenities from JSON string if present
     const amenitiesData = data.get("amenities");
@@ -336,15 +410,34 @@ export async function updateEventSpace(
         }
       : undefined;
 
-    await prisma.eventSpace.update({
-      where: { id },
-      data: {
-        ...updateData,
-        ...(amenitiesUpdate && { amenities: amenitiesUpdate }),
-      },
-      include: {
-        amenities: true,
-      },
+    await prisma.$transaction(async (tx) => {
+      if (imageBuffers.length > 0) {
+        await tx.eventSpaceImage.deleteMany({
+          where: { eventSpaceId: id },
+        });
+        await tx.eventSpaceImage.createMany({
+          data: imageBuffers.map((buffer, index) => ({
+            id: uuid(),
+            eventSpaceId: id,
+            data: buffer,
+            sortOrder: index,
+          })),
+        });
+      }
+
+      await tx.eventSpace.update({
+        where: { id },
+        data: {
+          ...updateData,
+          ...(amenitiesUpdate && { amenities: amenitiesUpdate }),
+          ...(imageBuffers.length > 0
+            ? { image: imageBuffers[0] }
+            : {}),
+        },
+        include: {
+          amenities: true,
+        },
+      });
     });
 
     return {

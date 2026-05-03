@@ -1,9 +1,9 @@
 "use client";
 
+import VenueImageCarousel from "@/app/components/EventSpace/VenueImageCarousel";
 import VenueMonthCalendar, {
   VenueCalendarItem,
 } from "@/app/components/pages/Calendar/VenueMonthCalendar";
-import DraggableVenueImage from "@/app/components/DraggableVenueImage";
 import ErrorPopup from "@/app/components/Popup/ErrorPopup";
 import { usePopup } from "@/app/components/Popup/PopupProvider";
 import { Button } from "@/app/components/ui/button";
@@ -14,13 +14,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/app/components/ui/tabs";
-import {
-  ArrowLeft,
-  CheckCircle,
-  MapPin,
-  Send,
-  Users,
-} from "lucide-react";
+import { ArrowLeft, CheckCircle, MapPin, Send, Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -99,16 +93,28 @@ const EventSpacePage = ({
     );
   }, [eventSpace]);
 
+  const imageUrls = useMemo(() => {
+    if (!eventSpace) return [];
+    if (eventSpace.images?.length) {
+      return eventSpace.images.map(
+        (image) =>
+          `data:image/jpeg;base64,${Buffer.from(image.data).toString("base64")}`,
+      );
+    }
+    if (eventSpace.image) {
+      return [
+        `data:image/jpeg;base64,${Buffer.from(eventSpace.image).toString("base64")}`,
+      ];
+    }
+    return [];
+  }, [eventSpace]);
+
   if (loading) return <EventSpaceSkeleton />;
   if (!eventSpace) {
     return (
       <ErrorPopup message="Venue not found." onClose={() => router.back()} />
     );
   }
-
-  const imageSrc = eventSpace.image
-    ? `data:image/jpeg;base64,${Buffer.from(eventSpace.image).toString("base64")}`
-    : null;
 
   return (
     <div className="space-y-6 p-4 lg:p-8">
@@ -127,7 +133,11 @@ const EventSpacePage = ({
         )}
       </div>
 
-      <DraggableVenueImage src={imageSrc} alt={eventSpace.name} />
+      <VenueImageCarousel
+        images={imageUrls}
+        alt={eventSpace.name}
+        className="h-80 sm:h-96 lg:h-[32rem]"
+      />
 
       <div>
         <h1 className="text-3xl font-bold text-foreground">

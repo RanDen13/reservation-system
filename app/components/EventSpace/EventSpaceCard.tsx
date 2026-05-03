@@ -3,18 +3,18 @@
 import { deleteEventSpace } from "@/app/components/pages/Spaces/EventSpaceActions";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
-import { Amenity, EventSpace } from "@/generated/prisma/browser";
+import { Amenity, EventSpace, EventSpaceImage } from "@/generated/prisma/browser";
 import { Building2, Calendar, MapPin, Users } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { usePopup } from "../Popup/PopupProvider";
 import { amenityIcons } from "./AmenityIcon";
 import EditEventSpacePopup from "./EditEventSpacePopup";
+import VenueImageCarousel from "./VenueImageCarousel";
 
 interface EventAreaProps {
-  eventSpace: EventSpace & { amenities?: Amenity[] };
+  eventSpace: EventSpace & { amenities?: Amenity[]; images?: EventSpaceImage[] };
   showAdminActions?: boolean;
   detailsHref?: string;
 }
@@ -32,6 +32,7 @@ export default function EventSpaceCard({
     capacity,
     status,
     amenities = [],
+    images = [],
   } = eventSpace;
   const [showEditPopup, setShowEditPopup] = useState<boolean>(false);
   const statusPopup = usePopup();
@@ -59,20 +60,24 @@ export default function EventSpaceCard({
       <Card className="overflow-hidden hover:shadow-xl transition-all h-full flex flex-col">
         {/* Image */}
         <div className="relative h-48 bg-linear-to-br from-sky-500/15 to-emerald-500/15">
-          {eventSpace.image ? (
-            <Image
-              src={`data:image/jpeg;base64,${Buffer.from(
-                eventSpace.image,
-              ).toString("base64")}`}
-              alt={name}
-              fill
-              className="object-cover"
-            />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Building2 className="w-16 h-16 text-muted-foreground" />
-            </div>
-          )}
+          <VenueImageCarousel
+            images={
+              images.length
+                ? images.map(
+                    (image) =>
+                      `data:image/jpeg;base64,${Buffer.from(image.data).toString("base64")}`,
+                  )
+                : eventSpace.image
+                  ? [
+                      `data:image/jpeg;base64,${Buffer.from(eventSpace.image).toString("base64")}`,
+                    ]
+                  : []
+            }
+            alt={name}
+            className="h-full"
+            showControls={false}
+            showDots={false}
+          />
           <div className="absolute top-3 right-3">
             <span
               className={`px-3 py-1 rounded-full text-xs font-semibold shadow-lg ${

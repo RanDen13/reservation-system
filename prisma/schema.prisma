@@ -121,10 +121,23 @@ model EventSpace {
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   image             Bytes?
+  images            EventSpaceImage[]
   sapfRequestVenues SAPFRequestVenue[]
   venueBlocks       VenueBlock[]
 
   @@map("event_space")
+}
+
+model EventSpaceImage {
+  id           String     @id
+  eventSpaceId String
+  eventSpace   EventSpace @relation(fields: [eventSpaceId], references: [id], onDelete: Cascade)
+  data         Bytes
+  sortOrder    Int        @default(0)
+  createdAt    DateTime   @default(now())
+
+  @@index([eventSpaceId])
+  @@map("event_space_image")
 }
 
 model Amenity {
