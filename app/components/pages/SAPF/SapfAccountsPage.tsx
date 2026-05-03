@@ -23,7 +23,6 @@ import {
 import { format } from "date-fns";
 import { Pencil, Plus, RefreshCcw, UserPlus, Users } from "lucide-react";
 import { useEffect, useState } from "react";
-import SapfPageLoading from "./SapfPageLoading";
 import {
   createManagedAccount,
   deactivateAccount,
@@ -34,6 +33,7 @@ import {
   updateManagedName,
   updateManagedRole,
 } from "./SapfActions";
+import SapfPageLoading from "./SapfPageLoading";
 
 const roleOptions = ["OFFICER", "APPROVER", "ADMIN", "SUPER_ADMIN"] as const;
 const approverRoleOptions = ["APPROVER", "ADMIN", "SUPER_ADMIN"] as const;

@@ -1,12 +1,12 @@
-import { Skeleton } from "@/app/components/ui/skeleton"
-import { cn } from "@/lib/utils"
+import { Skeleton } from "@/app/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 type RouteLoadingSkeletonProps = {
-  fullScreen?: boolean
-  className?: string
-}
+  fullScreen?: boolean;
+  className?: string;
+};
 
-const cardKeys = ["one", "two", "three"]
+const cardKeys = ["one", "two", "three"];
 
 export default function RouteLoadingSkeleton({
   fullScreen = false,
@@ -17,7 +17,7 @@ export default function RouteLoadingSkeleton({
       className={cn(
         "space-y-6 p-4 lg:p-8",
         fullScreen && "min-h-screen bg-background",
-        className
+        className,
       )}
     >
       <div className="space-y-3">
@@ -43,5 +43,5 @@ export default function RouteLoadingSkeleton({
         <Skeleton className="h-44 w-full" />
       </div>
     </div>
-  )
+  );
 }
