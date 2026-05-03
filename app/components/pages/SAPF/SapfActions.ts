@@ -3012,12 +3012,149 @@ export async function createVenueBlock(
     });
 
     revalidatePath("/calendar");
+    revalidatePath("/user/spaces");
     revalidatePath("/user/dashboard");
     return { success: true, message: "Venue block created." };
   } catch (error) {
     return {
       success: false,
       message: (error as Error).message || "Failed to create venue block.",
+    };
+  }
+}
+
+export async function updateUniversityWideVenueBlock(
+  data: FormData,
+): Promise<ActionResult<void>> {
+  try {
+    const user = await getSessionUser();
+    if (!user || !requireRole(user.role, ["SUPER_ADMIN"])) {
+      return {
+        success: false,
+        message: "Only super admins can update university-wide blocks.",
+      };
+    }
+
+    const id = field(data, "id");
+    if (!id) {
+      return {
+        success: false,
+        message: "Block ID is required.",
+      };
+    }
+
+    const title = field(data, "title");
+    if (!title) {
+      return {
+        success: false,
+        message: "Block title is required.",
+      };
+    }
+
+    const scheduleSlots = parseScheduleSlots(data);
+    validateScheduleSlots(scheduleSlots);
+
+    const existing = await prisma.venueBlock.findFirst({
+      where: {
+        id,
+        eventSpaceId: null,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!existing) {
+      return {
+        success: false,
+        message: "University-wide block not found.",
+      };
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.venueBlockSchedule.deleteMany({
+        where: {
+          venueBlockId: id,
+        },
+      });
+
+      await tx.venueBlock.update({
+        where: {
+          id,
+        },
+        data: {
+          title,
+          reason: field(data, "reason") || null,
+          schedules: {
+            createMany: {
+              data: scheduleSlots.map((slot) => ({
+                id: uuid(),
+                startAt: slot.startAt,
+                endAt: slot.endAt,
+              })),
+            },
+          },
+        },
+      });
+    });
+
+    revalidatePath("/calendar");
+    revalidatePath("/user/spaces");
+    revalidatePath("/user/dashboard");
+    return { success: true, message: "University-wide block updated." };
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        (error as Error).message ||
+        "Failed to update university-wide block.",
+    };
+  }
+}
+
+export async function deleteUniversityWideVenueBlock(
+  id: string,
+): Promise<ActionResult<void>> {
+  try {
+    const user = await getSessionUser();
+    if (!user || !requireRole(user.role, ["SUPER_ADMIN"])) {
+      return {
+        success: false,
+        message: "Only super admins can delete university-wide blocks.",
+      };
+    }
+
+    if (!id) {
+      return {
+        success: false,
+        message: "Block ID is required.",
+      };
+    }
+
+    const deleted = await prisma.venueBlock.deleteMany({
+      where: {
+        id,
+        eventSpaceId: null,
+      },
+    });
+
+    if (deleted.count === 0) {
+      return {
+        success: false,
+        message: "University-wide block not found.",
+      };
+    }
+
+    revalidatePath("/calendar");
+    revalidatePath("/user/spaces");
+    revalidatePath("/user/dashboard");
+    return { success: true, message: "University-wide block deleted." };
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        (error as Error).message ||
+        "Failed to delete university-wide block.",
     };
   }
 }

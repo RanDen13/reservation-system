@@ -2,7 +2,11 @@
 
 import CreateEventSpacePopup from "@/app/components/EventSpace/CreateEventSpacePopup";
 import EventSpaceCard from "@/app/components/EventSpace/EventSpaceCard";
-import { createVenueBlock } from "@/app/components/pages/SAPF/SapfActions";
+import {
+  createVenueBlock,
+  deleteUniversityWideVenueBlock,
+  updateUniversityWideVenueBlock,
+} from "@/app/components/pages/SAPF/SapfActions";
 import { usePopup } from "@/app/components/Popup/PopupProvider";
 import { Button } from "@/app/components/ui/button";
 import {
@@ -270,7 +274,12 @@ export default function AdminSpaces({
       </motion.div>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
-        <UniversityWideBlocks blocks={globalBlocks} />
+        <UniversityWideBlocks
+          blocks={globalBlocks}
+          editable
+          onUpdate={updateUniversityWideVenueBlock}
+          onDelete={deleteUniversityWideVenueBlock}
+        />
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

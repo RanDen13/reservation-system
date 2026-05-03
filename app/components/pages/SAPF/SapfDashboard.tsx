@@ -9,36 +9,24 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/components/ui/card";
-import { Input } from "@/app/components/ui/input";
-import { Label } from "@/app/components/ui/label";
 import {
   MotionItem,
   MotionList,
   MotionPage,
   MotionSection,
 } from "@/app/components/ui/motion";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/app/components/ui/select";
 import { format } from "date-fns";
 import {
   Bell,
-  CalendarDays,
   CheckCircle,
   Clock,
   History,
   MessageSquare,
-  Plus,
   RefreshCcw,
-  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { createVenueBlock, getSapfWorkspace } from "./SapfActions";
+import { getSapfWorkspace } from "./SapfActions";
 import SapfPageLoading from "./SapfPageLoading";
 import { RequestSummary } from "./SapfRequestDetail";
 
@@ -50,199 +38,6 @@ const activeStatuses = new Set([
 ]);
 
 const historyStatuses = new Set(["APPROVED", "REJECTED", "CANCELLED"]);
-
-type ScheduleRow = {
-  id: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-};
-
-function createScheduleRow(): ScheduleRow {
-  return {
-    id: Math.random().toString(36).slice(2),
-    date: "",
-    startTime: "",
-    endTime: "",
-  };
-}
-
-function BlockScheduleRows() {
-  const popup = usePopup();
-  const [rows, setRows] = useState<ScheduleRow[]>([createScheduleRow()]);
-
-  const updateRow = (
-    rowId: string,
-    field: keyof Omit<ScheduleRow, "id">,
-    value: string,
-  ) => {
-    if (
-      field === "date" &&
-      value &&
-      rows.some((row) => row.id !== rowId && row.date === value)
-    ) {
-      popup.showError("Each schedule day must use a different date.");
-      return;
-    }
-
-    setRows((current) =>
-      current.map((row) => {
-        if (row.id !== rowId) return row;
-        const next = { ...row, [field]: value };
-        if (
-          field === "startTime" &&
-          next.endTime &&
-          value &&
-          next.endTime <= value
-        ) {
-          next.endTime = "";
-        }
-        return next;
-      }),
-    );
-  };
-
-  return (
-    <div className="space-y-3">
-      {rows.map((row, index) => (
-        <div key={row.id} className="space-y-2 rounded-md border p-3">
-          <div className="flex items-center justify-between gap-2">
-            <Label>Day {index + 1}</Label>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              disabled={rows.length === 1}
-              onClick={() =>
-                setRows((current) =>
-                  current.filter((item) => item.id !== row.id),
-                )
-              }
-              aria-label={`Remove day ${index + 1}`}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-          <Input
-            name="scheduleDate"
-            type="date"
-            value={row.date}
-            onChange={(event) => updateRow(row.id, "date", event.target.value)}
-            required
-          />
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label>Start</Label>
-              <Input
-                name="scheduleStartTime"
-                type="time"
-                value={row.startTime}
-                onChange={(event) =>
-                  updateRow(row.id, "startTime", event.target.value)
-                }
-                required
-              />
-            </div>
-            <div>
-              <Label>End</Label>
-              <Input
-                name="scheduleEndTime"
-                type="time"
-                value={row.endTime}
-                min={row.startTime || undefined}
-                onChange={(event) =>
-                  updateRow(row.id, "endTime", event.target.value)
-                }
-                required
-              />
-            </div>
-          </div>
-        </div>
-      ))}
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full"
-        onClick={() => setRows((current) => [...current, createScheduleRow()])}
-      >
-        <Plus className="mr-2 h-4 w-4" />
-        Add Day
-      </Button>
-    </div>
-  );
-}
-
-function SuperAdminPanel({
-  workspace,
-  onRefresh,
-}: {
-  workspace: any;
-  onRefresh: () => Promise<void>;
-}) {
-  const popup = usePopup();
-
-  const run = async (
-    fn: (formData: FormData) => Promise<{ success: boolean; message?: string }>,
-    formData: FormData,
-  ) => {
-    const result = await fn(formData);
-    if (!result.success) {
-      popup.showError(result.message || "Action failed.");
-      return;
-    }
-    popup.showSuccess(result.message || "Saved.");
-    await onRefresh();
-  };
-
-  return (
-    <div className="grid gap-6 xl:grid-cols-3">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CalendarDays className="h-5 w-5" />
-            Venue Blocks
-          </CardTitle>
-          <CardDescription>
-            Block university events or unavailable slots.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form
-            action={(formData) => run(createVenueBlock, formData)}
-            className="space-y-3"
-          >
-            <div>
-              <Label>Venue</Label>
-              <Select name="eventSpaceId" defaultValue="ALL">
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">All venues</SelectItem>
-                  {workspace.venues.map((venue: any) => (
-                    <SelectItem key={venue.id} value={venue.id}>
-                      {venue.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Title</Label>
-              <Input name="title" required />
-            </div>
-            <BlockScheduleRows />
-            <div>
-              <Label>Reason</Label>
-              <Input name="reason" />
-            </div>
-            <Button className="w-full">Create Block</Button>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
 
 export default function SapfDashboard() {
   const popup = usePopup();
@@ -514,12 +309,6 @@ export default function SapfDashboard() {
             </MotionList>
           </CardContent>
         </Card>
-        </MotionSection>
-      )}
-
-      {workspace.me.role === "SUPER_ADMIN" && (
-        <MotionSection>
-        <SuperAdminPanel workspace={workspace} onRefresh={refresh} />
         </MotionSection>
       )}
     </MotionPage>
