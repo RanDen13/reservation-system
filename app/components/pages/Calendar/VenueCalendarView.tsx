@@ -1,9 +1,8 @@
 "use client";
 
-import AllEventsCalendar from "@/app/components/pages/Calendar/AllEventsCalendar";
 import EventSpaceCard from "@/app/components/EventSpace/EventSpaceCard";
+import AllEventsCalendar from "@/app/components/pages/Calendar/AllEventsCalendar";
 import { Button } from "@/app/components/ui/button";
-import { ModeToggle } from "@/components/mode-toggle";
 import {
   Card,
   CardContent,
@@ -19,7 +18,14 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/app/components/ui/tabs";
-import { ArrowLeft, Building2, CalendarDays, Search, Users } from "lucide-react";
+import { ModeToggle } from "@/components/mode-toggle";
+import {
+  ArrowLeft,
+  Building2,
+  CalendarDays,
+  Search,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -89,7 +95,11 @@ export default function VenueCalendarView({
               </Button>
             )}
             {!kiosk && actionHref && actionLabel && (
-              <Button asChild className="bg-emerald-600 hover:bg-emerald-700">
+              <Button
+                asChild
+                variant="outline"
+                className="border-white/35 bg-transparent text-white hover:bg-white/10 hover:text-white"
+              >
                 <Link href={actionHref}>{actionLabel}</Link>
               </Button>
             )}
@@ -180,7 +190,9 @@ export default function VenueCalendarView({
                       type="number"
                       placeholder="e.g., 50"
                       value={filterCapacity}
-                      onChange={(event) => setFilterCapacity(event.target.value)}
+                      onChange={(event) =>
+                        setFilterCapacity(event.target.value)
+                      }
                       className="h-12 pl-10"
                     />
                   </div>
@@ -190,8 +202,9 @@ export default function VenueCalendarView({
           </Card>
 
           <p className="text-muted-foreground">
-            Showing <span className="font-semibold">{filteredVenues.length}</span>{" "}
-            of {venues.length} venues
+            Showing{" "}
+            <span className="font-semibold">{filteredVenues.length}</span> of{" "}
+            {venues.length} venues
           </p>
 
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
@@ -210,7 +223,9 @@ export default function VenueCalendarView({
               <h3 className="mb-2 text-xl font-semibold text-foreground">
                 No venues found
               </h3>
-              <p className="text-muted-foreground">Try adjusting your filters.</p>
+              <p className="text-muted-foreground">
+                Try adjusting your filters.
+              </p>
             </div>
           )}
         </TabsContent>

@@ -136,7 +136,7 @@ const EventSpacePage = ({
           Back
         </Button>
         {canCreateReservation && eventSpace.status === "ACTIVE" && (
-          <Button asChild className="bg-emerald-600 hover:bg-emerald-700">
+          <Button asChild>
             <Link href={`/user/bookings/create?venueId=${eventSpace.id}`}>
               <Send className="mr-2 h-4 w-4" />
               Create Booking
@@ -146,11 +146,11 @@ const EventSpacePage = ({
       </MotionSection>
 
       <MotionSection>
-      <VenueImageCarousel
-        images={imageUrls}
-        alt={eventSpace.name}
-        className="h-80 sm:h-96 lg:h-[32rem]"
-      />
+        <VenueImageCarousel
+          images={imageUrls}
+          alt={eventSpace.name}
+          className="h-80 sm:h-96 lg:h-[32rem]"
+        />
       </MotionSection>
 
       <MotionSection>
@@ -169,39 +169,41 @@ const EventSpacePage = ({
         <TabsContent value="details" className="mt-4">
           <MotionList className="grid gap-4 md:grid-cols-3">
             <MotionItem>
-            <Card className="panel-hover">
-              <CardContent className="flex items-center gap-3 p-5">
-                <MapPin className="h-8 w-8 text-blue-600" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Location</p>
-                  <p className="font-semibold">{eventSpace.location}</p>
-                </div>
-              </CardContent>
-            </Card>
+              <Card className="panel-hover">
+                <CardContent className="flex items-center gap-3 p-5">
+                  <MapPin className="h-8 w-8 text-blue-600" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Location</p>
+                    <p className="font-semibold">{eventSpace.location}</p>
+                  </div>
+                </CardContent>
+              </Card>
             </MotionItem>
             <MotionItem>
-            <Card className="panel-hover">
-              <CardContent className="flex items-center gap-3 p-5">
-                <Users className="h-8 w-8 text-emerald-600" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Capacity</p>
-                  <p className="font-semibold">{eventSpace.capacity} people</p>
-                </div>
-              </CardContent>
-            </Card>
+              <Card className="panel-hover">
+                <CardContent className="flex items-center gap-3 p-5">
+                  <Users className="h-8 w-8 text-emerald-600" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Capacity</p>
+                    <p className="font-semibold">
+                      {eventSpace.capacity} people
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
             </MotionItem>
             <MotionItem>
-            <Card className="panel-hover">
-              <CardContent className="flex items-center gap-3 p-5">
-                <CheckCircle className="h-8 w-8 text-emerald-600" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Status</p>
-                  <p className="font-semibold">
-                    {eventSpace.status.replaceAll("_", " ")}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+              <Card className="panel-hover">
+                <CardContent className="flex items-center gap-3 p-5">
+                  <CheckCircle className="h-8 w-8 text-emerald-600" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Status</p>
+                    <p className="font-semibold">
+                      {eventSpace.status.replaceAll("_", " ")}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
             </MotionItem>
           </MotionList>
         </TabsContent>

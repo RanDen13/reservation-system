@@ -158,11 +158,7 @@ export default function Home() {
               variants={fadeInUp}
               className="mt-8 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start"
             >
-              <Button
-                asChild
-                size="lg"
-                className="bg-emerald-600 px-8 hover:bg-emerald-700"
-              >
+              <Button asChild size="lg">
                 <Link href={accountHref}>
                   <AccountIcon className="mr-2 h-5 w-5" />
                   {accountLabel}
@@ -325,15 +321,11 @@ export default function Home() {
             Ready to manage your venue reservation?
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-white/70">
-            Sign in with your Zerve account or check the public
-            calendar before planning your activity.
+            Sign in with your Zerve account or check the public calendar before
+            planning your activity.
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-            <Button
-              asChild
-              size="lg"
-              className="bg-emerald-600 hover:bg-emerald-700"
-            >
+            <Button asChild size="lg">
               <Link href={accountHref}>
                 {isLoggedIn ? "Go to dashboard" : "Sign in"}
               </Link>

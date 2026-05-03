@@ -1,6 +1,7 @@
 "use client";
 
 import EventSpaceCard from "@/app/components/EventSpace/EventSpaceCard";
+import { Button } from "@/app/components/ui/button";
 import {
   Card,
   CardContent,
@@ -8,7 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/components/ui/card";
-import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import {
@@ -56,7 +56,7 @@ export default function OfficerSpaces({
               reservation.
             </p>
           </div>
-          <Button asChild className="bg-emerald-600 hover:bg-emerald-700">
+          <Button asChild>
             <Link href="/user/bookings/create">
               <Send className="mr-2 h-4 w-4" />
               Create Booking
@@ -66,50 +66,50 @@ export default function OfficerSpaces({
       </MotionSection>
 
       <MotionSection>
-      <Card>
-        <CardHeader>
-          <CardTitle>Search & Filter</CardTitle>
-          <CardDescription>
-            Find venues that match your activity.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="search">Search by name</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="search"
-                  type="text"
-                  placeholder="e.g., Auditorium"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  className="h-12 pl-10"
-                />
+        <Card>
+          <CardHeader>
+            <CardTitle>Search & Filter</CardTitle>
+            <CardDescription>
+              Find venues that match your activity.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="search">Search by name</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="search"
+                    type="text"
+                    placeholder="e.g., Auditorium"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    className="h-12 pl-10"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="capacity">Minimum capacity</Label>
+                <div className="relative">
+                  <Users className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="capacity"
+                    type="number"
+                    placeholder="e.g., 50"
+                    value={filterCapacity}
+                    onChange={(event) => setFilterCapacity(event.target.value)}
+                    className="h-12 pl-10"
+                  />
+                </div>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="capacity">Minimum capacity</Label>
-              <div className="relative">
-                <Users className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="capacity"
-                  type="number"
-                  placeholder="e.g., 50"
-                  value={filterCapacity}
-                  onChange={(event) => setFilterCapacity(event.target.value)}
-                  className="h-12 pl-10"
-                />
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
       </MotionSection>
 
       <MotionSection>
-      <UniversityWideBlocks blocks={globalBlocks} />
+        <UniversityWideBlocks blocks={globalBlocks} />
       </MotionSection>
 
       <MotionSection className="text-muted-foreground">

@@ -198,15 +198,13 @@ export default function AdminSpaces({
         className="flex items-center justify-between"
       >
         <div>
-          <h1 className="text-3xl font-bold bg-linear-to-r from-sky-600 to-emerald-600 bg-clip-text text-transparent">
-            Manage Event Spaces
-          </h1>
+          <h1 className="text-3xl font-bold">Manage Event Spaces</h1>
           <p className="text-muted-foreground mt-2">
             Add, edit, or remove event spaces from the system
           </p>
         </div>
         <Button
-          className="bg-linear-to-r from-sky-500 to-emerald-500 hover:from-sky-600 hover:to-emerald-600 cursor-pointer"
+          className="bg-linear-to-r"
           onClick={() => setShowCreatePopup(true)}
         >
           <Plus className="w-4 h-4 mr-2" />
