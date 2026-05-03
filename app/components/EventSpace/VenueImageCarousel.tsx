@@ -25,6 +25,14 @@ type VenueImageCarouselProps = {
   showDots?: boolean;
 };
 
+type TouchPointList = {
+  length: number;
+  [index: number]: {
+    clientX: number;
+    clientY: number;
+  };
+};
+
 const SWIPE_THRESHOLD = 60;
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 4;
@@ -80,14 +88,14 @@ export default function VenueImageCarousel({
     return Math.max(-maxPanY, Math.min(maxPanY, newPanY));
   };
 
-  const getTouchDistance = (touches: TouchList) => {
+  const getTouchDistance = (touches: TouchPointList) => {
     if (touches.length < 2) return null;
     const dx = touches[0].clientX - touches[1].clientX;
     const dy = touches[0].clientY - touches[1].clientY;
     return Math.sqrt(dx * dx + dy * dy);
   };
 
-  const getTouchCenter = (touches: TouchList) => {
+  const getTouchCenter = (touches: TouchPointList) => {
     let x = 0,
       y = 0;
     for (let i = 0; i < touches.length; i++) {

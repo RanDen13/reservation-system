@@ -16,7 +16,11 @@ import {
   SelectValue,
 } from "@/app/components/ui/select";
 import { Textarea } from "@/app/components/ui/textarea";
-import { Amenity, EventSpace } from "@/generated/prisma/browser";
+import {
+  Amenity,
+  EventSpace,
+  EventSpaceImage,
+} from "@/generated/prisma/browser";
 import { Building2, Upload, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -29,7 +33,10 @@ const EditEventSpacePopup = ({
   eventSpace,
   onClose,
 }: {
-  eventSpace: EventSpace & { amenities?: Amenity[] };
+  eventSpace: EventSpace & {
+    amenities?: Amenity[];
+    images?: EventSpaceImage[];
+  };
   onClose: () => void;
 }) => {
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>(

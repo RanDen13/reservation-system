@@ -54,7 +54,7 @@ const exclusivePositionOptions = [
   "VPAA",
   "UNIVERSITY_PRESIDENT",
 ] as const;
-const exclusivePositionSet = new Set(exclusivePositionOptions);
+const exclusivePositionSet = new Set<string>(exclusivePositionOptions);
 
 type AccountUser = {
   id: string;
