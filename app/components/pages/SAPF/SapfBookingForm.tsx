@@ -51,6 +51,14 @@ import {
 
 const MIN_BOOKING_ADVANCE_DAYS = 30;
 const MAX_PROGRAM_FLOW_ATTACHMENT_BYTES = 25 * 1024 * 1024;
+const REQUIRED_CHAIN_POSITIONS = [
+  "DEAN",
+  "SDS",
+  "SAS",
+  "VPAA_ASSISTANT",
+  "VPAA",
+  "UNIVERSITY_PRESIDENT",
+] as const;
 
 function formatFileSize(bytes: number) {
   if (!bytes) return "0 MB";
@@ -59,6 +67,18 @@ function formatFileSize(bytes: number) {
 
 function userNameWithTitle(user: any) {
   return user.title ? `${user.name}, ${user.title}` : user.name;
+}
+
+function positionLabel(position: string) {
+  if (position === "SDS") return "SDS/Admin";
+  if (position === "SAS") return "SAS";
+  if (position === "VPAA") return "VPAA";
+  if (position === "VPAA_ASSISTANT") return "VPAA Assistant";
+  if (position === "UNIVERSITY_PRESIDENT") return "University President";
+  return position
+    .replaceAll("_", " ")
+    .toLowerCase()
+    .replace(/^\w/, (c) => c.toUpperCase());
 }
 
 function toDateInputValue(date: Date) {
@@ -233,6 +253,20 @@ export default function SapfBookingForm({
   );
   const minimumBookingDate = toDateInputValue(earliestBookingDate);
   const earliestBookingDateLabel = format(earliestBookingDate, "MMM d, yyyy");
+  const adviserOptions = approvers.ADVISER || [];
+  const missingRequiredPositions = lockApprovalChain
+    ? []
+    : REQUIRED_CHAIN_POSITIONS.filter(
+        (position) => (approvers[position] || []).length === 0,
+      );
+  const missingAdviserOptions = !lockApprovalChain && adviserOptions.length === 0;
+  const hasMissingChainOptions =
+    !lockApprovalChain &&
+    (missingAdviserOptions || missingRequiredPositions.length > 0);
+  const missingChainLabels = [
+    ...(missingAdviserOptions ? ["Adviser"] : []),
+    ...missingRequiredPositions.map(positionLabel),
+  ];
 
   const toggleVenue = (venueId: string, checked: boolean) => {
     setSelectedVenueIds((current) =>
@@ -275,6 +309,15 @@ export default function SapfBookingForm({
 
     if (programFlowAttachmentLimitExceeded) {
       popup.showError("Program flow attachments must total 25 MB or less.");
+      return;
+    }
+
+    if (intent === "submit" && hasMissingChainOptions) {
+      popup.showError(
+        `Approval chain is incomplete. Configure: ${missingChainLabels.join(
+          ", ",
+        )}.`,
+      );
       return;
     }
 
@@ -907,25 +950,51 @@ export default function SapfBookingForm({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {hasMissingChainOptions && (
+            <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              <Info className="mt-0.5 h-4 w-4 shrink-0" />
+              <div className="space-y-1">
+                <p className="font-semibold">Approval chain needs setup</p>
+                <p>
+                  Missing approvers: {missingChainLabels.join(", ")}. Ask a
+                  super admin to assign these positions before submitting.
+                </p>
+              </div>
+            </div>
+          )}
           <div>
             <Label>Adviser</Label>
             <Select
               name="adviserId"
               required
-              disabled={lockApprovalChain}
+              disabled={lockApprovalChain || adviserOptions.length === 0}
               defaultValue={selectedAdviserId}
             >
-              <SelectTrigger disabled={lockApprovalChain}>
+              <SelectTrigger
+                disabled={lockApprovalChain || adviserOptions.length === 0}
+              >
                 <SelectValue placeholder="Select adviser" />
               </SelectTrigger>
               <SelectContent>
-                {(approvers.ADVISER || []).map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.name}
-                  </SelectItem>
-                ))}
+                {adviserOptions.length === 0 ? (
+                  <div className="px-3 py-2 text-sm text-muted-foreground">
+                    No advisers available.
+                  </div>
+                ) : (
+                  adviserOptions.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {userNameWithTitle(user)}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
+            {missingAdviserOptions && (
+              <p className="mt-2 text-xs text-destructive">
+                No active advisers are configured. Ask a super admin to assign
+                an adviser before submitting.
+              </p>
+            )}
           </div>
           {(approvers.ADDITIONAL_SIGNATORY || []).length > 0 && (
             <div>
