@@ -44,3 +44,4 @@ next-env.d.ts
 dev.db
 data
 .codex*
+.pnpm-store

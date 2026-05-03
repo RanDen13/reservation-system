@@ -1,5 +1,6 @@
 "use client";
 
+import { ModeToggle } from "@/app/components/mode-toggle";
 import { Button } from "@/app/components/ui/button";
 import {
   Card,
@@ -7,7 +8,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/components/ui/card";
-import { ModeToggle } from "@/components/mode-toggle";
 import { useSession } from "@/lib/auth-client";
 import { motion } from "framer-motion";
 import {

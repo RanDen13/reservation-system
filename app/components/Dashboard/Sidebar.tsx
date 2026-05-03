@@ -1,7 +1,7 @@
 "use client";
 
+import { ModeToggle } from "@/app/components/mode-toggle";
 import { Button } from "@/app/components/ui/button";
-import { ModeToggle } from "@/components/mode-toggle";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import {
@@ -99,9 +99,7 @@ export default function Sidebar({
               <Building2 className="h-6 w-6" />
             </motion.div>
             <div>
-              <h2 className="text-base font-bold leading-tight">
-                Zerve
-              </h2>
+              <h2 className="text-base font-bold leading-tight">Zerve</h2>
               <p className="text-xs capitalize text-muted-foreground">
                 {userRole.replaceAll("_", " ").toLowerCase()}
               </p>
@@ -126,47 +124,47 @@ export default function Sidebar({
       </div>
 
       <LayoutGroup>
-      <nav className="flex-1 space-y-2 overflow-y-auto p-4">
-        {navItems
-          .filter((item) => !item.roles || item.roles.includes(userRole))
-          .map((item) => {
-            const isActive = isNavActive(pathname, item.href);
-            return (
-              <motion.div
-                key={item.href}
-                whileHover={{ x: 3 }}
-                transition={{ type: "spring", stiffness: 360, damping: 28 }}
-              >
-                <Link
-                  href={item.href}
-                  onClick={() => setIsMobileOpen(false)}
-                  className={cn(
-                    "relative isolate flex items-center gap-3 overflow-visible rounded-lg px-4 py-3 transition-colors duration-200",
-                    isActive
-                      ? "text-sidebar-primary-foreground"
-                      : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                  )}
+        <nav className="flex-1 space-y-2 overflow-y-auto p-4">
+          {navItems
+            .filter((item) => !item.roles || item.roles.includes(userRole))
+            .map((item) => {
+              const isActive = isNavActive(pathname, item.href);
+              return (
+                <motion.div
+                  key={item.href}
+                  whileHover={{ x: 3 }}
+                  transition={{ type: "spring", stiffness: 360, damping: 28 }}
                 >
-                  {isActive && (
-                    <motion.span
-                      layoutId="sidebar-active-page"
-                      className="absolute inset-0 z-0 rounded-lg bg-sidebar-primary shadow-sm"
-                      transition={{
-                        type: "spring",
-                        stiffness: 420,
-                        damping: 34,
-                      }}
-                    />
-                  )}
-                  <span className="relative z-10">{item.icon}</span>
-                  <span className="relative z-10 font-medium">
-                    {item.label}
-                  </span>
-                </Link>
-              </motion.div>
-            );
-          })}
-      </nav>
+                  <Link
+                    href={item.href}
+                    onClick={() => setIsMobileOpen(false)}
+                    className={cn(
+                      "relative isolate flex items-center gap-3 overflow-visible rounded-lg px-4 py-3 transition-colors duration-200",
+                      isActive
+                        ? "text-sidebar-primary-foreground"
+                        : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                    )}
+                  >
+                    {isActive && (
+                      <motion.span
+                        layoutId="sidebar-active-page"
+                        className="absolute inset-0 z-0 rounded-lg bg-sidebar-primary shadow-sm"
+                        transition={{
+                          type: "spring",
+                          stiffness: 420,
+                          damping: 34,
+                        }}
+                      />
+                    )}
+                    <span className="relative z-10">{item.icon}</span>
+                    <span className="relative z-10 font-medium">
+                      {item.label}
+                    </span>
+                  </Link>
+                </motion.div>
+              );
+            })}
+        </nav>
       </LayoutGroup>
 
       <div className="space-y-2 border-t border-sidebar-border p-4">

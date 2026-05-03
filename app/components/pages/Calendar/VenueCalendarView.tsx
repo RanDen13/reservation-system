@@ -1,6 +1,7 @@
 "use client";
 
 import EventSpaceCard from "@/app/components/EventSpace/EventSpaceCard";
+import { ModeToggle } from "@/app/components/mode-toggle";
 import AllEventsCalendar from "@/app/components/pages/Calendar/AllEventsCalendar";
 import { Button } from "@/app/components/ui/button";
 import {
@@ -18,7 +19,6 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/app/components/ui/tabs";
-import { ModeToggle } from "@/components/mode-toggle";
 import {
   ArrowLeft,
   Building2,

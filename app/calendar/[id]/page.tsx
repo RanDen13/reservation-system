@@ -1,10 +1,10 @@
 import VenueImageCarousel from "@/app/components/EventSpace/VenueImageCarousel";
+import { ModeToggle } from "@/app/components/mode-toggle";
 import VenueMonthCalendar, {
   VenueCalendarItem,
 } from "@/app/components/pages/Calendar/VenueMonthCalendar";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
-import { ModeToggle } from "@/components/mode-toggle";
 import { getVenueCalendarData } from "@/lib/venue-calendar-data";
 import { ArrowLeft, MapPin, Users } from "lucide-react";
 import Image from "next/image";
