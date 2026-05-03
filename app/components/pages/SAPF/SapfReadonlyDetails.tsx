@@ -1,6 +1,8 @@
 "use client";
 
+import ModalBase from "@/app/components/Popup/ModalBase";
 import { Badge } from "@/app/components/ui/badge";
+import { Button } from "@/app/components/ui/button";
 import {
   Card,
   CardContent,
@@ -8,8 +10,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/components/ui/card";
-import { CalendarDays, Check, Clock } from "lucide-react";
+import { CalendarDays, Check, Clock, Download, X } from "lucide-react";
+import Image from "next/image";
 import type { ReactNode } from "react";
+import { useState } from "react";
 import {
   CORE_VALUE_OPTIONS,
   getSapfParts,
@@ -31,6 +35,15 @@ function valueOrDash(value: any) {
 function formatAttachmentSize(size: number) {
   if (!size) return "0 MB";
   return `${(size / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function canPreviewAttachment(attachment: any) {
+  const mimeType = String(attachment?.mimeType || "").toLowerCase();
+  return mimeType.startsWith("image/") || mimeType === "application/pdf";
+}
+
+function isPdfAttachment(attachment: any) {
+  return String(attachment?.mimeType || "").toLowerCase() === "application/pdf";
 }
 
 function ReadOnlyField({
@@ -82,9 +95,16 @@ function ReadOnlyAttachments({
   attachments?: any[];
   label?: string;
 }) {
+  const [previewAttachment, setPreviewAttachment] = useState<any | null>(null);
+
   if (!attachments?.length) {
     return <ReadOnlyField label={label} value="-" />;
   }
+
+  const attachmentUrl = (attachment: any, preview = false) =>
+    `/api/sapf/${requestId}/attachments/${attachment.id}${
+      preview ? "?preview=1" : ""
+    }`;
 
   return (
     <div>
@@ -93,13 +113,70 @@ function ReadOnlyAttachments({
         {attachments.map((attachment) => (
           <a
             key={attachment.id}
-            href={`/api/sapf/${requestId}/attachments/${attachment.id}`}
+            href={attachmentUrl(attachment)}
+            onClick={(event) => {
+              if (!canPreviewAttachment(attachment)) return;
+              event.preventDefault();
+              setPreviewAttachment(attachment);
+            }}
             className="block text-primary hover:underline"
           >
             {attachment.fileName} ({formatAttachmentSize(attachment.size)})
           </a>
         ))}
       </div>
+      {previewAttachment && (
+        <ModalBase onClose={() => setPreviewAttachment(null)}>
+          <div className="flex h-[min(88vh,760px)] w-[min(94vw,980px)] flex-col overflow-hidden rounded-lg bg-card shadow-2xl">
+            <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-foreground">
+                  {previewAttachment.fileName}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {formatAttachmentSize(previewAttachment.size)}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <Button asChild size="sm" variant="outline">
+                  <a href={attachmentUrl(previewAttachment)}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download
+                  </a>
+                </Button>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setPreviewAttachment(null)}
+                  aria-label="Close attachment preview"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+            <div className="flex min-h-0 flex-1 items-center justify-center bg-muted/40 p-3">
+              {isPdfAttachment(previewAttachment) ? (
+                <iframe
+                  src={attachmentUrl(previewAttachment, true)}
+                  title={previewAttachment.fileName}
+                  className="h-full w-full rounded-md border bg-background"
+                />
+              ) : (
+                <div className="relative h-full w-full">
+                  <Image
+                    src={attachmentUrl(previewAttachment, true)}
+                    alt={previewAttachment.fileName}
+                    fill
+                    unoptimized
+                    className="object-contain"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </ModalBase>
+      )}
     </div>
   );
 }

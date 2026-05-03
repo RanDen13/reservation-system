@@ -8,7 +8,7 @@ function safeFileName(fileName: string) {
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string; attachmentId: string }> },
 ) {
   const session = await auth.api.getSession({
@@ -76,10 +76,17 @@ export async function GET(
     );
   }
 
+  const previewRequested = new URL(request.url).searchParams.get("preview");
+  const canPreview =
+    attachment.mimeType.startsWith("image/") ||
+    attachment.mimeType === "application/pdf";
+  const disposition =
+    previewRequested === "1" && canPreview ? "inline" : "attachment";
+
   return new NextResponse(new Uint8Array(attachment.data), {
     headers: {
       "Content-Type": attachment.mimeType,
-      "Content-Disposition": `attachment; filename="${safeFileName(
+      "Content-Disposition": `${disposition}; filename="${safeFileName(
         attachment.fileName,
       )}"`,
     },
