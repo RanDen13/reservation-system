@@ -47,6 +47,13 @@ const positionOptions = [
   "VPAA",
   "UNIVERSITY_PRESIDENT",
 ] as const;
+const exclusivePositionOptions = [
+  "SAS",
+  "VPAA_ASSISTANT",
+  "VPAA",
+  "UNIVERSITY_PRESIDENT",
+] as const;
+const exclusivePositionSet = new Set(exclusivePositionOptions);
 
 type AccountUser = {
   id: string;
@@ -78,10 +85,12 @@ function AccountRow({
   user,
   onUpdated,
   isSelf,
+  allUsers,
 }: {
   user: AccountUser;
   onUpdated: () => Promise<void>;
   isSelf: boolean;
+  allUsers: AccountUser[];
 }) {
   const popup = usePopup();
   const [role, setRole] = useState(user.role || "OFFICER");
@@ -127,9 +136,27 @@ function AccountRow({
     if (nextPosition === position) return;
     const label =
       nextPosition === "NONE" ? "NONE" : nextPosition.replaceAll("_", " ");
-    const confirmed = await popup.showWarning(
-      `Change ${user.name}'s position to ${label}?`,
-    );
+    const positionWarning = (() => {
+      if (!exclusivePositionSet.has(nextPosition)) {
+        return `Change ${user.name}'s position to ${label}?`;
+      }
+
+      const currentHolder = allUsers.find(
+        (account) =>
+          account.id !== user.id &&
+          account.approverPositions?.some(
+            (entry) => entry.position === nextPosition,
+          ),
+      );
+      const exclusiveLabel = nextPosition.replaceAll("_", " ");
+
+      if (currentHolder) {
+        return `Only one ${exclusiveLabel} can be assigned at a time. Changing ${user.name} to ${exclusiveLabel} will remove ${currentHolder.name}'s position. Continue?`;
+      }
+
+      return `Only one ${exclusiveLabel} can be assigned at a time. If another user already has it, their position will be cleared. Continue?`;
+    })();
+    const confirmed = await popup.showWarning(positionWarning);
     if (!confirmed) return;
 
     setSavingPosition(true);
@@ -457,6 +484,7 @@ export default function SapfAccountsPage() {
                   user={user}
                   onUpdated={refresh}
                   isSelf={user.id === workspace.currentUserId}
+                  allUsers={workspace.users}
                 />
               ))}
             </tbody>

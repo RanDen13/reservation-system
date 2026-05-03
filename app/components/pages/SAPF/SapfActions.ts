@@ -21,6 +21,12 @@ const approverPositionValues = [
   "VPAA",
   "UNIVERSITY_PRESIDENT",
 ] as const;
+const exclusiveApproverPositions = [
+  "SAS",
+  "VPAA_ASSISTANT",
+  "VPAA",
+  "UNIVERSITY_PRESIDENT",
+] as const;
 const requiredFixedPositions = [
   "DEAN",
   "SDS",
@@ -44,6 +50,8 @@ const sapfAttachmentMetadataSelect = {
 type UserRoleValue = (typeof roleValues)[number];
 type ApproverRoleValue = (typeof approverRoleValues)[number];
 type ApproverPositionValue = (typeof approverPositionValues)[number];
+type ExclusiveApproverPositionValue =
+  (typeof exclusiveApproverPositions)[number];
 
 function approverPositionLabel(position: string) {
   if (position === "SDS") return "SDS/Admin";
@@ -2595,27 +2603,51 @@ export async function updateApproverPosition(
       return { success: false, message: "Invalid position." };
     }
 
-    await prisma.approverPositionUser.updateMany({
-      where: { userId },
-      data: { active: false },
-    });
+    const isExclusive = exclusiveApproverPositions.includes(
+      positionInput as ExclusiveApproverPositionValue,
+    );
 
-    await prisma.approverPositionUser.upsert({
-      where: {
-        userId_position: {
+    await prisma.$transaction(async (tx) => {
+      if (isExclusive) {
+        const currentHolders = await tx.approverPositionUser.findMany({
+          where: {
+            position: positionInput as any,
+            active: true,
+            userId: { not: userId },
+          },
+          select: { userId: true },
+        });
+        const holderIds = currentHolders.map((holder) => holder.userId);
+        if (holderIds.length > 0) {
+          await tx.approverPositionUser.updateMany({
+            where: { userId: { in: holderIds }, active: true },
+            data: { active: false },
+          });
+        }
+      }
+
+      await tx.approverPositionUser.updateMany({
+        where: { userId },
+        data: { active: false },
+      });
+
+      await tx.approverPositionUser.upsert({
+        where: {
+          userId_position: {
+            userId,
+            position: positionInput as any,
+          },
+        },
+        create: {
+          id: uuid(),
           userId,
           position: positionInput as any,
+          active: true,
         },
-      },
-      create: {
-        id: uuid(),
-        userId,
-        position: positionInput as any,
-        active: true,
-      },
-      update: {
-        active: true,
-      },
+        update: {
+          active: true,
+        },
+      });
     });
 
     revalidatePath("/user/accounts");
