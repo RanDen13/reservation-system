@@ -50,4 +50,4 @@ RUN node -e "require('better-sqlite3')"
 
 EXPOSE 3000
 
-CMD ["pnpm", "start"]
+CMD ["sh", "-c", "node -e \"const fs=require('fs');const path=require('path');const url=process.env.DATABASE_URL||'file:./data/dev.db';if(url.startsWith('file:')){const dbPath=path.resolve(process.cwd(),url.slice(5));fs.mkdirSync(path.dirname(dbPath),{recursive:true});fs.closeSync(fs.openSync(dbPath,'a'));}\" && pnpm exec prisma migrate deploy && pnpm start"]
