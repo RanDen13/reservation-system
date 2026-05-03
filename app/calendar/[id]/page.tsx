@@ -1,11 +1,11 @@
 import VenueMonthCalendar, {
   VenueCalendarItem,
 } from "@/app/components/pages/Calendar/VenueMonthCalendar";
+import DraggableVenueImage from "@/app/components/DraggableVenueImage";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
 import { getVenueCalendarData } from "@/lib/venue-calendar-data";
-import { ArrowLeft, Building2, MapPin, Users } from "lucide-react";
-import Image from "next/image";
+import { ArrowLeft, MapPin, Users } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -58,6 +58,10 @@ const page = async ({ params }: { params: Promise<{ id: string }> }) => {
     notFound();
   }
 
+  const imageSrc = venue.image
+    ? `data:image/jpeg;base64,${Buffer.from(venue.image).toString("base64")}`
+    : null;
+
   return (
     <main className="min-h-screen bg-background p-4 lg:p-8">
       <div className="mx-auto max-w-7xl space-y-6">
@@ -68,20 +72,7 @@ const page = async ({ params }: { params: Promise<{ id: string }> }) => {
           </Link>
         </Button>
 
-        <div className="relative h-64 overflow-hidden rounded-lg bg-muted">
-          {venue.image ? (
-            <Image
-              src={`data:image/jpeg;base64,${Buffer.from(venue.image).toString("base64")}`}
-              alt={venue.name}
-              fill
-              className="object-cover"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center">
-              <Building2 className="h-20 w-20 text-muted-foreground" />
-            </div>
-          )}
-        </div>
+        <DraggableVenueImage src={imageSrc} alt={venue.name} />
 
         <div>
           <h1 className="text-3xl font-bold text-foreground">{venue.name}</h1>

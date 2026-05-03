@@ -3,6 +3,7 @@
 import VenueMonthCalendar, {
   VenueCalendarItem,
 } from "@/app/components/pages/Calendar/VenueMonthCalendar";
+import DraggableVenueImage from "@/app/components/DraggableVenueImage";
 import ErrorPopup from "@/app/components/Popup/ErrorPopup";
 import { usePopup } from "@/app/components/Popup/PopupProvider";
 import { Button } from "@/app/components/ui/button";
@@ -15,13 +16,11 @@ import {
 } from "@/app/components/ui/tabs";
 import {
   ArrowLeft,
-  Building2,
   CheckCircle,
   MapPin,
   Send,
   Users,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -107,6 +106,10 @@ const EventSpacePage = ({
     );
   }
 
+  const imageSrc = eventSpace.image
+    ? `data:image/jpeg;base64,${Buffer.from(eventSpace.image).toString("base64")}`
+    : null;
+
   return (
     <div className="space-y-6 p-4 lg:p-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -124,20 +127,7 @@ const EventSpacePage = ({
         )}
       </div>
 
-      <div className="relative h-64 overflow-hidden rounded-lg bg-muted">
-        {eventSpace.image ? (
-          <Image
-            src={`data:image/jpeg;base64,${Buffer.from(eventSpace.image).toString("base64")}`}
-            alt={eventSpace.name}
-            fill
-            className="object-cover"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center">
-            <Building2 className="h-20 w-20 text-muted-foreground" />
-          </div>
-        )}
-      </div>
+      <DraggableVenueImage src={imageSrc} alt={eventSpace.name} />
 
       <div>
         <h1 className="text-3xl font-bold text-foreground">
