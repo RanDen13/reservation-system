@@ -17,9 +17,10 @@ RUN apt-get update -y \
   && apt-get install -y --no-install-recommends python3 make g++ \
   && rm -rf /var/lib/apt/lists/*
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 RUN pnpm rebuild better-sqlite3
+RUN node -e "require('better-sqlite3')"
 
 COPY prisma ./prisma/
 RUN pnpm exec prisma generate --schema ./prisma/schema.prisma
@@ -36,7 +37,7 @@ RUN apt-get update -y \
   && apt-get install -y --no-install-recommends python3 make g++ \
   && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /app/package.json /app/pnpm-lock.yaml ./
+COPY --from=builder /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml ./
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/next.config.ts ./next.config.ts
@@ -45,6 +46,7 @@ COPY --from=builder /app/generated/prisma ./generated/prisma
 
 # Install production dependencies and rebuild better-sqlite3 for runtime
 RUN pnpm install --frozen-lockfile --prod && pnpm rebuild better-sqlite3
+RUN node -e "require('better-sqlite3')"
 
 EXPOSE 3000
 
