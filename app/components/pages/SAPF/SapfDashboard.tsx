@@ -331,7 +331,7 @@ export default function SapfDashboard() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">
-            LCUP Venue Reservation Workspace
+            Zerve Workspace
           </h1>
           <p className="text-muted-foreground">
             Signed in as {workspace.me.name} -{" "}

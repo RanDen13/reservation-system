@@ -43,7 +43,7 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The provided `Dockerfile` uses a multi-stage build to optimize image size:
 
 ```bash
-docker build -t reservation-system:latest .
+docker build -t zerve:latest .
 ```
 
 ### Running with Docker Compose (Recommended)
@@ -77,7 +77,7 @@ docker run -d \
   -e BETTER_AUTH_SECRET=your-secret-key \
   -e DATABASE_URL=file:./data/dev.db \
   -v $(pwd)/data:/app/data \
-  reservation-system:latest
+  zerve:latest
 ```
 
 ### Native Bindings

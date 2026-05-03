@@ -59,7 +59,7 @@ export default function FirstLoginPassword({
       return;
     }
 
-    popup.showSuccess("Password created. Welcome to LCUP Venue Reservation.");
+    popup.showSuccess("Password created. Welcome to Zerve.");
     router.push("/user/dashboard");
   }
 
@@ -86,7 +86,7 @@ export default function FirstLoginPassword({
           <CardTitle className="text-3xl">Create Your Password</CardTitle>
           <CardDescription>
             {name ? `Welcome, ${name}. ` : ""}
-            Finish setting up {email || "your LCUP Venue Reservation account"}.
+            Finish setting up {email || "your Zerve account"}.
           </CardDescription>
         </CardHeader>
         <CardContent>

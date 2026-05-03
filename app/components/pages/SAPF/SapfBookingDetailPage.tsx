@@ -123,7 +123,7 @@ export default function SapfBookingDetailPage({
               Booking Details
             </h1>
             <p className="text-muted-foreground">
-              Read-only LCUP Venue Reservation record.
+              Read-only Zerve record.
             </p>
           </div>
         </div>

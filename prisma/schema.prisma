@@ -482,7 +482,7 @@ model SystemSettings {
   smtpUser    String   @default("")
   smtpPass    String   @default("")
   senderEmail String   @default("")
-  senderName  String   @default("LCUP Venue Reservation")
+  senderName  String   @default("Zerve")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

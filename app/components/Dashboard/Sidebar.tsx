@@ -88,7 +88,7 @@ export default function Sidebar({
             </div>
             <div>
               <h2 className="text-base font-bold leading-tight">
-                LCUP Venue Reservation
+                Zerve
               </h2>
               <p className="text-xs capitalize text-muted-foreground">
                 {userRole.replaceAll("_", " ").toLowerCase()}

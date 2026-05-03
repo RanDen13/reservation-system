@@ -261,7 +261,7 @@ async function appendVerificationPage({
   const qrData = await QRCode.toDataURL(verifyUrl, { margin: 1, width: 220 });
   const qrImage = await pdf.embedPng(qrData);
 
-  verifyPage.drawText("LCUP Venue Reservation Verification", {
+  verifyPage.drawText("Zerve Verification", {
     x: 48,
     y: 720,
     size: 18,

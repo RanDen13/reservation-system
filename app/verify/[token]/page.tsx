@@ -53,7 +53,7 @@ const page = async ({ params }: { params: Promise<{ token: string }> }) => {
               Verification Failed
             </CardTitle>
             <CardDescription>
-              This QR token does not match an approved LCUP Venue Reservation.
+              This QR token does not match an approved Zerve reservation.
             </CardDescription>
           </CardHeader>
         </Card>

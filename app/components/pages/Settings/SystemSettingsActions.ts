@@ -114,7 +114,7 @@ export async function updateSystemSettings(
     const smtpUser = field(data, "smtpUser");
     const smtpPass = field(data, "smtpPass");
     const senderEmail = field(data, "senderEmail");
-    const senderName = field(data, "senderName", "LCUP Venue Reservation");
+    const senderName = field(data, "senderName", "Zerve");
     const resolvedSenderEmail = senderEmail || smtpUser;
 
     if (!smtpHost) {

@@ -169,7 +169,7 @@ const Login = () => {
                   Welcome Back
                 </CardTitle>
                 <CardDescription className="text-base mt-2 text-muted-foreground">
-                  Sign in to access your LCUP Venue Reservation account
+                  Sign in to access your Zerve account
                 </CardDescription>
               </div>
             </CardHeader>

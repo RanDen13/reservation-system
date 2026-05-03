@@ -162,7 +162,7 @@ export default function SystemSettingsPage({
                   <Input
                     id="senderName"
                     name="senderName"
-                    placeholder="LCUP Venue Reservation"
+                    placeholder="Zerve"
                     autoComplete="name"
                     defaultValue={initialSettings.senderName}
                   />

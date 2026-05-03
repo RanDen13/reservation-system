@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LCUP Venue Reservation",
+  title: "Zerve",
   description:
     "Officer-only venue reservation and approval workflow for La Consolacion University Philippines.",
 };

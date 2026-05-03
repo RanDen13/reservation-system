@@ -95,15 +95,14 @@ export default function SignOutPage() {
               </motion.div>
               <div>
                 <p className="text-xs font-semibold tracking-[0.25em] uppercase text-primary mb-2">
-                  Event Management · LCUP
+                  Zerve
                 </p>
                 <CardTitle className="text-2xl sm:text-3xl font-bold">
                   Ready to sign out?
                 </CardTitle>
                 <CardDescription className="text-sm mt-2 max-w-sm mx-auto text-muted-foreground">
-                  You&apos;ll be signed out from your LCUP Event Management
-                  session. You can always sign back in to continue managing your
-                  reservations.
+                  You&apos;ll be signed out from your Zerve session. You can always
+                  sign back in to continue managing your reservations.
                 </CardDescription>
               </div>
             </CardHeader>
@@ -132,7 +131,7 @@ export default function SignOutPage() {
               </Button>
 
               <p className="mt-4 text-[11px] text-center text-muted-foreground">
-                Thank you for using LCUP Event Management System.
+                Thank you for using Zerve.
               </p>
             </CardContent>
           </Card>

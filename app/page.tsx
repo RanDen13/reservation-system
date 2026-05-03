@@ -138,7 +138,7 @@ export default function Home() {
               variants={fadeInUp}
               className="mb-5 inline-flex items-center rounded-full border border-white/25 bg-white/10 px-5 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200 backdrop-blur"
             >
-              LCUP Venue Reservation
+              Zerve
             </motion.p>
             <motion.h1
               variants={fadeInUp}
@@ -150,9 +150,9 @@ export default function Home() {
               variants={fadeInUp}
               className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-white/80 lg:mx-0"
             >
-              View campus venue availability, submit officer-only LCUP Venue
-              Reservation requests, and follow every approval step from adviser
-              to completion.
+              View campus venue availability, submit officer-only Zerve
+              requests, and follow every approval step from adviser to
+              completion.
             </motion.p>
             <motion.div
               variants={fadeInUp}
@@ -274,7 +274,7 @@ export default function Home() {
           transition={{ duration: 0.5 }}
         >
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Built around the LCUP approval process.
+            Built around the Zerve approval workflow.
           </h2>
           <p className="mt-3 text-lg text-muted-foreground">
             The system supports practical reservation work: venue scheduling,
@@ -325,7 +325,7 @@ export default function Home() {
             Ready to manage your venue reservation?
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-white/70">
-            Sign in with your LCUP Venue Reservation account or check the public
+            Sign in with your Zerve account or check the public
             calendar before planning your activity.
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
@@ -342,7 +342,7 @@ export default function Home() {
               asChild
               size="lg"
               variant="outline"
-              className="border-white/35 text-white hover:bg-white/10"
+              className="border-white/45 bg-transparent text-white hover:bg-white/10 hover:text-white"
             >
               <Link href="/calendar">View calendar</Link>
             </Button>
@@ -351,8 +351,7 @@ export default function Home() {
       </section>
 
       <footer className="border-t bg-background py-8 text-center text-sm text-muted-foreground">
-        Copyright 2026 La Consolacion University Philippines. LCUP Venue
-        Reservation.
+        Copyright 2026 La Consolacion University Philippines. Zerve.
       </footer>
     </div>
   );
