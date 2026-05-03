@@ -13,14 +13,15 @@ export default async function Page() {
     redirect("/login");
   }
 
-  if (session.user.role?.toUpperCase() !== "SUPER_ADMIN") {
-    redirect("/user/dashboard");
+  let settings = null;
+
+  if (session.user.role?.toUpperCase() === "SUPER_ADMIN") {
+    const result = await getSystemSettings();
+    if (!result.success || !result.data) {
+      redirect("/user/dashboard");
+    }
+    settings = result.data;
   }
 
-  const result = await getSystemSettings();
-  if (!result.success || !result.data) {
-    redirect("/user/dashboard");
-  }
-
-  return <SystemSettingsPage initialSettings={result.data} />;
+  return <SystemSettingsPage initialSettings={settings} />;
 }

@@ -63,6 +63,11 @@ const navItems: NavItem[] = [
     href: "/user/spaces",
     icon: <Building2 className="h-5 w-5" />,
   },
+  {
+    label: "Settings",
+    href: "/user/settings",
+    icon: <Settings className="h-5 w-5" />,
+  },
 ];
 
 export default function Sidebar({
@@ -139,14 +144,6 @@ export default function Sidebar({
             Home
           </Button>
         </Link>
-        {userRole === "SUPER_ADMIN" && (
-          <Link href="/user/settings">
-            <Button variant="outline" className="w-full justify-start gap-3">
-              <Settings className="h-5 w-5" />
-              Settings
-            </Button>
-          </Link>
-        )}
         <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
           <span className="font-medium">Theme</span>
           <ModeToggle />
