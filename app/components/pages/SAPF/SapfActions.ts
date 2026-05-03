@@ -179,6 +179,93 @@ function hasOverlap(
   return candidateStart < endAt && candidateEnd > startAt;
 }
 
+type ScheduleSlot = {
+  date: string;
+  startTime: string;
+  endTime: string;
+  startAt: Date;
+  endAt: Date;
+};
+
+type ScheduleRange = Pick<ScheduleSlot, "startAt" | "endAt">;
+
+function parseScheduleSlots(data: FormData): ScheduleSlot[] {
+  const dates = data.getAll("scheduleDate").map(String);
+  const startTimes = data.getAll("scheduleStartTime").map(String);
+  const endTimes = data.getAll("scheduleEndTime").map(String);
+  const length = Math.max(dates.length, startTimes.length, endTimes.length);
+
+  return Array.from({ length }, (_, index) => {
+    const date = String(dates[index] ?? "").trim();
+    const startTime = String(startTimes[index] ?? "").trim();
+    const endTime = String(endTimes[index] ?? "").trim();
+
+    return {
+      date,
+      startTime,
+      endTime,
+      startAt: sapfLocalDateTime(date, startTime),
+      endAt: sapfLocalDateTime(date, endTime),
+    };
+  }).sort((a, b) => a.startAt.getTime() - b.startAt.getTime());
+}
+
+function validateScheduleSlots(
+  slots: ScheduleSlot[],
+  options: { enforceAdvance?: boolean } = {},
+) {
+  if (slots.length === 0) {
+    throw new Error("Add at least one schedule day.");
+  }
+
+  const earliestBookingDate = options.enforceAdvance
+    ? minimumBookingDate()
+    : null;
+
+  slots.forEach((slot, index) => {
+    if (!slot.date || !slot.startTime || !slot.endTime) {
+      throw new Error(`Complete the date and time for day ${index + 1}.`);
+    }
+
+    if (
+      Number.isNaN(slot.startAt.getTime()) ||
+      Number.isNaN(slot.endAt.getTime())
+    ) {
+      throw new Error(`Day ${index + 1} has an invalid date or time.`);
+    }
+
+    if (slot.endAt <= slot.startAt) {
+      throw new Error(`Day ${index + 1} end time must be later than start.`);
+    }
+
+    if (earliestBookingDate && slot.startAt < earliestBookingDate) {
+      throw new Error(
+        `Reservations must be booked at least ${MIN_BOOKING_ADVANCE_DAYS} days in advance. Choose ${formatSapfDateForMessage(earliestBookingDate)} or later.`,
+      );
+    }
+  });
+
+  const duplicateDate = slots.find(
+    (slot, index) =>
+      slot.date &&
+      slots.findIndex((candidate) => candidate.date === slot.date) !== index,
+  );
+  if (duplicateDate) {
+    throw new Error("Each schedule day must use a different date.");
+  }
+
+  const overlappingSlotIndex = slots.findIndex((slot, index) =>
+    slots
+      .slice(index + 1)
+      .some((candidate) =>
+        hasOverlap(slot.startAt, slot.endAt, candidate.startAt, candidate.endAt),
+      ),
+  );
+  if (overlappingSlotIndex >= 0) {
+    throw new Error("Schedule days must not overlap each other.");
+  }
+}
+
 function canMessageConcernThread(stepStatus: string) {
   return ["ACTIVE", "RETURNED"].includes(stepStatus);
 }
@@ -244,8 +331,7 @@ async function getFirstActiveApprover(position: string) {
 
 async function detectConflicts(
   venueIds: string[],
-  startAt: Date,
-  endAt: Date,
+  slots: ScheduleRange[],
   excludeRequestId?: string,
 ) {
   const [requests, blocks] = await Promise.all([
@@ -270,9 +356,16 @@ async function detectConflicts(
         id: true,
         requestNumber: true,
         title: true,
-        startAt: true,
-        endAt: true,
         status: true,
+        schedules: {
+          select: {
+            startAt: true,
+            endAt: true,
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
       },
     }),
     prisma.venueBlock.findMany({
@@ -282,17 +375,30 @@ async function detectConflicts(
       select: {
         id: true,
         title: true,
-        startAt: true,
-        endAt: true,
+        schedules: {
+          select: {
+            startAt: true,
+            endAt: true,
+          },
+          orderBy: {
+            startAt: "asc",
+          },
+        },
       },
     }),
   ]);
 
+  const overlapsAnySlot = (ranges: ScheduleRange[]) =>
+    slots.some((slot) =>
+      ranges.some((range) =>
+        hasOverlap(slot.startAt, slot.endAt, range.startAt, range.endAt),
+      ),
+    );
   const overlappingRequests = requests.filter((request) =>
-    hasOverlap(startAt, endAt, request.startAt, request.endAt),
+    overlapsAnySlot(request.schedules),
   );
   const overlappingBlocks = blocks.filter((block) =>
-    hasOverlap(startAt, endAt, block.startAt, block.endAt),
+    overlapsAnySlot(block.schedules),
   );
 
   return {
@@ -574,11 +680,6 @@ export async function getPublicCalendarData(): Promise<ActionResult<any>> {
               },
             },
           },
-          orderBy: {
-            request: {
-              startAt: "asc",
-            },
-          },
           include: {
             request: {
               select: {
@@ -586,9 +687,17 @@ export async function getPublicCalendarData(): Promise<ActionResult<any>> {
                 requestNumber: true,
                 title: true,
                 organization: true,
-                startAt: true,
-                endAt: true,
                 status: true,
+                schedules: {
+                  select: {
+                    id: true,
+                    startAt: true,
+                    endAt: true,
+                  },
+                  orderBy: {
+                    startAt: "asc",
+                  },
+                },
               },
             },
           },
@@ -598,11 +707,19 @@ export async function getPublicCalendarData(): Promise<ActionResult<any>> {
             id: true,
             title: true,
             reason: true,
-            startAt: true,
-            endAt: true,
+            schedules: {
+              select: {
+                id: true,
+                startAt: true,
+                endAt: true,
+              },
+              orderBy: {
+                startAt: "asc",
+              },
+            },
           },
           orderBy: {
-            startAt: "asc",
+            createdAt: "asc",
           },
         },
       },
@@ -615,8 +732,20 @@ export async function getPublicCalendarData(): Promise<ActionResult<any>> {
       where: {
         eventSpaceId: null,
       },
+      include: {
+        schedules: {
+          select: {
+            id: true,
+            startAt: true,
+            endAt: true,
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
       orderBy: {
-        startAt: "asc",
+        createdAt: "asc",
       },
     });
 
@@ -722,6 +851,14 @@ export async function getSapfWorkspace(): Promise<ActionResult<any>> {
       supportRequests: {
         select: { value: true },
         orderBy: { createdAt: "asc" as const },
+      },
+      schedules: {
+        select: {
+          id: true,
+          startAt: true,
+          endAt: true,
+        },
+        orderBy: { startAt: "asc" as const },
       },
       attachments: {
         select: sapfAttachmentMetadataSelect,
@@ -835,8 +972,16 @@ export async function getSapfWorkspace(): Promise<ActionResult<any>> {
               include: {
                 eventSpace: { select: { id: true, name: true } },
                 createdBy: { select: { id: true, name: true } },
+                schedules: {
+                  select: {
+                    id: true,
+                    startAt: true,
+                    endAt: true,
+                  },
+                  orderBy: { startAt: "asc" },
+                },
               },
-              orderBy: { startAt: "desc" },
+              orderBy: { createdAt: "desc" },
             })
           : Promise.resolve([]),
       ]);
@@ -919,6 +1064,14 @@ export async function getSapfRequestById(
       supportRequests: {
         select: { value: true },
         orderBy: { createdAt: "asc" as const },
+      },
+      schedules: {
+        select: {
+          id: true,
+          startAt: true,
+          endAt: true,
+        },
+        orderBy: { startAt: "asc" as const },
       },
       attachments: {
         select: sapfAttachmentMetadataSelect,
@@ -1055,39 +1208,14 @@ export async function saveSapfRequest(
     ];
     const requestId = field(data, "requestId");
     const intent = field(data, "intent", "draft");
-    const date = field(data, "activityDate");
-    const startTime = field(data, "startTime");
-    const endTime = field(data, "endTime");
-    const startAt = sapfLocalDateTime(date, startTime);
-    const endAt = sapfLocalDateTime(date, endTime);
+    const scheduleSlots = parseScheduleSlots(data);
+    validateScheduleSlots(scheduleSlots, { enforceAdvance: true });
     const isSubmit = intent === "submit";
 
-    if (venueIds.length === 0 || !date || !startTime || !endTime) {
+    if (venueIds.length === 0) {
       return {
         success: false,
-        message: "Venue, date, start time, and end time are required.",
-      };
-    }
-
-    if (Number.isNaN(startAt.getTime()) || Number.isNaN(endAt.getTime())) {
-      return {
-        success: false,
-        message: "Please select a valid date and time range.",
-      };
-    }
-
-    if (endAt <= startAt) {
-      return {
-        success: false,
-        message: "End time must be later than start time.",
-      };
-    }
-
-    const earliestBookingDate = minimumBookingDate();
-    if (startAt < earliestBookingDate) {
-      return {
-        success: false,
-        message: `Reservations must be booked at least ${MIN_BOOKING_ADVANCE_DAYS} days in advance. Choose ${formatSapfDateForMessage(earliestBookingDate)} or later.`,
+        message: "Select at least one venue.",
       };
     }
 
@@ -1116,8 +1244,7 @@ export async function saveSapfRequest(
 
     const conflict = await detectConflicts(
       venueIds,
-      startAt,
-      endAt,
+      scheduleSlots,
       requestId || undefined,
     );
     if (isSubmit && conflict.hardConflict) {
@@ -1174,8 +1301,6 @@ export async function saveSapfRequest(
       organization,
       department,
       attendeeCount,
-      startAt,
-      endAt,
       conflictWarning: conflict.pendingConflict,
       ...sapfColumnData(sapf),
     };
@@ -1198,6 +1323,14 @@ export async function saveSapfRequest(
             id: uuid(),
             requestId: created.id,
             eventSpaceId: venueId,
+          })),
+        });
+        await tx.sAPFRequestSchedule.createMany({
+          data: scheduleSlots.map((slot) => ({
+            id: uuid(),
+            requestId: created.id,
+            startAt: slot.startAt,
+            endAt: slot.endAt,
           })),
         });
         uploadedProgramFlowAttachments = await programFlowAttachments(
@@ -1240,6 +1373,17 @@ export async function saveSapfRequest(
             id: uuid(),
             requestId: updated.id,
             eventSpaceId: venueId,
+          })),
+        });
+        await tx.sAPFRequestSchedule.deleteMany({
+          where: { requestId: updated.id },
+        });
+        await tx.sAPFRequestSchedule.createMany({
+          data: scheduleSlots.map((slot) => ({
+            id: uuid(),
+            requestId: updated.id,
+            startAt: slot.startAt,
+            endAt: slot.endAt,
           })),
         });
         uploadedProgramFlowAttachments = await programFlowAttachments(
@@ -1599,6 +1743,9 @@ export async function reviewSapfRequest(
       include: {
         officer: true,
         venues: true,
+        schedules: {
+          orderBy: { startAt: "asc" },
+        },
         approvalSteps: {
           orderBy: { stepOrder: "asc" },
         },
@@ -1800,8 +1947,7 @@ export async function reviewSapfRequest(
     if (!nextStep) {
       const conflict = await detectConflicts(
         request.venues.map((venue) => venue.eventSpaceId),
-        request.startAt,
-        request.endAt,
+        request.schedules,
         request.id,
       );
       if (conflict.hardConflict) {
@@ -2821,20 +2967,13 @@ export async function createVenueBlock(
     }
 
     const eventSpaceId = field(data, "eventSpaceId");
-    const startAt = sapfLocalDateTime(
-      field(data, "date"),
-      field(data, "startTime"),
-    );
-    const endAt = sapfLocalDateTime(field(data, "date"), field(data, "endTime"));
+    const scheduleSlots = parseScheduleSlots(data);
+    validateScheduleSlots(scheduleSlots);
 
-    if (
-      !field(data, "title") ||
-      Number.isNaN(startAt.getTime()) ||
-      endAt <= startAt
-    ) {
+    if (!field(data, "title")) {
       return {
         success: false,
-        message: "Block title and valid time range are required.",
+        message: "Block title is required.",
       };
     }
 
@@ -2844,9 +2983,16 @@ export async function createVenueBlock(
         eventSpaceId: eventSpaceId === "ALL" ? null : eventSpaceId,
         title: field(data, "title"),
         reason: field(data, "reason") || null,
-        startAt,
-        endAt,
         createdById: user.id,
+        schedules: {
+          createMany: {
+            data: scheduleSlots.map((slot) => ({
+              id: uuid(),
+              startAt: slot.startAt,
+              endAt: slot.endAt,
+            })),
+          },
+        },
       },
     });
 

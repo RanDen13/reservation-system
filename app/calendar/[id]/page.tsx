@@ -11,39 +11,45 @@ import { notFound } from "next/navigation";
 
 function calendarItems(venue: any, globalBlocks: any[]): VenueCalendarItem[] {
   return [
-    ...(venue.sapfRequests || []).map((request: any) => ({
-      id: request.id,
-      title:
-        request.status === "APPROVED"
-          ? "Booked reservation"
-          : "Pending reservation",
-      subtitle: null,
-      startAt: request.startAt,
-      endAt: request.endAt,
-      status:
-        request.status === "APPROVED"
-          ? ("BOOKED" as const)
-          : ("PENDING" as const),
-      scope: "VENUE" as const,
-    })),
-    ...(venue.venueBlocks || []).map((block: any) => ({
-      id: block.id,
-      title: block.title,
-      subtitle: block.reason || "Venue block",
-      startAt: block.startAt,
-      endAt: block.endAt,
-      status: "BLOCKED" as const,
-      scope: "VENUE" as const,
-    })),
-    ...(globalBlocks || []).map((block: any) => ({
-      id: block.id,
-      title: block.title,
-      subtitle: block.reason || "University-wide block",
-      startAt: block.startAt,
-      endAt: block.endAt,
-      status: "BLOCKED" as const,
-      scope: "UNIVERSITY" as const,
-    })),
+    ...(venue.sapfRequests || []).flatMap((request: any) =>
+      (request.schedules || []).map((schedule: any) => ({
+        id: schedule.id,
+        title:
+          request.status === "APPROVED"
+            ? "Booked reservation"
+            : "Pending reservation",
+        subtitle: null,
+        startAt: schedule.startAt,
+        endAt: schedule.endAt,
+        status:
+          request.status === "APPROVED"
+            ? ("BOOKED" as const)
+            : ("PENDING" as const),
+        scope: "VENUE" as const,
+      })),
+    ),
+    ...(venue.venueBlocks || []).flatMap((block: any) =>
+      (block.schedules || []).map((schedule: any) => ({
+        id: schedule.id,
+        title: block.title,
+        subtitle: block.reason || "Venue block",
+        startAt: schedule.startAt,
+        endAt: schedule.endAt,
+        status: "BLOCKED" as const,
+        scope: "VENUE" as const,
+      })),
+    ),
+    ...(globalBlocks || []).flatMap((block: any) =>
+      (block.schedules || []).map((schedule: any) => ({
+        id: schedule.id,
+        title: block.title,
+        subtitle: block.reason || "University-wide block",
+        startAt: schedule.startAt,
+        endAt: schedule.endAt,
+        status: "BLOCKED" as const,
+        scope: "UNIVERSITY" as const,
+      })),
+    ),
   ].sort(
     (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),
   );

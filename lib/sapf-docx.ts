@@ -1,4 +1,9 @@
 import { getSapfParts } from "@/app/components/pages/SAPF/sapfData";
+import {
+  formatSapfDateForMessage,
+  formatSapfTime,
+  sapfCalendarDate,
+} from "@/app/components/pages/SAPF/sapfSchedule";
 import { format } from "date-fns";
 import Docxtemplater from "docxtemplater";
 import { readFile } from "fs/promises";
@@ -54,9 +59,27 @@ function negative(value: any) {
 }
 
 function schoolYear(date: Date) {
-  const year = date.getFullYear();
-  const startYear = date.getMonth() >= 5 ? year : year - 1;
+  const campusDate = sapfCalendarDate(date);
+  const year = campusDate.getFullYear();
+  const startYear = campusDate.getMonth() >= 5 ? year : year - 1;
   return `${startYear}-${startYear + 1}`;
+}
+
+function scheduleText(request: any) {
+  const schedules = Array.isArray(request.schedules) ? request.schedules : [];
+  return schedules
+    .map(
+      (schedule: any) =>
+        `${formatSapfDateForMessage(schedule.startAt)} ${formatSapfTime(
+          schedule.startAt,
+        )} - ${formatSapfTime(schedule.endAt)}`,
+    )
+    .join("\n");
+}
+
+function firstScheduleStart(request: any) {
+  const schedules = Array.isArray(request.schedules) ? request.schedules : [];
+  return schedules[0]?.startAt ? asDate(schedules[0].startAt) : new Date();
 }
 
 function programIncludes(program: string, ...matches: string[]) {
@@ -92,8 +115,7 @@ export async function renderSapfDocx({ request }: { request: any }) {
   const part2 = sapf.part2;
   const part4 = sapf.part4 || {};
   const part6 = sapf.part6 || {};
-  const startAt = asDate(request.startAt);
-  const endAt = asDate(request.endAt);
+  const startAt = firstScheduleStart(request);
   const createdAt = request.createdAt ? asDate(request.createdAt) : new Date();
   const program = short(part1.program);
   const hasKnownProgram = [
@@ -136,8 +158,8 @@ export async function renderSapfDocx({ request }: { request: any }) {
     proposalDate: format(createdAt, "MMMM d, yyyy"),
     activityTitle: part1.activityTitle,
     organization: part1.organization,
-    activityTime: `${format(startAt, "h:mm a")} - ${format(endAt, "h:mm a")}`,
-    activityDate: format(startAt, "MMMM d, yyyy"),
+    activityTime: scheduleText(request),
+    activityDate: scheduleText(request),
     programCourse: part1.programCourse,
     venue: part1.venue,
     departmentCategory: part1.departmentCategory,

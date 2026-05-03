@@ -175,8 +175,7 @@ export default function SapfReadonlyDetails({
       </div>
     </div>
   );
-  const startAt = new Date(request.startAt);
-  const endAt = new Date(request.endAt);
+  const schedules = Array.isArray(request.schedules) ? request.schedules : [];
 
   return (
     <div className="space-y-6">
@@ -188,19 +187,33 @@ export default function SapfReadonlyDetails({
           </CardTitle>
           <CardDescription>Reserved venue date and time.</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
-          <ReadOnlyField
-            label="Activity Date"
-            value={formatSapfDateInputValue(startAt)}
-          />
-          <ReadOnlyField label="Start Time" value={formatSapfTime(startAt)} />
-          <ReadOnlyField label="End Time" value={formatSapfTime(endAt)} />
-          <div className="md:col-span-3">
-            <Badge variant="outline" className="gap-2">
-              <Clock className="h-3.5 w-3.5" />
-              {formatSapfDateTime(startAt)} to {formatSapfTime(endAt)}
-            </Badge>
-          </div>
+        <CardContent className="space-y-3">
+          {schedules.map((schedule: any, index: number) => (
+            <div
+              key={schedule.id || `${schedule.startAt}-${index}`}
+              className="grid gap-4 rounded-md border bg-muted p-3 md:grid-cols-3"
+            >
+              <ReadOnlyField
+                label={`Day ${index + 1}`}
+                value={formatSapfDateInputValue(schedule.startAt)}
+              />
+              <ReadOnlyField
+                label="Start Time"
+                value={formatSapfTime(schedule.startAt)}
+              />
+              <ReadOnlyField
+                label="End Time"
+                value={formatSapfTime(schedule.endAt)}
+              />
+              <div className="md:col-span-3">
+                <Badge variant="outline" className="gap-2">
+                  <Clock className="h-3.5 w-3.5" />
+                  {formatSapfDateTime(schedule.startAt)} to{" "}
+                  {formatSapfTime(schedule.endAt)}
+                </Badge>
+              </div>
+            </div>
+          ))}
         </CardContent>
       </Card>
 

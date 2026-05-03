@@ -112,26 +112,39 @@ export default function VenueCalendarView({
             <CardDescription>These dates apply to every venue.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {globalBlocks.map((block) => (
-              <div
-                key={block.id}
-                className="rounded-lg border border-violet-500/30 bg-violet-500/10 p-4"
-              >
-                <p className="font-semibold text-violet-950 dark:text-violet-100">
-                  {block.title}
-                </p>
-                {block.reason && (
-                  <p className="text-sm text-violet-800 dark:text-violet-200">
-                    {block.reason}
+            {globalBlocks.map((block) => {
+              const schedules = Array.isArray(block.schedules)
+                ? block.schedules
+                : [];
+
+              return (
+                <div
+                  key={block.id}
+                  className="rounded-lg border border-violet-500/30 bg-violet-500/10 p-4"
+                >
+                  <p className="font-semibold text-violet-950 dark:text-violet-100">
+                    {block.title}
                   </p>
-                )}
-                <p className="mt-2 flex items-center gap-2 text-sm text-violet-900 dark:text-violet-100">
-                  <Clock className="h-4 w-4" />
-                  {formatSapfDateTime(block.startAt)} to{" "}
-                  {formatSapfTime(block.endAt)}
-                </p>
-              </div>
-            ))}
+                  {block.reason && (
+                    <p className="text-sm text-violet-800 dark:text-violet-200">
+                      {block.reason}
+                    </p>
+                  )}
+                  <div className="mt-2 space-y-1">
+                    {schedules.map((schedule: any, index: number) => (
+                      <p
+                        key={schedule.id || `${schedule.startAt}-${index}`}
+                        className="flex items-center gap-2 text-sm text-violet-900 dark:text-violet-100"
+                      >
+                        <Clock className="h-4 w-4" />
+                        {formatSapfDateTime(schedule.startAt)} to{" "}
+                        {formatSapfTime(schedule.endAt)}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </CardContent>
         </Card>
       )}

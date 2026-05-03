@@ -13,6 +13,7 @@ export async function GET(
     include: {
       officer: true,
       venues: { include: { eventSpace: true }, orderBy: { createdAt: "asc" } },
+      schedules: { orderBy: { startAt: "asc" } },
       coreValues: { select: { value: true }, orderBy: { createdAt: "asc" } },
       graduateAttributes: {
         select: { value: true },

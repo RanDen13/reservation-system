@@ -1,5 +1,9 @@
 import { Badge } from "@/app/components/ui/badge";
 import {
+  formatSapfDateTime,
+  formatSapfTime,
+} from "@/app/components/pages/SAPF/sapfSchedule";
+import {
   Card,
   CardContent,
   CardDescription,
@@ -29,6 +33,11 @@ const page = async ({ params }: { params: Promise<{ token: string }> }) => {
         },
         orderBy: {
           createdAt: "asc",
+        },
+      },
+      schedules: {
+        orderBy: {
+          startAt: "asc",
         },
       },
     },
@@ -82,10 +91,14 @@ const page = async ({ params }: { params: Promise<{ token: string }> }) => {
           <div className="grid gap-3 md:grid-cols-2">
             <div>
               <p className="text-sm font-semibold text-gray-500">Schedule</p>
-              <p>
-                {format(request.startAt, "MMM d, yyyy h:mm a")} to{" "}
-                {format(request.endAt, "h:mm a")}
-              </p>
+              <div className="space-y-1">
+                {request.schedules.map((schedule) => (
+                  <p key={schedule.id}>
+                    {formatSapfDateTime(schedule.startAt)} to{" "}
+                    {formatSapfTime(schedule.endAt)}
+                  </p>
+                ))}
+              </div>
             </div>
             <div>
               <p className="text-sm font-semibold text-gray-500">Approved At</p>

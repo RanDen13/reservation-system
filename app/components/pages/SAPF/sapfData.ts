@@ -96,6 +96,10 @@ function venueNames(request: any) {
   return joined.length ? joined.join(", ") : request.venue || "";
 }
 
+function scheduleRows(request: any) {
+  return Array.isArray(request.schedules) ? request.schedules : [];
+}
+
 export function getSapfParts(request: any) {
   const coreValues = valuesFromRows(request.coreValues);
   const graduateAttributes = valuesFromRows(request.graduateAttributes);
@@ -107,11 +111,13 @@ export function getSapfParts(request: any) {
   const sdsAttachments = attachments.filter(
     (attachment) => attachment.purpose !== "PROGRAM_FLOW",
   );
+  const schedules = scheduleRows(request);
 
   const part1 = {
     activityTitle: request.title || "",
     organization: request.organization || "",
-    activityDate: request.startAt || "",
+    activityDate: schedules[0]?.startAt || "",
+    schedules,
     departmentCategory: request.departmentCategory || "",
     modality: request.modality || "",
     programCourse: request.programCourse || "",

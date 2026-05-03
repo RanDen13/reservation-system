@@ -224,9 +224,14 @@ async function main() {
       id: uuid(),
       title: "University Foundation Week",
       reason: "University event",
-      startAt: new Date("2026-06-20T08:00:00"),
-      endAt: new Date("2026-06-20T18:00:00"),
       createdById: superAdmin.id,
+      schedules: {
+        create: {
+          id: uuid(),
+          startAt: new Date("2026-06-20T00:00:00.000Z"),
+          endAt: new Date("2026-06-20T10:00:00.000Z"),
+        },
+      },
     },
   });
 

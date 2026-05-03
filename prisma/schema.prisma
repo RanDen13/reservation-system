@@ -162,8 +162,6 @@ model SAPFRequest {
   departmentCategory          String?
   department                  String
   attendeeCount               String
-  startAt                     DateTime
-  endAt                       DateTime
   status                      SAPFRequestStatus @default(DRAFT)
   currentStepOrder            Int?
   conflictWarning             Boolean           @default(false)
@@ -209,6 +207,7 @@ model SAPFRequest {
   coreValues         SAPFCoreValue[]
   graduateAttributes SAPFGraduateAttribute[]
   supportRequests    SAPFSupportRequest[]
+  schedules          SAPFRequestSchedule[]
   venues             SAPFRequestVenue[]
   attachments        SAPFAttachment[]
   approvalSteps      ApprovalStep[]
@@ -218,8 +217,20 @@ model SAPFRequest {
 
   @@index([officerId])
   @@index([status])
-  @@index([startAt])
   @@map("sapf_request")
+}
+
+model SAPFRequestSchedule {
+  id        String      @id
+  requestId String
+  request   SAPFRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  startAt   DateTime
+  endAt     DateTime
+  createdAt DateTime    @default(now())
+
+  @@index([requestId])
+  @@index([startAt])
+  @@map("sapf_request_schedule")
 }
 
 model SAPFRequestVenue {
@@ -348,16 +359,27 @@ model VenueBlock {
   eventSpace   EventSpace? @relation(fields: [eventSpaceId], references: [id], onDelete: Cascade)
   title        String
   reason       String?
-  startAt      DateTime
-  endAt        DateTime
   createdById  String?
   createdBy    User?       @relation("VenueBlockCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  schedules    VenueBlockSchedule[]
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
   @@index([eventSpaceId])
-  @@index([startAt])
   @@map("venue_block")
+}
+
+model VenueBlockSchedule {
+  id           String     @id
+  venueBlockId String
+  venueBlock   VenueBlock @relation(fields: [venueBlockId], references: [id], onDelete: Cascade)
+  startAt      DateTime
+  endAt        DateTime
+  createdAt    DateTime   @default(now())
+
+  @@index([venueBlockId])
+  @@index([startAt])
+  @@map("venue_block_schedule")
 }
 
 model Notification {

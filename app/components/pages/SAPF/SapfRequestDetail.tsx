@@ -64,9 +64,18 @@ function statusClass(status: string) {
 }
 
 function formatDateRange(request: any) {
-  return `${formatSapfDate(request.startAt)} - ${formatSapfTime(
-    request.startAt,
-  )} to ${formatSapfTime(request.endAt)}`;
+  const schedules = Array.isArray(request.schedules) ? request.schedules : [];
+  if (schedules.length === 0) return "No schedule";
+  if (schedules.length === 1) {
+    const schedule = schedules[0];
+    return `${formatSapfDate(schedule.startAt)} - ${formatSapfTime(
+      schedule.startAt,
+    )} to ${formatSapfTime(schedule.endAt)}`;
+  }
+
+  return `${schedules.length} days, ${formatSapfDate(
+    schedules[0].startAt,
+  )} to ${formatSapfDate(schedules[schedules.length - 1].startAt)}`;
 }
 
 function venueLabel(request: any) {

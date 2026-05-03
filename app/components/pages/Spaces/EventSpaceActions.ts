@@ -104,11 +104,19 @@ export async function getGlobalVenueBlocks(): Promise<ActionResult<any[]>> {
         id: true,
         title: true,
         reason: true,
-        startAt: true,
-        endAt: true,
+        schedules: {
+          select: {
+            id: true,
+            startAt: true,
+            endAt: true,
+          },
+          orderBy: {
+            startAt: "asc",
+          },
+        },
       },
       orderBy: {
-        startAt: "asc",
+        createdAt: "asc",
       },
     });
 
@@ -167,15 +175,18 @@ export async function getEventSpaceById(
                   requestNumber: true,
                   title: true,
                   organization: true,
-                  startAt: true,
-                  endAt: true,
                   status: true,
+                  schedules: {
+                    select: {
+                      id: true,
+                      startAt: true,
+                      endAt: true,
+                    },
+                    orderBy: {
+                      startAt: "asc",
+                    },
+                  },
                 },
-              },
-            },
-            orderBy: {
-              request: {
-                startAt: "asc",
               },
             },
           },
@@ -184,11 +195,19 @@ export async function getEventSpaceById(
               id: true,
               title: true,
               reason: true,
-              startAt: true,
-              endAt: true,
+              schedules: {
+                select: {
+                  id: true,
+                  startAt: true,
+                  endAt: true,
+                },
+                orderBy: {
+                  startAt: "asc",
+                },
+              },
             },
             orderBy: {
-              startAt: "asc",
+              createdAt: "asc",
             },
           },
         },
@@ -201,11 +220,19 @@ export async function getEventSpaceById(
           id: true,
           title: true,
           reason: true,
-          startAt: true,
-          endAt: true,
+          schedules: {
+            select: {
+              id: true,
+              startAt: true,
+              endAt: true,
+            },
+            orderBy: {
+              startAt: "asc",
+            },
+          },
         },
         orderBy: {
-          startAt: "asc",
+          createdAt: "asc",
         },
       }),
     ]);

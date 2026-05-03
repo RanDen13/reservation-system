@@ -31,13 +31,15 @@ import {
   ChevronsUpDown,
   Info,
   Paperclip,
+  Plus,
   Save,
   Search,
   Send,
+  Trash2,
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import type { ChangeEvent } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import { useMemo, useState } from "react";
 import { EventSpaceData } from "../Spaces/schema";
 import { saveSapfRequest } from "./SapfActions";
@@ -66,6 +68,13 @@ const REQUIRED_CHAIN_POSITIONS = [
   "UNIVERSITY_PRESIDENT",
 ] as const;
 
+type ScheduleRow = {
+  id: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+};
+
 function formatFileSize(bytes: number) {
   if (!bytes) return "0 MB";
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -87,19 +96,54 @@ function positionLabel(position: string) {
     .replace(/^\w/, (c) => c.toUpperCase());
 }
 
-function getRequestSchedule(initialRequest?: any) {
+function createScheduleRow(
+  date = "",
+  startTime = "",
+  endTime = "",
+): ScheduleRow {
+  return {
+    id: `${date}-${startTime}-${endTime}-${Math.random().toString(36).slice(2)}`,
+    date,
+    startTime,
+    endTime,
+  };
+}
+
+function addDaysToDateInput(date: string, days: number) {
+  if (!date) return "";
+  const [year, month, day] = date.split("-").map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day + days));
+  if (Number.isNaN(parsed.getTime())) return "";
+
+  return parsed.toISOString().slice(0, 10);
+}
+
+function nextScheduleDate(baseDate: string, existingDates: Set<string>) {
+  let nextDate = addDaysToDateInput(baseDate, 1);
+  while (nextDate && existingDates.has(nextDate)) {
+    nextDate = addDaysToDateInput(nextDate, 1);
+  }
+  return nextDate;
+}
+
+function getRequestScheduleRows(initialRequest?: any): ScheduleRow[] {
   if (!initialRequest) {
-    return { date: "", startTime: "", endTime: "" };
+    return [createScheduleRow()];
   }
 
-  const startAt = new Date(initialRequest.startAt);
-  const endAt = new Date(initialRequest.endAt);
+  const schedules = Array.isArray(initialRequest.schedules)
+    ? initialRequest.schedules
+    : [];
 
-  return {
-    date: formatSapfDateInputValue(startAt),
-    startTime: formatSapfTimeInputValue(startAt),
-    endTime: formatSapfTimeInputValue(endAt),
-  };
+  return schedules.length
+    ? schedules.map((schedule: any) =>
+        createScheduleRow(
+          formatSapfDateInputValue(schedule.startAt),
+          formatSapfTimeInputValue(schedule.startAt),
+          formatSapfTimeInputValue(schedule.endAt),
+        ),
+      )
+    : [createScheduleRow()];
 }
 
 function selectedVenueIdsFromRequest(initialRequest?: any) {
@@ -123,13 +167,12 @@ export default function SapfBookingForm({
 }) {
   const popup = usePopup();
   const router = useRouter();
-  const initialSchedule = getRequestSchedule(initialRequest);
+  const initialScheduleRows = getRequestScheduleRows(initialRequest);
   const initialVenueIds = initialRequest
     ? selectedVenueIdsFromRequest(initialRequest)
     : preselectedVenueIds;
-  const [selectedDate, setSelectedDate] = useState(initialSchedule.date);
-  const [startTime, setStartTime] = useState(initialSchedule.startTime);
-  const [endTime, setEndTime] = useState(initialSchedule.endTime);
+  const [scheduleRows, setScheduleRows] =
+    useState<ScheduleRow[]>(initialScheduleRows);
   const [selectedVenueIds, setSelectedVenueIds] =
     useState<string[]>(initialVenueIds);
   const [programFlowAttachmentTotal, setProgramFlowAttachmentTotal] =
@@ -139,6 +182,10 @@ export default function SapfBookingForm({
   >([]);
   const [venuePopoverOpen, setVenuePopoverOpen] = useState(false);
   const [venueSearch, setVenueSearch] = useState("");
+  const [adviserPopoverOpen, setAdviserPopoverOpen] = useState(false);
+  const [adviserSearch, setAdviserSearch] = useState("");
+  const [signatoryPopoverOpen, setSignatoryPopoverOpen] = useState(false);
+  const [signatorySearch, setSignatorySearch] = useState("");
   const isEditing = Boolean(initialRequest);
   const lockApprovalChain = initialRequest?.status === "RETURNED_FOR_REVISION";
   const formKey = initialRequest?.id || preselectedVenueIds.join("-") || "new";
@@ -210,15 +257,19 @@ export default function SapfBookingForm({
         : current.filter((item) => item !== value),
     );
   };
-  const selectedAdviserId =
+  const initialAdviserId =
     initialRequest?.approvalSteps?.find(
       (step: any) => step.position === "ADVISER",
     )?.reviewerId || "";
-  const selectedAdditionalSignatories = new Set<string>(
+  const initialAdditionalSignatories = new Set<string>(
     (initialRequest?.approvalSteps || [])
       .filter((step: any) => step.position === "ADDITIONAL_SIGNATORY")
       .map((step: any) => step.reviewerId),
   );
+  const [selectedAdviserId, setSelectedAdviserId] =
+    useState(initialAdviserId);
+  const [selectedAdditionalSignatoryIds, setSelectedAdditionalSignatoryIds] =
+    useState<string[]>(Array.from(initialAdditionalSignatories));
   const activeVenues = venues.filter((venue) => venue.status === "ACTIVE");
   const selectedVenues = activeVenues.filter((venue) =>
     selectedVenueIds.includes(venue.id),
@@ -247,6 +298,35 @@ export default function SapfBookingForm({
     earliestBookingDate,
   );
   const adviserOptions = approvers.ADVISER || [];
+  const additionalSignatoryOptions = approvers.ADDITIONAL_SIGNATORY || [];
+  const selectedAdviser = adviserOptions.find(
+    (user) => user.id === selectedAdviserId,
+  );
+  const selectedAdditionalSignatories = additionalSignatoryOptions.filter(
+    (user) => selectedAdditionalSignatoryIds.includes(user.id),
+  );
+  const userMatchesSearch = (user: any, search: string) => {
+    if (!search) return true;
+    const normalized = search.trim().toLowerCase();
+    return [user.name, user.email, user.title]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(normalized));
+  };
+  const filteredAdvisers = adviserOptions.filter((user) =>
+    userMatchesSearch(user, adviserSearch),
+  );
+  const filteredAdditionalSignatories = additionalSignatoryOptions.filter(
+    (user) => userMatchesSearch(user, signatorySearch),
+  );
+  const adviserSummary = selectedAdviser
+    ? userNameWithTitle(selectedAdviser)
+    : "Select adviser";
+  const signatorySummary =
+    selectedAdditionalSignatories.length === 0
+      ? "Select additional signatories"
+      : selectedAdditionalSignatories.length === 1
+        ? userNameWithTitle(selectedAdditionalSignatories[0])
+        : `${selectedAdditionalSignatories.length} signatories selected`;
   const missingRequiredPositions = lockApprovalChain
     ? []
     : REQUIRED_CHAIN_POSITIONS.filter(
@@ -274,30 +354,117 @@ export default function SapfBookingForm({
     setSelectedVenueIds((current) => current.filter((id) => id !== venueId));
   };
 
+  const selectAdviser = (userId: string) => {
+    if (lockApprovalChain) return;
+    setSelectedAdviserId(userId);
+    setAdviserPopoverOpen(false);
+  };
+
+  const toggleAdditionalSignatory = (userId: string, checked: boolean) => {
+    if (lockApprovalChain) return;
+    setSelectedAdditionalSignatoryIds((current) =>
+      checked
+        ? [...new Set([...current, userId])]
+        : current.filter((id) => id !== userId),
+    );
+  };
+
+  const removeAdditionalSignatory = (userId: string) => {
+    if (lockApprovalChain) return;
+    setSelectedAdditionalSignatoryIds((current) =>
+      current.filter((id) => id !== userId),
+    );
+  };
+
+  const updateScheduleRow = (
+    rowId: string,
+    field: keyof Omit<ScheduleRow, "id">,
+    value: string,
+  ) => {
+    if (
+      field === "date" &&
+      value &&
+      scheduleRows.some((row) => row.id !== rowId && row.date === value)
+    ) {
+      popup.showError("Each schedule day must use a different date.");
+      return;
+    }
+
+    setScheduleRows((current) =>
+      current.map((row) => {
+        if (row.id !== rowId) return row;
+        const next = { ...row, [field]: value };
+        if (
+          field === "startTime" &&
+          next.endTime &&
+          value &&
+          next.endTime <= value
+        ) {
+          next.endTime = "";
+        }
+        return next;
+      }),
+    );
+  };
+
+  const addScheduleRow = () => {
+    setScheduleRows((current) => {
+      const firstRow = current[0];
+      const existingDates = new Set(current.map((row) => row.date));
+      return [
+        ...current,
+        createScheduleRow(
+          nextScheduleDate(firstRow?.date || "", existingDates),
+          firstRow?.startTime || "",
+          firstRow?.endTime || "",
+        ),
+      ];
+    });
+  };
+
+  const removeScheduleRow = (rowId: string) => {
+    setScheduleRows((current) =>
+      current.length === 1
+        ? current
+        : current.filter((row) => row.id !== rowId),
+    );
+  };
+
   const handleSave = async (formData: FormData) => {
-    const activityDate = String(formData.get("activityDate") ?? "");
-    const selectedStartTime = String(formData.get("startTime") ?? "");
-    const selectedEndTime = String(formData.get("endTime") ?? "");
     const intent = String(formData.get("intent") ?? "draft");
+    const dates = formData.getAll("scheduleDate").map(String);
+    const startTimes = formData.getAll("scheduleStartTime").map(String);
+    const endTimes = formData.getAll("scheduleEndTime").map(String);
 
     if (selectedVenueIds.length === 0) {
       popup.showError("Select at least one venue.");
       return;
     }
 
-    if (activityDate && activityDate < minimumBookingDate) {
-      popup.showError(
-        `Reservations must be booked at least ${MIN_BOOKING_ADVANCE_DAYS} days in advance.`,
-      );
-      return;
+    for (let index = 0; index < dates.length; index += 1) {
+      if (!dates[index] || !startTimes[index] || !endTimes[index]) {
+        popup.showError(`Complete the date and time for day ${index + 1}.`);
+        return;
+      }
+
+      if (dates[index] < minimumBookingDate) {
+        popup.showError(
+          `Reservations must be booked at least ${MIN_BOOKING_ADVANCE_DAYS} days in advance.`,
+        );
+        return;
+      }
+
+      if (endTimes[index] <= startTimes[index]) {
+        popup.showError(`Day ${index + 1} end time must be later than start.`);
+        return;
+      }
     }
 
-    if (
-      selectedStartTime &&
-      selectedEndTime &&
-      selectedEndTime <= selectedStartTime
-    ) {
-      popup.showError("End time must be later than start time.");
+    const duplicateDate = dates.find(
+      (date, index) => date && dates.indexOf(date) !== index,
+    );
+    if (duplicateDate) {
+      popup.showError("Each schedule day must use a different date.");
       return;
     }
 
@@ -334,13 +501,36 @@ export default function SapfBookingForm({
     router.push("/user/bookings");
   };
 
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const submitter = (event.nativeEvent as SubmitEvent)
+      .submitter as HTMLButtonElement | null;
+    if (submitter?.name) {
+      formData.set(submitter.name, submitter.value);
+    }
+    await handleSave(formData);
+  };
+
   return (
-    <form key={formKey} action={handleSave} className="space-y-6">
+    <form key={formKey} onSubmit={handleSubmit} className="space-y-6">
       {initialRequest?.id && (
         <input type="hidden" name="requestId" value={initialRequest.id} />
       )}
       {selectedVenueIds.map((venueId) => (
         <input key={venueId} type="hidden" name="venueIds" value={venueId} />
+      ))}
+      {selectedAdviserId && (
+        <input type="hidden" name="adviserId" value={selectedAdviserId} />
+      )}
+      {selectedAdditionalSignatoryIds.map((userId) => (
+        <input
+          key={userId}
+          type="hidden"
+          name="additionalSignatoryIds"
+          value={userId}
+        />
       ))}
 
       <Card>
@@ -447,7 +637,7 @@ export default function SapfBookingForm({
             Select a venue schedule at least 30 days in advance.
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
+        <CardContent className="space-y-4">
           <div className="flex items-start gap-2 rounded-md border border-blue-500/30 bg-blue-500/10 p-3 text-sm text-blue-900 dark:text-blue-100 md:col-span-3">
             <Info className="mt-0.5 h-4 w-4 shrink-0" />
             <p>
@@ -455,44 +645,73 @@ export default function SapfBookingForm({
               Earliest available date: {earliestBookingDateLabel}.
             </p>
           </div>
-          <div>
-            <Label>Activity Date</Label>
-            <Input
-              name="activityDate"
-              type="date"
-              value={selectedDate}
-              min={minimumBookingDate}
-              onChange={(event) => setSelectedDate(event.target.value)}
-              required
-            />
+          <div className="space-y-3">
+            {scheduleRows.map((row, index) => (
+              <div
+                key={row.id}
+                className="grid gap-3 rounded-md border bg-background p-3 md:grid-cols-[1fr_1fr_1fr_auto]"
+              >
+                <div>
+                  <Label>Day {index + 1}</Label>
+                  <Input
+                    name="scheduleDate"
+                    type="date"
+                    value={row.date}
+                    min={minimumBookingDate}
+                    onChange={(event) =>
+                      updateScheduleRow(row.id, "date", event.target.value)
+                    }
+                    required
+                  />
+                </div>
+                <div>
+                  <Label>Start Time</Label>
+                  <Input
+                    name="scheduleStartTime"
+                    type="time"
+                    value={row.startTime}
+                    onChange={(event) =>
+                      updateScheduleRow(
+                        row.id,
+                        "startTime",
+                        event.target.value,
+                      )
+                    }
+                    required
+                  />
+                </div>
+                <div>
+                  <Label>End Time</Label>
+                  <Input
+                    name="scheduleEndTime"
+                    type="time"
+                    value={row.endTime}
+                    min={row.startTime || undefined}
+                    onChange={(event) =>
+                      updateScheduleRow(row.id, "endTime", event.target.value)
+                    }
+                    required
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => removeScheduleRow(row.id)}
+                    disabled={scheduleRows.length === 1}
+                    aria-label={`Remove day ${index + 1}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
-          <div>
-            <Label>Start Time</Label>
-            <Input
-              name="startTime"
-              type="time"
-              value={startTime}
-              onChange={(event) => {
-                const nextStartTime = event.target.value;
-                setStartTime(nextStartTime);
-                if (endTime && nextStartTime && endTime <= nextStartTime) {
-                  setEndTime("");
-                }
-              }}
-              required
-            />
-          </div>
-          <div>
-            <Label>End Time</Label>
-            <Input
-              name="endTime"
-              type="time"
-              value={endTime}
-              min={startTime || undefined}
-              onChange={(event) => setEndTime(event.target.value)}
-              required
-            />
-          </div>
+          <Button type="button" variant="outline" onClick={addScheduleRow}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Day
+          </Button>
         </CardContent>
       </Card>
 
@@ -958,31 +1177,77 @@ export default function SapfBookingForm({
           )}
           <div>
             <Label>Adviser</Label>
-            <Select
-              name="adviserId"
-              required
-              disabled={lockApprovalChain || adviserOptions.length === 0}
-              defaultValue={selectedAdviserId}
+            <Popover
+              open={adviserPopoverOpen}
+              onOpenChange={setAdviserPopoverOpen}
             >
-              <SelectTrigger
-                disabled={lockApprovalChain || adviserOptions.length === 0}
-              >
-                <SelectValue placeholder="Select adviser" />
-              </SelectTrigger>
-              <SelectContent>
-                {adviserOptions.length === 0 ? (
-                  <div className="px-3 py-2 text-sm text-muted-foreground">
-                    No advisers available.
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={lockApprovalChain || adviserOptions.length === 0}
+                  className="mt-1 h-auto min-h-11 w-full justify-between px-3 py-2 text-left font-normal"
+                >
+                  <span className="truncate">{adviserSummary}</span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-60" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-[min(92vw,560px)] p-0">
+                <div className="border-b p-3">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={adviserSearch}
+                      onChange={(event) => setAdviserSearch(event.target.value)}
+                      placeholder="Search advisers..."
+                      className="pl-9"
+                    />
                   </div>
-                ) : (
-                  adviserOptions.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {userNameWithTitle(user)}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+                </div>
+                <div className="max-h-72 overflow-y-auto p-2">
+                  {filteredAdvisers.length === 0 ? (
+                    <p className="px-2 py-6 text-center text-sm text-muted-foreground">
+                      No advisers found.
+                    </p>
+                  ) : (
+                    filteredAdvisers.map((user) => {
+                      const checked = selectedAdviserId === user.id;
+                      return (
+                        <button
+                          key={user.id}
+                          type="button"
+                          onClick={() => selectAdviser(user.id)}
+                          className="flex w-full items-start gap-3 rounded-md px-3 py-2 text-left text-sm hover:bg-muted"
+                        >
+                          <span
+                            className={`mt-1 h-3 w-3 shrink-0 rounded-full border ${
+                              checked
+                                ? "border-primary bg-primary"
+                                : "border-border bg-background"
+                            }`}
+                          />
+                          <span className="min-w-0">
+                            <span className="block font-semibold text-foreground">
+                              {userNameWithTitle(user)}
+                            </span>
+                            <span className="block text-xs text-muted-foreground">
+                              {user.email}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+            {selectedAdviser && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Badge variant="secondary" className="gap-1 rounded-md py-1">
+                  {userNameWithTitle(selectedAdviser)}
+                </Badge>
+              </div>
+            )}
             {missingAdviserOptions && (
               <p className="mt-2 text-xs text-destructive">
                 No active advisers are configured. Ask a super admin to assign
@@ -990,28 +1255,110 @@ export default function SapfBookingForm({
               </p>
             )}
           </div>
-          {(approvers.ADDITIONAL_SIGNATORY || []).length > 0 && (
+          {additionalSignatoryOptions.length > 0 && (
             <div>
               <Label>Additional Signatories</Label>
-              <div className="mt-2 grid gap-2 md:grid-cols-2">
-                {approvers.ADDITIONAL_SIGNATORY.map((user) => (
-                  <label
-                    key={user.id}
-                    className="flex items-center gap-2 rounded-md border p-2 text-sm"
+              <Popover
+                open={signatoryPopoverOpen}
+                onOpenChange={setSignatoryPopoverOpen}
+              >
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={lockApprovalChain}
+                    className="mt-1 h-auto min-h-11 w-full justify-between px-3 py-2 text-left font-normal"
                   >
-                    <input
-                      type="checkbox"
-                      name="additionalSignatoryIds"
-                      value={user.id}
-                      disabled={lockApprovalChain}
-                      defaultChecked={selectedAdditionalSignatories.has(
-                        user.id,
+                    <span className="truncate">{signatorySummary}</span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-60" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  align="start"
+                  className="w-[min(92vw,620px)] p-0"
+                >
+                  <div className="border-b p-3">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        value={signatorySearch}
+                        onChange={(event) =>
+                          setSignatorySearch(event.target.value)
+                        }
+                        placeholder="Search signatories..."
+                        className="pl-9"
+                      />
+                    </div>
+                  </div>
+                  <div className="max-h-72 overflow-y-auto p-2">
+                    {filteredAdditionalSignatories.length === 0 ? (
+                      <p className="px-2 py-6 text-center text-sm text-muted-foreground">
+                        No signatories found.
+                      </p>
+                    ) : (
+                      filteredAdditionalSignatories.map((user) => {
+                        const checked = selectedAdditionalSignatoryIds.includes(
+                          user.id,
+                        );
+                        return (
+                          <div
+                            key={user.id}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() =>
+                              toggleAdditionalSignatory(user.id, !checked)
+                            }
+                            onKeyDown={(event) => {
+                              if (
+                                event.key === "Enter" ||
+                                event.key === " "
+                              ) {
+                                event.preventDefault();
+                                toggleAdditionalSignatory(user.id, !checked);
+                              }
+                            }}
+                            className="flex w-full items-start gap-3 rounded-md px-3 py-2 text-left text-sm hover:bg-muted"
+                          >
+                            <Checkbox checked={checked} className="mt-0.5" />
+                            <span className="min-w-0">
+                              <span className="block font-semibold text-foreground">
+                                {userNameWithTitle(user)}
+                              </span>
+                              <span className="block text-xs text-muted-foreground">
+                                {user.email}
+                              </span>
+                            </span>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              {selectedAdditionalSignatories.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {selectedAdditionalSignatories.map((user) => (
+                    <Badge
+                      key={user.id}
+                      variant="secondary"
+                      className="gap-1 rounded-md py-1"
+                    >
+                      {userNameWithTitle(user)}
+                      {!lockApprovalChain && (
+                        <button
+                          type="button"
+                          onClick={() => removeAdditionalSignatory(user.id)}
+                          className="rounded-sm opacity-70 hover:opacity-100"
+                          aria-label={`Remove ${user.name}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
                       )}
-                    />
-                    <span>{userNameWithTitle(user)}</span>
-                  </label>
-                ))}
-              </div>
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </CardContent>

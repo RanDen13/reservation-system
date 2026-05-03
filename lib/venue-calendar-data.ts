@@ -31,21 +31,36 @@ export async function getVenueCalendarData() {
             request: {
               select: {
                 id: true,
-                startAt: true,
-                endAt: true,
                 status: true,
+                schedules: {
+                  select: {
+                    id: true,
+                    startAt: true,
+                    endAt: true,
+                  },
+                  orderBy: {
+                    startAt: "asc",
+                  },
+                },
               },
-            },
-          },
-          orderBy: {
-            request: {
-              startAt: "asc",
             },
           },
         },
         venueBlocks: {
+          include: {
+            schedules: {
+              select: {
+                id: true,
+                startAt: true,
+                endAt: true,
+              },
+              orderBy: {
+                startAt: "asc",
+              },
+            },
+          },
           orderBy: {
-            startAt: "asc",
+            createdAt: "asc",
           },
         },
       },
@@ -57,8 +72,20 @@ export async function getVenueCalendarData() {
       where: {
         eventSpaceId: null,
       },
+      include: {
+        schedules: {
+          select: {
+            id: true,
+            startAt: true,
+            endAt: true,
+          },
+          orderBy: {
+            startAt: "asc",
+          },
+        },
+      },
       orderBy: {
-        startAt: "asc",
+        createdAt: "asc",
       },
     }),
   ]);
