@@ -751,6 +751,10 @@ export async function getSapfWorkspace(): Promise<ActionResult<any>> {
               name: true,
               email: true,
               role: true,
+              accounts: {
+                where: { providerId: "credential" },
+                select: { title: true },
+              },
             },
           },
           concernThread: {
@@ -944,6 +948,10 @@ export async function getSapfRequestById(
               name: true,
               email: true,
               role: true,
+              accounts: {
+                where: { providerId: "credential" },
+                select: { title: true },
+              },
             },
           },
           concernThread: {

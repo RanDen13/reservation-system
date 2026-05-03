@@ -14,6 +14,11 @@ function stepLabel(step: any) {
   if (step.position === "VPAA_ASSISTANT") return "VPAA Assistant";
   if (step.position === "VPAA") return "VPAA";
   if (step.position === "UNIVERSITY_PRESIDENT") return "University President";
+  if (step.position === "ADDITIONAL_SIGNATORY") {
+    const title =
+      step.reviewer?.accounts?.[0]?.title || step.reviewer?.title || "";
+    return title || "Additional Signatory";
+  }
 
   return String(step.label || "")
     .replace(/^Sas$/i, "SAS")
