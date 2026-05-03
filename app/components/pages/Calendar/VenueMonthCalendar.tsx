@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/app/components/ui/select";
 import { cn } from "@/lib/utils";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   addDays,
   addMonths,
@@ -183,7 +184,12 @@ export default function VenueMonthCalendar({
   };
 
   return (
-    <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.34, ease: "easeOut" }}
+      className="overflow-hidden rounded-lg border bg-card/95 shadow-sm backdrop-blur"
+    >
       <div className="flex flex-col gap-4 border-b p-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex min-w-0 items-center gap-4">
           <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-lg border bg-card shadow-xs">
@@ -266,7 +272,15 @@ export default function VenueMonthCalendar({
         </div>
       </div>
 
+      <AnimatePresence mode="wait">
       {calendarView === "month" ? (
+        <motion.div
+          key="month"
+          initial={{ opacity: 0, x: -12 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 12 }}
+          transition={{ duration: 0.22 }}
+        >
         <MonthCalendar
           compact={compact}
           monthItems={monthItems}
@@ -276,14 +290,24 @@ export default function VenueMonthCalendar({
           onSelectDay={(day) => selectCalendarDay(day)}
           onOpenDay={(day) => selectCalendarDay(day, "day")}
         />
+        </motion.div>
       ) : (
+        <motion.div
+          key="day"
+          initial={{ opacity: 0, x: 12 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -12 }}
+          transition={{ duration: 0.22 }}
+        >
         <DayCalendar
           items={monthItems}
           selectedDay={selectedDay}
           visibleMonth={visibleMonth}
           onSelectDay={(day) => selectCalendarDay(day, "day")}
         />
+        </motion.div>
       )}
+      </AnimatePresence>
 
       <div className="flex flex-wrap gap-2 border-t bg-muted/40 p-3">
         {[
@@ -310,7 +334,7 @@ export default function VenueMonthCalendar({
               } this day`}
         </span>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

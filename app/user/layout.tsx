@@ -34,7 +34,7 @@ const layout = async ({ children }: { children: React.ReactNode }) => {
     | "SUPER_ADMIN";
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="app-surface flex min-h-screen">
       <Sidebar
         userRole={userRole}
         userName={session.user.name}

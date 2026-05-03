@@ -79,7 +79,7 @@ export default function SapfApprovalsPage() {
   }, [reviewerCurrent, workspace]);
 
   if (loading && !workspace) {
-    return <SapfPageLoading />;
+    return <SapfPageLoading variant="approvals" />;
   }
 
   if (!workspace) {

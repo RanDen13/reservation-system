@@ -50,7 +50,7 @@ export default function SapfBookingDetailPage({
   }, [requestId]);
 
   if (loading && !payload) {
-    return <SapfPageLoading />;
+    return <SapfPageLoading variant="detail" />;
   }
 
   if (!payload) {

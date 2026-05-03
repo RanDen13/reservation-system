@@ -9,6 +9,12 @@ import { usePopup } from "@/app/components/Popup/PopupProvider";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
 import {
+  MotionItem,
+  MotionList,
+  MotionPage,
+  MotionSection,
+} from "@/app/components/ui/motion";
+import {
   Tabs,
   TabsContent,
   TabsList,
@@ -123,8 +129,8 @@ const EventSpacePage = ({
   }
 
   return (
-    <div className="space-y-6 p-4 lg:p-8">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <MotionPage className="space-y-6 p-4 lg:p-8">
+      <MotionSection className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Button variant="outline" onClick={() => router.back()}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
@@ -137,20 +143,22 @@ const EventSpacePage = ({
             </Link>
           </Button>
         )}
-      </div>
+      </MotionSection>
 
+      <MotionSection>
       <VenueImageCarousel
         images={imageUrls}
         alt={eventSpace.name}
         className="h-80 sm:h-96 lg:h-[32rem]"
       />
+      </MotionSection>
 
-      <div>
+      <MotionSection>
         <h1 className="text-3xl font-bold text-foreground">
           {eventSpace.name}
         </h1>
         <p className="mt-2 text-muted-foreground">{eventSpace.description}</p>
-      </div>
+      </MotionSection>
 
       <Tabs defaultValue="details">
         <TabsList className="grid w-full grid-cols-2 md:w-90">
@@ -159,8 +167,9 @@ const EventSpacePage = ({
         </TabsList>
 
         <TabsContent value="details" className="mt-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
+          <MotionList className="grid gap-4 md:grid-cols-3">
+            <MotionItem>
+            <Card className="panel-hover">
               <CardContent className="flex items-center gap-3 p-5">
                 <MapPin className="h-8 w-8 text-blue-600" />
                 <div>
@@ -169,7 +178,9 @@ const EventSpacePage = ({
                 </div>
               </CardContent>
             </Card>
-            <Card>
+            </MotionItem>
+            <MotionItem>
+            <Card className="panel-hover">
               <CardContent className="flex items-center gap-3 p-5">
                 <Users className="h-8 w-8 text-emerald-600" />
                 <div>
@@ -178,7 +189,9 @@ const EventSpacePage = ({
                 </div>
               </CardContent>
             </Card>
-            <Card>
+            </MotionItem>
+            <MotionItem>
+            <Card className="panel-hover">
               <CardContent className="flex items-center gap-3 p-5">
                 <CheckCircle className="h-8 w-8 text-emerald-600" />
                 <div>
@@ -189,7 +202,8 @@ const EventSpacePage = ({
                 </div>
               </CardContent>
             </Card>
-          </div>
+            </MotionItem>
+          </MotionList>
         </TabsContent>
 
         <TabsContent value="calendar" className="mt-4">
@@ -200,7 +214,7 @@ const EventSpacePage = ({
           />
         </TabsContent>
       </Tabs>
-    </div>
+    </MotionPage>
   );
 };
 

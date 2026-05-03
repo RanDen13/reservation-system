@@ -20,7 +20,14 @@ import {
   SelectValue,
 } from "@/app/components/ui/select";
 import { Textarea } from "@/app/components/ui/textarea";
+import {
+  MotionItem,
+  MotionList,
+  MotionPage,
+  MotionSection,
+} from "@/app/components/ui/motion";
 import { format, formatDistanceToNow } from "date-fns";
+import { motion } from "framer-motion";
 import {
   CheckCircle,
   FileDown,
@@ -104,7 +111,11 @@ export function RequestSummary({
   )?.updatedAt;
 
   return (
-    <div className="space-y-4 rounded-lg border bg-card p-4">
+    <motion.div
+      whileHover={{ y: -2 }}
+      transition={{ type: "spring", stiffness: 320, damping: 24 }}
+      className="space-y-4 rounded-lg border bg-card/95 p-4 shadow-sm transition-shadow hover:shadow-md"
+    >
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <p className="font-mono text-sm font-semibold text-muted-foreground">
@@ -151,7 +162,7 @@ export function RequestSummary({
         </div>
       </div>
       {showProgress && <ApprovalProgressTimeline request={request} compact />}
-    </div>
+    </motion.div>
   );
 }
 
@@ -159,9 +170,9 @@ function Timeline({ request }: { request: any }) {
   return (
     <div className="space-y-2">
       <p className="text-sm font-semibold text-foreground">Approval chain</p>
-      <div className="grid gap-2 md:grid-cols-2">
+      <MotionList className="grid gap-2 md:grid-cols-2">
         {request.approvalSteps?.map((step: any) => (
-          <div
+          <MotionItem
             key={step.id}
             className="flex items-start justify-between gap-3 rounded-lg border bg-muted p-3"
           >
@@ -181,9 +192,9 @@ function Timeline({ request }: { request: any }) {
             <Badge className={statusClass(step.status)}>
               {step.status.replaceAll("_", " ")}
             </Badge>
-          </div>
+          </MotionItem>
         ))}
-      </div>
+      </MotionList>
     </div>
   );
 }
@@ -1018,39 +1029,53 @@ export function RequestDetail({
     (activeReviewStep?.position === "SDS" || canEditApprovedSdsPart4);
 
   return (
-    <div className="space-y-5">
+    <MotionPage className="space-y-5">
+      <MotionSection>
       <RequestSummary request={request} />
+      </MotionSection>
+      <MotionSection>
       <SapfReadonlyDetails request={request} hidePart4={hideReadOnlyPart4} />
+      </MotionSection>
       {showReviewControls && (
+        <MotionSection>
         <ReviewControls
           request={request}
           me={me}
           onRefresh={onRefresh}
           approvers={approvers}
         />
+        </MotionSection>
       )}
       {showReviewControls && (
+        <MotionSection>
         <SdsClearanceEditControls
           request={request}
           me={me}
           onRefresh={onRefresh}
         />
+        </MotionSection>
       )}
       {showReviewControls && (
+        <MotionSection>
         <SdsEvaluationControls
           request={request}
           me={me}
           onRefresh={onRefresh}
         />
+        </MotionSection>
       )}
+      <MotionSection>
       <Card>
         <CardContent className="p-5">
           <Timeline request={request} />
         </CardContent>
       </Card>
+      </MotionSection>
       {showConcernThreads && (
+        <MotionSection>
         <ConcernThreads request={request} onRefresh={onRefresh} />
+        </MotionSection>
       )}
-    </div>
+    </MotionPage>
   );
 }

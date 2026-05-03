@@ -8,6 +8,7 @@ import {
   EventSpace,
   EventSpaceImage,
 } from "@/generated/prisma/browser";
+import { motion } from "framer-motion";
 import { Building2, Calendar, MapPin, Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -64,7 +65,12 @@ export default function EventSpaceCard({
 
   return (
     <>
-      <Card className="overflow-hidden hover:shadow-xl transition-all h-full flex flex-col">
+      <motion.div
+        className="h-full"
+        whileHover={{ y: -4 }}
+        transition={{ type: "spring", stiffness: 320, damping: 24 }}
+      >
+      <Card className="h-full overflow-hidden transition-all hover:shadow-xl flex flex-col">
         {/* Image */}
         <div className="relative h-48 bg-linear-to-br from-sky-500/15 to-emerald-500/15">
           <VenueImageCarousel
@@ -185,6 +191,7 @@ export default function EventSpaceCard({
           )}
         </CardContent>
       </Card>
+      </motion.div>
       {showEditPopup && (
         <EditEventSpacePopup
           eventSpace={eventSpace}

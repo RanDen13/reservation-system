@@ -13,6 +13,7 @@ import {
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
+import { MotionPage, MotionSection } from "@/app/components/ui/motion";
 import { authClient } from "@/lib/auth-client";
 import {
   CheckCircle2,
@@ -57,14 +58,15 @@ export default function SystemSettingsPage({
   };
 
   return (
-    <div className="space-y-6 p-4 lg:p-8">
-      <div>
+    <MotionPage className="space-y-6 p-4 lg:p-8">
+      <MotionSection>
         <h1 className="text-3xl font-bold text-foreground">Settings</h1>
         <p className="text-muted-foreground">
           Manage account security and system configuration.
         </p>
-      </div>
+      </MotionSection>
 
+      <MotionSection>
       <Card>
         <CardHeader>
           <CardTitle>Password</CardTitle>
@@ -81,8 +83,10 @@ export default function SystemSettingsPage({
           <Button onClick={() => setPasswordOpen(true)}>Change Password</Button>
         </CardContent>
       </Card>
+      </MotionSection>
 
       {initialSettings && (
+        <MotionSection>
         <Card>
           <CardHeader>
             <CardTitle>Email Configuration</CardTitle>
@@ -179,12 +183,13 @@ export default function SystemSettingsPage({
             </form>
           </CardContent>
         </Card>
+        </MotionSection>
       )}
 
       {passwordOpen && (
         <ChangePasswordModal onClose={() => setPasswordOpen(false)} />
       )}
-    </div>
+    </MotionPage>
   );
 }
 

@@ -12,6 +12,12 @@ import {
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import {
+  MotionItem,
+  MotionList,
+  MotionPage,
+  MotionSection,
+} from "@/app/components/ui/motion";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -327,8 +333,8 @@ export default function SapfDashboard() {
       : `/user/approvals/${requestId}`;
 
   return (
-    <div className="space-y-8 p-4 lg:p-8">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <MotionPage className="space-y-8 p-4 lg:p-8">
+      <MotionSection className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">
             Zerve Workspace
@@ -339,13 +345,14 @@ export default function SapfDashboard() {
           </p>
         </div>
         <Button onClick={refresh} variant="outline" disabled={loading}>
-          <RefreshCcw className="mr-2 h-4 w-4" />
+          <RefreshCcw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           Refresh
         </Button>
-      </div>
+      </MotionSection>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
+      <MotionList className="grid gap-4 md:grid-cols-4">
+        <MotionItem>
+        <Card className="panel-hover">
           <CardContent className="flex items-center gap-4 p-5">
             <Clock className="h-8 w-8 text-blue-600" />
             <div>
@@ -354,7 +361,9 @@ export default function SapfDashboard() {
             </div>
           </CardContent>
         </Card>
-        <Card>
+        </MotionItem>
+        <MotionItem>
+        <Card className="panel-hover">
           <CardContent className="flex items-center gap-4 p-5">
             <History className="h-8 w-8 text-muted-foreground" />
             <div>
@@ -363,7 +372,9 @@ export default function SapfDashboard() {
             </div>
           </CardContent>
         </Card>
-        <Card>
+        </MotionItem>
+        <MotionItem>
+        <Card className="panel-hover">
           <CardContent className="flex items-center gap-4 p-5">
             <CheckCircle className="h-8 w-8 text-emerald-600" />
             <div>
@@ -372,7 +383,9 @@ export default function SapfDashboard() {
             </div>
           </CardContent>
         </Card>
-        <Card>
+        </MotionItem>
+        <MotionItem>
+        <Card className="panel-hover">
           <CardContent className="flex items-center gap-4 p-5">
             <MessageSquare className="h-8 w-8 text-orange-600" />
             <div>
@@ -381,11 +394,13 @@ export default function SapfDashboard() {
             </div>
           </CardContent>
         </Card>
-      </div>
+        </MotionItem>
+      </MotionList>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <MotionList className="grid gap-4 md:grid-cols-2">
         {workspace.me.role !== "OFFICER" && (
-          <Card>
+          <MotionItem>
+          <Card className="panel-hover">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CheckCircle className="h-5 w-5" />
@@ -402,9 +417,11 @@ export default function SapfDashboard() {
               </Button>
             </CardContent>
           </Card>
+          </MotionItem>
         )}
 
-        <Card>
+        <MotionItem>
+        <Card className="panel-hover">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <History className="h-5 w-5" />
@@ -421,8 +438,10 @@ export default function SapfDashboard() {
             </Button>
           </CardContent>
         </Card>
-      </div>
+        </MotionItem>
+      </MotionList>
 
+      <MotionSection>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -440,21 +459,25 @@ export default function SapfDashboard() {
               No active venue reservation requests right now.
             </p>
           ) : (
-            currentRequests.map((request: any) => (
-              <div key={request.id} className="space-y-3">
+            <MotionList className="space-y-4">
+            {currentRequests.map((request: any) => (
+              <MotionItem key={request.id} className="space-y-3">
                 <RequestSummary request={request} showPdf={false} />
                 <div className="flex justify-end">
                   <Button asChild variant="outline">
                     <Link href={requestHref(request.id)}>View</Link>
                   </Button>
                 </div>
-              </div>
-            ))
+              </MotionItem>
+            ))}
+            </MotionList>
           )}
         </CardContent>
       </Card>
+      </MotionSection>
 
       {workspace.notifications.length > 0 && (
+        <MotionSection>
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -462,9 +485,10 @@ export default function SapfDashboard() {
               Notifications
             </CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-2">
+          <CardContent>
+            <MotionList className="grid gap-3 md:grid-cols-2">
             {workspace.notifications.map((notification: any) => (
-              <div key={notification.id} className="rounded-lg border p-3">
+              <MotionItem key={notification.id} className="rounded-lg border bg-background/60 p-3 shadow-xs">
                 <p className="text-sm font-semibold">{notification.title}</p>
                 <p className="text-sm text-muted-foreground">
                   {notification.body}
@@ -485,15 +509,19 @@ export default function SapfDashboard() {
                     </Link>
                   </Button>
                 </div>
-              </div>
+              </MotionItem>
             ))}
+            </MotionList>
           </CardContent>
         </Card>
+        </MotionSection>
       )}
 
       {workspace.me.role === "SUPER_ADMIN" && (
+        <MotionSection>
         <SuperAdminPanel workspace={workspace} onRefresh={refresh} />
+        </MotionSection>
       )}
-    </div>
+    </MotionPage>
   );
 }

@@ -3,6 +3,7 @@
 import { Button } from "@/app/components/ui/button";
 import { ModeToggle } from "@/components/mode-toggle";
 import { cn } from "@/lib/utils";
+import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import {
   Building2,
   CalendarDays,
@@ -70,6 +71,13 @@ const navItems: NavItem[] = [
   },
 ];
 
+function isNavActive(pathname: string, href: string) {
+  if (href === "/user/bookings" && pathname.startsWith("/user/approvals")) {
+    return true;
+  }
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 export default function Sidebar({
   userRole,
   userName,
@@ -80,12 +88,16 @@ export default function Sidebar({
 
   const SidebarContent = () => (
     <div className="flex h-full flex-col">
-      <div className="border-b border-sidebar-border p-6">
+      <div className="border-b border-sidebar-border/70 p-6">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+            <motion.div
+              whileHover={{ rotate: -4, scale: 1.04 }}
+              transition={{ type: "spring", stiffness: 320, damping: 20 }}
+              className="flex h-10 w-10 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
+            >
               <Building2 className="h-6 w-6" />
-            </div>
+            </motion.div>
             <div>
               <h2 className="text-base font-bold leading-tight">
                 Zerve
@@ -113,29 +125,49 @@ export default function Sidebar({
         )}
       </div>
 
+      <LayoutGroup>
       <nav className="flex-1 space-y-2 overflow-y-auto p-4">
         {navItems
           .filter((item) => !item.roles || item.roles.includes(userRole))
           .map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = isNavActive(pathname, item.href);
             return (
-              <Link
+              <motion.div
                 key={item.href}
-                href={item.href}
-                onClick={() => setIsMobileOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-4 py-3 transition-colors",
-                  isActive
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                    : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                )}
+                whileHover={{ x: 3 }}
+                transition={{ type: "spring", stiffness: 360, damping: 28 }}
               >
-                {item.icon}
-                <span className="font-medium">{item.label}</span>
-              </Link>
+                <Link
+                  href={item.href}
+                  onClick={() => setIsMobileOpen(false)}
+                  className={cn(
+                    "relative isolate flex items-center gap-3 overflow-hidden rounded-lg px-4 py-3 transition-colors duration-200",
+                    isActive
+                      ? "text-sidebar-primary-foreground"
+                      : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                  )}
+                >
+                  {isActive && (
+                    <motion.span
+                      layoutId="sidebar-active-page"
+                      className="absolute inset-0 -z-10 rounded-lg bg-sidebar-primary shadow-sm"
+                      transition={{
+                        type: "spring",
+                        stiffness: 420,
+                        damping: 34,
+                      }}
+                    />
+                  )}
+                  <span className="relative z-10">{item.icon}</span>
+                  <span className="relative z-10 font-medium">
+                    {item.label}
+                  </span>
+                </Link>
+              </motion.div>
             );
           })}
       </nav>
+      </LayoutGroup>
 
       <div className="space-y-2 border-t border-sidebar-border p-4">
         <Link href="/">
@@ -167,21 +199,28 @@ export default function Sidebar({
         <Menu className="h-6 w-6" />
       </button>
 
-      {isMobileOpen && (
-        <div
-          onClick={() => setIsMobileOpen(false)}
-          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
-        />
-      )}
-
-      <aside
-        className={cn(
-          "fixed bottom-0 left-0 top-0 z-50 w-72 border-r border-sidebar-border bg-sidebar shadow-xl transition-transform lg:hidden",
-          isMobileOpen ? "translate-x-0" : "-translate-x-full",
+      <AnimatePresence>
+        {isMobileOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileOpen(false)}
+              className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+            />
+            <motion.aside
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", stiffness: 330, damping: 32 }}
+              className="fixed bottom-0 left-0 top-0 z-50 w-72 border-r border-sidebar-border bg-sidebar shadow-xl lg:hidden"
+            >
+              <SidebarContent />
+            </motion.aside>
+          </>
         )}
-      >
-        <SidebarContent />
-      </aside>
+      </AnimatePresence>
 
       <aside className="sticky top-0 hidden h-screen w-72 flex-col border-r border-sidebar-border bg-sidebar shadow-sm lg:flex">
         <SidebarContent />

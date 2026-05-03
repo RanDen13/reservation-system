@@ -14,6 +14,10 @@ import {
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import {
+  MotionPage,
+  MotionSection,
+} from "@/app/components/ui/motion";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -237,7 +241,7 @@ function AccountRow({
 
   return (
     <>
-      <tr className="border-t">
+      <tr className="border-t transition-colors hover:bg-muted/35">
         <td className="px-4 py-3">
           <div className="flex items-start gap-2">
             <div>
@@ -425,7 +429,7 @@ export default function SapfAccountsPage() {
   };
 
   if (loading && !workspace) {
-    return <SapfPageLoading />;
+    return <SapfPageLoading variant="accounts" />;
   }
 
   if (!workspace) {
@@ -450,8 +454,8 @@ export default function SapfAccountsPage() {
   }
 
   return (
-    <div className="space-y-8 p-4 lg:p-8">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <MotionPage className="space-y-8 p-4 lg:p-8">
+      <MotionSection className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Accounts</h1>
           <p className="text-muted-foreground">
@@ -464,12 +468,13 @@ export default function SapfAccountsPage() {
             Create account
           </Button>
           <Button onClick={refresh} variant="outline" disabled={loading}>
-            <RefreshCcw className="mr-2 h-4 w-4" />
+            <RefreshCcw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             Refresh
           </Button>
         </div>
-      </div>
+      </MotionSection>
 
+      <MotionSection>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -507,6 +512,7 @@ export default function SapfAccountsPage() {
           </table>
         </CardContent>
       </Card>
+      </MotionSection>
 
       {showCreate && (
         <ModalBase onClose={() => setShowCreate(false)}>
@@ -595,6 +601,6 @@ export default function SapfAccountsPage() {
           </Card>
         </ModalBase>
       )}
-    </div>
+    </MotionPage>
   );
 }

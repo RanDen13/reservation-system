@@ -11,6 +11,12 @@ import {
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
+import {
+  MotionItem,
+  MotionList,
+  MotionPage,
+  MotionSection,
+} from "@/app/components/ui/motion";
 import { Building2, Search, Send, Users } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -38,8 +44,8 @@ export default function OfficerSpaces({
   });
 
   return (
-    <div className="space-y-8 p-4 lg:p-8">
-      <div>
+    <MotionPage className="space-y-8 p-4 lg:p-8">
+      <MotionSection>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">
@@ -57,8 +63,9 @@ export default function OfficerSpaces({
             </Link>
           </Button>
         </div>
-      </div>
+      </MotionSection>
 
+      <MotionSection>
       <Card>
         <CardHeader>
           <CardTitle>Search & Filter</CardTitle>
@@ -99,29 +106,34 @@ export default function OfficerSpaces({
           </div>
         </CardContent>
       </Card>
+      </MotionSection>
 
+      <MotionSection>
       <UniversityWideBlocks blocks={globalBlocks} />
+      </MotionSection>
 
-      <p className="text-muted-foreground">
+      <MotionSection className="text-muted-foreground">
         Showing <span className="font-semibold">{filteredSpaces.length}</span>{" "}
         of {eventSpaces.length} venues
-      </p>
+      </MotionSection>
 
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+      <MotionList className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {filteredSpaces.map((space) => (
-          <EventSpaceCard key={space.id} eventSpace={space} />
+          <MotionItem key={space.id}>
+            <EventSpaceCard eventSpace={space} />
+          </MotionItem>
         ))}
-      </div>
+      </MotionList>
 
       {filteredSpaces.length === 0 && (
-        <div className="py-12 text-center">
+        <MotionSection className="py-12 text-center">
           <Building2 className="mx-auto mb-4 h-16 w-16 text-muted-foreground" />
           <h3 className="mb-2 text-xl font-semibold text-foreground">
             No venues found
           </h3>
           <p className="text-muted-foreground">Try adjusting your filters.</p>
-        </div>
+        </MotionSection>
       )}
-    </div>
+    </MotionPage>
   );
 }

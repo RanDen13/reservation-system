@@ -9,6 +9,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/components/ui/card";
+import {
+  MotionItem,
+  MotionList,
+  MotionPage,
+  MotionSection,
+} from "@/app/components/ui/motion";
 import { CheckCircle, Clock, History, RefreshCcw } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -49,18 +55,18 @@ function RequestList({
   }
 
   return (
-    <>
+    <MotionList className="space-y-4">
       {requests.map((request: any) => (
-        <div key={request.id} className="space-y-3">
+        <MotionItem key={request.id} className="space-y-3">
           <RequestSummary request={request} {...summaryProps} />
           <div className="flex justify-end">
             <Button asChild variant="outline">
               <Link href={hrefFor(request)}>View</Link>
             </Button>
           </div>
-        </div>
+        </MotionItem>
       ))}
-    </>
+    </MotionList>
   );
 }
 
@@ -133,7 +139,7 @@ export default function SapfBookingsPage() {
   }, [pendingRequests, workspace]);
 
   if (loading && !workspace) {
-    return <SapfPageLoading />;
+    return <SapfPageLoading variant="bookings" />;
   }
 
   if (!workspace) {
@@ -158,8 +164,8 @@ export default function SapfBookingsPage() {
   }
 
   return (
-    <div className="space-y-8 p-4 lg:p-8">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <MotionPage className="space-y-8 p-4 lg:p-8">
+      <MotionSection className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Bookings</h1>
           <p className="text-muted-foreground">
@@ -168,11 +174,12 @@ export default function SapfBookingsPage() {
           </p>
         </div>
         <Button onClick={refresh} variant="outline" disabled={loading}>
-          <RefreshCcw className="mr-2 h-4 w-4" />
+          <RefreshCcw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           Refresh
         </Button>
-      </div>
+      </MotionSection>
 
+      <MotionSection>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -201,8 +208,10 @@ export default function SapfBookingsPage() {
           />
         </CardContent>
       </Card>
+      </MotionSection>
 
       {workspace.me.role !== "OFFICER" && (
+        <MotionSection>
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -224,8 +233,10 @@ export default function SapfBookingsPage() {
             />
           </CardContent>
         </Card>
+        </MotionSection>
       )}
 
+      <MotionSection>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -246,6 +257,7 @@ export default function SapfBookingsPage() {
           />
         </CardContent>
       </Card>
-    </div>
+      </MotionSection>
+    </MotionPage>
   );
 }

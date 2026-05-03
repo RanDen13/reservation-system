@@ -64,7 +64,7 @@ export default function SapfApprovalDetailPage({
   }, [requestId]);
 
   if (loading && !payload) {
-    return <SapfPageLoading />;
+    return <SapfPageLoading variant="detail" />;
   }
 
   if (!payload) {

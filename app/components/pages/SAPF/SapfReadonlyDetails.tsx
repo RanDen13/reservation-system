@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/components/ui/card";
+import { MotionItem, MotionList } from "@/app/components/ui/motion";
 import { CalendarDays, Check, Clock, Download, X } from "lucide-react";
 import Image from "next/image";
 import type { ReactNode } from "react";
@@ -255,7 +256,8 @@ export default function SapfReadonlyDetails({
   const schedules = Array.isArray(request.schedules) ? request.schedules : [];
 
   return (
-    <div className="space-y-6">
+    <MotionList className="space-y-6">
+      <MotionItem>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -293,7 +295,9 @@ export default function SapfReadonlyDetails({
           ))}
         </CardContent>
       </Card>
+      </MotionItem>
 
+      <MotionItem>
       <Card>
         <CardHeader>
           <CardTitle>Department Category</CardTitle>
@@ -305,7 +309,9 @@ export default function SapfReadonlyDetails({
           />
         </CardContent>
       </Card>
+      </MotionItem>
 
+      <MotionItem>
       <Card>
         <CardHeader>
           <CardTitle>Part 1: Activity Details</CardTitle>
@@ -373,7 +379,9 @@ export default function SapfReadonlyDetails({
           />
         </CardContent>
       </Card>
+      </MotionItem>
 
+      <MotionItem>
       <Card>
         <CardHeader>
           <CardTitle>Part 2: School Support</CardTitle>
@@ -411,7 +419,9 @@ export default function SapfReadonlyDetails({
           />
         </CardContent>
       </Card>
+      </MotionItem>
 
+      <MotionItem>
       <Card>
         <CardHeader>
           <CardTitle>Part 3: Additional Information</CardTitle>
@@ -424,8 +434,10 @@ export default function SapfReadonlyDetails({
           />
         </CardContent>
       </Card>
+      </MotionItem>
 
       {!hidePart4 && (
+        <MotionItem>
         <Card>
           <CardHeader>
             <CardTitle>Part 4: SDS Office Clearance</CardTitle>
@@ -464,7 +476,8 @@ export default function SapfReadonlyDetails({
             />
           </CardContent>
         </Card>
+        </MotionItem>
       )}
-    </div>
+    </MotionList>
   );
 }

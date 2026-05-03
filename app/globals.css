@@ -120,3 +120,16 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .app-surface {
+    background:
+      linear-gradient(135deg, color-mix(in oklch, var(--primary) 5%, transparent), transparent 34rem),
+      linear-gradient(180deg, color-mix(in oklch, var(--muted) 54%, transparent), transparent 28rem),
+      var(--background);
+  }
+
+  .panel-hover {
+    @apply transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-lg;
+  }
+}
