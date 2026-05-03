@@ -11,6 +11,7 @@ type ProvisionAccountInput = {
   password: string;
   name: string;
   role: ManagedRole;
+  title?: string;
 };
 
 type ProvisionAccountOptions = {
@@ -18,7 +19,11 @@ type ProvisionAccountOptions = {
   resetPassword?: boolean;
 };
 
-async function setCredentialPassword(userId: string, password: string) {
+async function setCredentialPassword(
+  userId: string,
+  password: string,
+  title?: string,
+) {
   const passwordHash = await hashPassword(password);
   const account = await prisma.account.findFirst({
     where: {
@@ -33,6 +38,7 @@ async function setCredentialPassword(userId: string, password: string) {
       data: {
         accountId: userId,
         password: passwordHash,
+        ...(title !== undefined ? { title: title || null } : {}),
       },
     });
   }
@@ -44,6 +50,7 @@ async function setCredentialPassword(userId: string, password: string) {
       providerId: "credential",
       userId,
       password: passwordHash,
+      title: title || null,
     },
   });
 }
@@ -77,7 +84,7 @@ export async function provisionCredentialAccount(
     });
 
     if (options.resetPassword || !credentialAccount?.password) {
-      await setCredentialPassword(user.id, input.password);
+      await setCredentialPassword(user.id, input.password, input.title);
     }
 
     return user;
@@ -93,7 +100,7 @@ export async function provisionCredentialAccount(
     },
   });
 
-  await setCredentialPassword(user.id, input.password);
+  await setCredentialPassword(user.id, input.password, input.title);
 
   return user;
 }

@@ -7,6 +7,7 @@ async function createAccount(
   password: string,
   name: string,
   role: ManagedRole,
+  title?: string,
 ) {
   return provisionCredentialAccount(
     {
@@ -14,6 +15,7 @@ async function createAccount(
       password,
       name,
       role,
+      title,
     },
     {
       allowExisting: true,
@@ -32,23 +34,61 @@ async function main() {
     "SUPER_ADMIN",
   );
   await createAccount("officer@lcup.edu.ph", "officer123", "Org Officer", "OFFICER");
-  const adviser = await createAccount("adviser@lcup.edu.ph", "adviser123", "Club Adviser", "APPROVER");
-  const dean = await createAccount("dean@lcup.edu.ph", "dean12345", "College Dean", "APPROVER");
-  const sds = await createAccount("sds@lcup.edu.ph", "sds12345", "SDS Admin", "ADMIN");
-  const sas = await createAccount("sas@lcup.edu.ph", "sas12345", "SAS Director", "APPROVER");
-  const finance = await createAccount("finance@lcup.edu.ph", "finance123", "VP Finance", "APPROVER");
+  const adviser = await createAccount(
+    "adviser@lcup.edu.ph",
+    "adviser123",
+    "Club Adviser",
+    "APPROVER",
+    "Organization Adviser",
+  );
+  const dean = await createAccount(
+    "dean@lcup.edu.ph",
+    "dean12345",
+    "College Dean",
+    "APPROVER",
+    "College Dean",
+  );
+  const sds = await createAccount(
+    "sds@lcup.edu.ph",
+    "sds12345",
+    "SDS Admin",
+    "ADMIN",
+    "SDS/Admin",
+  );
+  const sas = await createAccount(
+    "sas@lcup.edu.ph",
+    "sas12345",
+    "SAS Director",
+    "APPROVER",
+    "SAS Director",
+  );
+  const finance = await createAccount(
+    "finance@lcup.edu.ph",
+    "finance123",
+    "VP Finance",
+    "APPROVER",
+    "VP for Finance",
+  );
   const vpaaAssistant = await createAccount(
     "vpaa.assistant@lcup.edu.ph",
     "vpaaasst123",
     "VPAA Assistant",
     "APPROVER",
+    "VPAA Assistant",
   );
-  const vpaa = await createAccount("vpaa@lcup.edu.ph", "vpaa12345", "VPAA", "APPROVER");
+  const vpaa = await createAccount(
+    "vpaa@lcup.edu.ph",
+    "vpaa12345",
+    "VPAA",
+    "APPROVER",
+    "Vice President for Academic Affairs",
+  );
   const president = await createAccount(
     "president@lcup.edu.ph",
     "president123",
     "University President",
     "APPROVER",
+    "University President",
   );
 
   await Promise.all(

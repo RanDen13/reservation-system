@@ -57,6 +57,10 @@ function formatFileSize(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
+function userNameWithTitle(user: any) {
+  return user.title ? `${user.name}, ${user.title}` : user.name;
+}
+
 function toDateInputValue(date: Date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -941,7 +945,7 @@ export default function SapfBookingForm({
                         user.id,
                       )}
                     />
-                    {user.name}
+                    <span>{userNameWithTitle(user)}</span>
                   </label>
                 ))}
               </div>

@@ -3,6 +3,7 @@
 import ActionResult from "@/app/components/ActionResult";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { v4 as uuid } from "uuid";
@@ -84,8 +85,43 @@ function requireRole(
   return normalized ? allowed.includes(normalized) : false;
 }
 
+type CredentialTitleClient = typeof prisma | Prisma.TransactionClient;
+
 function field(data: FormData, key: string, fallback = "") {
   return String(data.get(key) ?? fallback).trim();
+}
+
+async function setCredentialAccountTitle(
+  userId: string,
+  title: string,
+  db: CredentialTitleClient = prisma,
+) {
+  const account = await db.account.findFirst({
+    where: {
+      userId,
+      providerId: "credential",
+    },
+  });
+
+  if (account) {
+    await db.account.update({
+      where: { id: account.id },
+      data: { title: title || null },
+    });
+    return;
+  }
+
+  if (!title) return;
+
+  await db.account.create({
+    data: {
+      id: uuid(),
+      accountId: userId,
+      providerId: "credential",
+      userId,
+      title,
+    },
+  });
 }
 
 function booleanField(data: FormData, key: string) {
@@ -623,6 +659,12 @@ export async function getApproverOptions(): Promise<ActionResult<any>> {
             name: true,
             email: true,
             role: true,
+            accounts: {
+              where: { providerId: "credential" },
+              select: {
+                title: true,
+              },
+            },
           },
         },
       },
@@ -631,7 +673,14 @@ export async function getApproverOptions(): Promise<ActionResult<any>> {
 
     const grouped = positions.reduce<Record<string, any[]>>((acc, item) => {
       acc[item.position] = acc[item.position] || [];
-      acc[item.position].push(item.user);
+      const credentialAccount = item.user.accounts[0];
+      acc[item.position].push({
+        id: item.user.id,
+        name: item.user.name,
+        email: item.user.email,
+        role: item.user.role,
+        title: credentialAccount?.title || "",
+      });
       return acc;
     }, {});
 
@@ -2116,12 +2165,19 @@ export async function createManagedAccount(
     }
 
     const email = field(data, "email").toLowerCase();
+    const title = field(data, "title");
 
     if (!email) {
       return { success: false, message: "Email is required." };
     }
     if (!field(data, "name")) {
       return { success: false, message: "Name is required." };
+    }
+    if (title.length > 120) {
+      return {
+        success: false,
+        message: "Title must be 120 characters or less.",
+      };
     }
 
     await auth.api.signInMagicLink({
@@ -2150,6 +2206,7 @@ export async function createManagedAccount(
       where: { id: createdUser.user.id },
       data: { role },
     });
+    await setCredentialAccountTitle(createdUser.user.id, title);
 
     revalidatePath("/user/dashboard");
     revalidatePath("/user/accounts");
@@ -2191,6 +2248,7 @@ export async function getAccountsWorkspace(): Promise<ActionResult<any>> {
           where: { providerId: "credential" },
           select: {
             password: true,
+            title: true,
           },
         },
         approverPositions: {
@@ -2203,6 +2261,7 @@ export async function getAccountsWorkspace(): Promise<ActionResult<any>> {
     });
 
     const normalizedUsers = users.map((account) => {
+      const credentialAccount = account.accounts[0];
       const hasPassword = account.accounts.some((entry) =>
         Boolean(entry.password),
       );
@@ -2214,6 +2273,7 @@ export async function getAccountsWorkspace(): Promise<ActionResult<any>> {
 
       return {
         ...account,
+        title: credentialAccount?.title || "",
         status,
       };
     });
@@ -2444,23 +2504,30 @@ export async function updateManagedName(
 
     const userId = field(data, "userId");
     const name = field(data, "name");
+    const title = field(data, "title");
     if (!userId) {
       return { success: false, message: "User is required." };
     }
     if (name.length < 2) {
       return { success: false, message: "Name must be at least 2 characters." };
     }
+    if (title.length > 120) {
+      return { success: false, message: "Title must be 120 characters or less." };
+    }
 
-    await prisma.user.update({
-      where: { id: userId },
-      data: { name },
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: userId },
+        data: { name },
+      });
+      await setCredentialAccountTitle(userId, title, tx);
     });
 
     revalidatePath("/user/accounts");
     revalidatePath("/user/dashboard");
     revalidatePath("/user/approvals");
     revalidatePath("/user/bookings");
-    return { success: true, message: "Name updated." };
+    return { success: true, message: "Account details updated." };
   } catch (error) {
     console.error("Account name update failed:", error);
     return {

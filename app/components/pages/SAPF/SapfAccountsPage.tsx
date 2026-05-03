@@ -52,6 +52,7 @@ type AccountUser = {
   id: string;
   name: string;
   email: string;
+  title?: string | null;
   role?: string | null;
   status: "PENDING" | "ACTIVE" | "INACTIVE";
   createdAt: string | Date;
@@ -201,7 +202,7 @@ function AccountRow({
       return;
     }
 
-    popup.showSuccess(result.message || "Name updated.");
+    popup.showSuccess(result.message || "Account details updated.");
     setEditingName(false);
     await onUpdated();
   };
@@ -216,6 +217,11 @@ function AccountRow({
               {user.name}
             </p>
             <p className="text-xs text-muted-foreground">{user.email}</p>
+            {user.title && (
+              <p className="text-xs font-medium text-muted-foreground">
+                {user.title}
+              </p>
+            )}
           </div>
           <Button
             type="button"
@@ -225,7 +231,7 @@ function AccountRow({
             onClick={() => setEditingName(true)}
           >
             <Pencil className="h-3.5 w-3.5" />
-            <span className="sr-only">Edit name</span>
+            <span className="sr-only">Edit account details</span>
           </Button>
         </div>
         </td>
@@ -283,7 +289,7 @@ function AccountRow({
             <SelectValue placeholder="Select action" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="EDIT_NAME">Edit name</SelectItem>
+            <SelectItem value="EDIT_NAME">Edit details</SelectItem>
             {user.status === "PENDING" && (
               <SelectItem value="RESEND_MAGIC">Resend magic code</SelectItem>
             )}
@@ -301,7 +307,7 @@ function AccountRow({
         <ModalBase onClose={() => setEditingName(false)}>
           <Card className="w-full max-w-md">
             <CardHeader>
-              <CardTitle>Edit User Name</CardTitle>
+              <CardTitle>Edit Account Details</CardTitle>
               <CardDescription>{user.email}</CardDescription>
             </CardHeader>
             <CardContent>
@@ -316,6 +322,16 @@ function AccountRow({
                     minLength={2}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`edit-title-${user.id}`}>Title</Label>
+                  <Input
+                    id={`edit-title-${user.id}`}
+                    name="title"
+                    defaultValue={user.title || ""}
+                    maxLength={120}
+                    placeholder="e.g., Student Affairs Director"
+                  />
+                </div>
                 <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                   <Button
                     type="button"
@@ -326,7 +342,7 @@ function AccountRow({
                     Cancel
                   </Button>
                   <Button type="submit" disabled={savingName}>
-                    {savingName ? "Saving..." : "Save name"}
+                    {savingName ? "Saving..." : "Save details"}
                   </Button>
                 </div>
               </form>
@@ -486,6 +502,15 @@ export default function SapfAccountsPage() {
                     placeholder="e.g., juan@lcu.edu.ph"
                     autoComplete="email"
                     required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="create-title">Title</Label>
+                  <Input
+                    id="create-title"
+                    name="title"
+                    placeholder="e.g., Student Affairs Director"
+                    maxLength={120}
                   />
                 </div>
                 <div className="space-y-2">
