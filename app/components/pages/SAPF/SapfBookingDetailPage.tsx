@@ -19,6 +19,7 @@ import { ArrowLeft, FileDown, RefreshCcw, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { cancelSapfRequest, getSapfRequestById } from "./SapfActions";
+import SapfPageLoading from "./SapfPageLoading";
 import SapfReadonlyDetails from "./SapfReadonlyDetails";
 import { ConcernThreads, RequestSummary } from "./SapfRequestDetail";
 
@@ -49,14 +50,29 @@ export default function SapfBookingDetailPage({
   }, [requestId]);
 
   if (loading && !payload) {
+    return <SapfPageLoading />;
+  }
+
+  if (!payload) {
     return (
-      <div className="p-8">
-        <p className="text-muted-foreground">Loading booking...</p>
+      <div className="p-4 lg:p-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Booking details unavailable</CardTitle>
+            <CardDescription>
+              We could not load this booking right now.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={refresh} variant="outline">
+              <RefreshCcw className="mr-2 h-4 w-4" />
+              Try again
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
-
-  if (!payload) return null;
 
   const { request, me } = payload;
   const canCancel =

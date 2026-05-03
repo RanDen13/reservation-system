@@ -13,6 +13,7 @@ import { CheckCircle, RefreshCcw } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { getSapfWorkspace } from "./SapfActions";
+import SapfPageLoading from "./SapfPageLoading";
 import { RequestSummary } from "./SapfRequestDetail";
 
 const visibleFollowStatuses = new Set([
@@ -78,14 +79,29 @@ export default function SapfApprovalsPage() {
   }, [reviewerCurrent, workspace]);
 
   if (loading && !workspace) {
+    return <SapfPageLoading />;
+  }
+
+  if (!workspace) {
     return (
-      <div className="p-8">
-        <p className="text-muted-foreground">Loading approvals...</p>
+      <div className="p-4 lg:p-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Approvals unavailable</CardTitle>
+            <CardDescription>
+              We could not load your approval queue.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={refresh} variant="outline">
+              <RefreshCcw className="mr-2 h-4 w-4" />
+              Try again
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
-
-  if (!workspace) return null;
 
   return (
     <div className="space-y-8 p-4 lg:p-8">

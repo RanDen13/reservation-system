@@ -23,6 +23,7 @@ import {
 import { format } from "date-fns";
 import { Pencil, Plus, RefreshCcw, UserPlus, Users } from "lucide-react";
 import { useEffect, useState } from "react";
+import SapfPageLoading from "./SapfPageLoading";
 import {
   createManagedAccount,
   deactivateAccount,
@@ -424,14 +425,29 @@ export default function SapfAccountsPage() {
   };
 
   if (loading && !workspace) {
+    return <SapfPageLoading />;
+  }
+
+  if (!workspace) {
     return (
-      <div className="p-8">
-        <p className="text-muted-foreground">Loading accounts...</p>
+      <div className="p-4 lg:p-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Accounts unavailable</CardTitle>
+            <CardDescription>
+              We could not load account management data.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={refresh} variant="outline">
+              <RefreshCcw className="mr-2 h-4 w-4" />
+              Try again
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
-
-  if (!workspace) return null;
 
   return (
     <div className="space-y-8 p-4 lg:p-8">

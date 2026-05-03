@@ -31,6 +31,7 @@ import {
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createVenueBlock, getSapfWorkspace } from "./SapfActions";
+import SapfPageLoading from "./SapfPageLoading";
 import { RequestSummary } from "./SapfRequestDetail";
 
 const activeStatuses = new Set([
@@ -177,16 +178,29 @@ export default function SapfDashboard() {
   }, [workspace]);
 
   if (loading && !workspace) {
+    return <SapfPageLoading />;
+  }
+
+  if (!workspace) {
     return (
-      <div className="p-8">
-        <p className="text-muted-foreground">
-          Loading reservation workspace...
-        </p>
+      <div className="p-4 lg:p-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Workspace unavailable</CardTitle>
+            <CardDescription>
+              We could not load your reservation workspace.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={refresh} variant="outline">
+              <RefreshCcw className="mr-2 h-4 w-4" />
+              Try again
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
-
-  if (!workspace) return null;
 
   const reviewerCurrent = workspace.requests.filter((request: any) =>
     request.approvalSteps.some(

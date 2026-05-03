@@ -3,7 +3,11 @@
 import { deleteEventSpace } from "@/app/components/pages/Spaces/EventSpaceActions";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
-import { Amenity, EventSpace, EventSpaceImage } from "@/generated/prisma/browser";
+import {
+  Amenity,
+  EventSpace,
+  EventSpaceImage,
+} from "@/generated/prisma/browser";
 import { Building2, Calendar, MapPin, Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -14,7 +18,10 @@ import EditEventSpacePopup from "./EditEventSpacePopup";
 import VenueImageCarousel from "./VenueImageCarousel";
 
 interface EventAreaProps {
-  eventSpace: EventSpace & { amenities?: Amenity[]; images?: EventSpaceImage[] };
+  eventSpace: EventSpace & {
+    amenities?: Amenity[];
+    images?: EventSpaceImage[];
+  };
   showAdminActions?: boolean;
   detailsHref?: string;
 }
@@ -147,7 +154,6 @@ export default function EventSpaceCard({
                 </div>
               </div>
             )}
-
           </div>
 
           {/* Actions */}

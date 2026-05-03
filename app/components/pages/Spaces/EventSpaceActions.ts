@@ -9,8 +9,8 @@ import { v4 as uuid } from "uuid";
 import { prettifyError } from "zod";
 import {
   createEventSpaceSchema,
-  IMAGE_MIME_TYPES,
   EventSpaceData,
+  IMAGE_MIME_TYPES,
   updateEventSpaceSchema,
 } from "./schema";
 
@@ -380,8 +380,11 @@ export async function updateEventSpace(
       };
     }
 
-    const { id, amenities: validatedAmenities, ...updateData } =
-      validatedData.data;
+    const {
+      id,
+      amenities: validatedAmenities,
+      ...updateData
+    } = validatedData.data;
 
     const imageFiles = extractImageFiles(data);
     const imageError = validateImageFiles(imageFiles);
@@ -430,9 +433,7 @@ export async function updateEventSpace(
         data: {
           ...updateData,
           ...(amenitiesUpdate && { amenities: amenitiesUpdate }),
-          ...(imageBuffers.length > 0
-            ? { image: imageBuffers[0] }
-            : {}),
+          ...(imageBuffers.length > 0 ? { image: imageBuffers[0] } : {}),
         },
         include: {
           amenities: true,

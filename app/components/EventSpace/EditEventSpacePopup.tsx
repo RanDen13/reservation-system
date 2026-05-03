@@ -194,7 +194,8 @@ const EditEventSpacePopup = ({
                             multiple
                             className="hidden"
                             onChange={(e) => {
-                              if (e.target.files) handleImageChange(e.target.files);
+                              if (e.target.files)
+                                handleImageChange(e.target.files);
                             }}
                           />
                           <Upload className="w-12 h-12 text-muted-foreground mb-3" />
@@ -227,7 +228,8 @@ const EditEventSpacePopup = ({
                               multiple
                               className="hidden"
                               onChange={(e) => {
-                                if (e.target.files) handleImageChange(e.target.files);
+                                if (e.target.files)
+                                  handleImageChange(e.target.files);
                               }}
                             />
                             <div className="bg-card text-foreground rounded-lg px-3 py-1.5 flex items-center gap-2">

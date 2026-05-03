@@ -1,8 +1,8 @@
 import {
   Amenity,
   EventSpace,
-  EventSpaceStatus,
   EventSpaceImage,
+  EventSpaceStatus,
 } from "@/generated/prisma/browser";
 import z from "zod";
 
@@ -26,10 +26,9 @@ export const IMAGE_MIME_TYPES = [
 
 export const IMAGE_SCHEMA = z
   .instanceof(File)
-  .refine(
-    (file) => IMAGE_MIME_TYPES.includes(file.type as any),
-    { message: "Invalid image file type" }
-  )
+  .refine((file) => IMAGE_MIME_TYPES.includes(file.type as any), {
+    message: "Invalid image file type",
+  })
   .transform((file) => file.bytes());
 
 export const createEventSpaceSchema = z.object({

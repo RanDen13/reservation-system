@@ -19,6 +19,7 @@ import { ArrowLeft, FileDown, RefreshCcw } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getApproverOptions, getSapfRequestById } from "./SapfActions";
+import SapfPageLoading from "./SapfPageLoading";
 import { ConcernThreads, RequestDetail } from "./SapfRequestDetail";
 
 export default function SapfApprovalDetailPage({
@@ -63,14 +64,29 @@ export default function SapfApprovalDetailPage({
   }, [requestId]);
 
   if (loading && !payload) {
+    return <SapfPageLoading />;
+  }
+
+  if (!payload) {
     return (
-      <div className="p-8">
-        <p className="text-muted-foreground">Loading approval...</p>
+      <div className="p-4 lg:p-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Approval details unavailable</CardTitle>
+            <CardDescription>
+              We could not load this request right now.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={refresh} variant="outline">
+              <RefreshCcw className="mr-2 h-4 w-4" />
+              Try again
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
-
-  if (!payload) return null;
 
   const { request, me, approvers } = payload;
 

@@ -170,7 +170,8 @@ const CreateEventSpacePopup = ({ onClose }: { onClose: () => void }) => {
                             multiple
                             className="hidden"
                             onChange={(e) => {
-                              if (e.target.files) handleImageChange(e.target.files);
+                              if (e.target.files)
+                                handleImageChange(e.target.files);
                             }}
                           />
                           <div className="bg-card text-foreground rounded-lg px-3 py-1.5 flex items-center gap-2">
