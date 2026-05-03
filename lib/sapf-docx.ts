@@ -257,8 +257,8 @@ export async function renderSapfDocx({ request }: { request: any }) {
     reportComplianceYes: marker(positive(part4.reportOfCompliance)),
     reportComplianceNotApplicable: marker(negative(part4.reportOfCompliance)),
     studentPersonnelRatio: part4.studentPersonnelRatio,
-    conductedRemarks: part6.conductedRemarks,
-    cancelledRemarks: part6.cancelledRemarks,
+    conductedRemarks: short(part6.conductedRemarks),
+    cancelledRemarks: short(part6.cancelledRemarks),
 
     preparedBy: request.officer?.name || "",
     adviserName,
