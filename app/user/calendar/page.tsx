@@ -1,4 +1,4 @@
-import VenueCalendarView from "@/app/components/pages/Calendar/VenueCalendarView";
+import AllEventsCalendar from "@/app/components/pages/Calendar/AllEventsCalendar";
 import { getVenueCalendarData } from "@/lib/venue-calendar-data";
 
 const page = async () => {
@@ -6,11 +6,11 @@ const page = async () => {
 
   return (
     <div className="p-4 lg:p-8">
-      <VenueCalendarView
+      <AllEventsCalendar
         venues={venues}
         globalBlocks={globalBlocks}
-        title="Venue Calendar"
-        description="Read-only availability while keeping your dashboard navigation available."
+        title="Calendar"
+        description="All reservations and blocks across venues."
       />
     </div>
   );

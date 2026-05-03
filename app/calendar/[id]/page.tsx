@@ -18,7 +18,6 @@ function calendarItems(venue: any, globalBlocks: any[]): VenueCalendarItem[] {
         subtitle: [
           request.organization,
           request.department,
-          `Request ID: ${request.id}`,
           request.status?.replaceAll("_", " "),
         ]
           .filter(Boolean)
@@ -36,9 +35,7 @@ function calendarItems(venue: any, globalBlocks: any[]): VenueCalendarItem[] {
       (block.schedules || []).map((schedule: any) => ({
         id: schedule.id,
         title: block.title,
-        subtitle: [block.reason || "Venue block", `Block ID: ${block.id}`]
-          .filter(Boolean)
-          .join(" • "),
+        subtitle: block.reason || "Venue block",
         startAt: schedule.startAt,
         endAt: schedule.endAt,
         status: "BLOCKED" as const,
@@ -49,12 +46,7 @@ function calendarItems(venue: any, globalBlocks: any[]): VenueCalendarItem[] {
       (block.schedules || []).map((schedule: any) => ({
         id: schedule.id,
         title: block.title,
-        subtitle: [
-          block.reason || "University-wide block",
-          `Block ID: ${block.id}`,
-        ]
-          .filter(Boolean)
-          .join(" • "),
+        subtitle: block.reason || "University-wide block",
         startAt: schedule.startAt,
         endAt: schedule.endAt,
         status: "BLOCKED" as const,

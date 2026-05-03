@@ -5,6 +5,7 @@ import { ModeToggle } from "@/components/mode-toggle";
 import { cn } from "@/lib/utils";
 import {
   Building2,
+  CalendarDays,
   History,
   Home,
   LayoutDashboard,
@@ -49,6 +50,12 @@ const navItems: NavItem[] = [
     label: "Bookings",
     href: "/user/bookings",
     icon: <History className="h-5 w-5" />,
+    roles: ["OFFICER", "APPROVER", "ADMIN", "SUPER_ADMIN"],
+  },
+  {
+    label: "Calendar",
+    href: "/user/calendar",
+    icon: <CalendarDays className="h-5 w-5" />,
     roles: ["OFFICER", "APPROVER", "ADMIN", "SUPER_ADMIN"],
   },
   {
