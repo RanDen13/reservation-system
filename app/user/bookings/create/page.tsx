@@ -4,10 +4,50 @@ import {
   getSapfRequestById,
 } from "@/app/components/pages/SAPF/SapfActions";
 import { getAllEventSpaces } from "@/app/components/pages/Spaces/EventSpaceActions";
-import ErrorPopup from "@/app/components/Popup/ErrorPopup";
+import { Button } from "@/app/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/app/components/ui/card";
 import { auth } from "@/lib/auth";
+import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+
+function ErrorCard({ message }: { message: string }) {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Booking unavailable</CardTitle>
+          <CardDescription>{message}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild variant="outline" className="w-full">
+            <Link href="/user/bookings">Back to bookings</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function adviserHasApproved(request: any) {
+  return request.approvalSteps?.some(
+    (step: any) => step.position === "ADVISER" && step.status === "APPROVED",
+  );
+}
+
+function canEditRequest(request: any) {
+  if (["DRAFT", "RETURNED_FOR_REVISION"].includes(request.status)) return true;
+  if (["SUBMITTED", "IN_REVIEW"].includes(request.status)) {
+    return !adviserHasApproved(request);
+  }
+  return false;
+}
 
 const page = async ({
   searchParams,
@@ -23,7 +63,7 @@ const page = async ({
   }
 
   if (session.user.role?.toUpperCase() !== "OFFICER") {
-    return <ErrorPopup message="Only officers can create bookings." />;
+    return <ErrorCard message="Only officers can create bookings." />;
   }
 
   const { venueId, requestId } = await searchParams;
@@ -34,14 +74,12 @@ const page = async ({
   ]);
 
   if (!venuesResult.success) {
-    return (
-      <ErrorPopup message={venuesResult.message || "Failed to load venues."} />
-    );
+    return <ErrorCard message={venuesResult.message || "Failed to load venues."} />;
   }
 
   if (!approversResult.success) {
     return (
-      <ErrorPopup
+      <ErrorCard
         message={approversResult.message || "Failed to load approvers."}
       />
     );
@@ -49,15 +87,17 @@ const page = async ({
 
   if (requestResult && !requestResult.success) {
     return (
-      <ErrorPopup
+      <ErrorCard
         message={requestResult.message || "Failed to load request."}
       />
     );
   }
 
   const request = requestResult?.data?.request;
-  if (request && !["DRAFT", "RETURNED_FOR_REVISION"].includes(request.status)) {
-    return <ErrorPopup message="This request can no longer be edited." />;
+  if (request && !canEditRequest(request)) {
+    return (
+      <ErrorCard message="This request can only be edited before the adviser approves it." />
+    );
   }
 
   return (
@@ -68,7 +108,7 @@ const page = async ({
           Select venues and complete the SAPF reservation request.
         </p>
       </div>
-      {request && (
+      {request?.status === "RETURNED_FOR_REVISION" && (
         <div className="rounded-lg border border-orange-500/30 bg-orange-500/10 p-4 text-sm text-orange-900 dark:text-orange-100">
           Editing returned request #{request.requestNumber}. Update the details
           and resubmit to continue the approval flow.

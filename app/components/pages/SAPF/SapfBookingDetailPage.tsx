@@ -82,6 +82,14 @@ export default function SapfBookingDetailPage({
     (step: any) => step.concernThread,
   );
   const showChat = hasThreads && me?.role === "OFFICER";
+  const adviserApproved = request.approvalSteps?.some(
+    (step: any) => step.position === "ADVISER" && step.status === "APPROVED",
+  );
+  const canEdit =
+    me?.role === "OFFICER" &&
+    (["DRAFT", "RETURNED_FOR_REVISION"].includes(request.status) ||
+      (["SUBMITTED", "IN_REVIEW"].includes(request.status) &&
+        !adviserApproved));
 
   const handleCancel = async () => {
     const confirmed = await popup.showYesNo(
@@ -120,14 +128,15 @@ export default function SapfBookingDetailPage({
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {me?.role === "OFFICER" &&
-            ["DRAFT", "RETURNED_FOR_REVISION"].includes(request.status) && (
-              <Button asChild variant="outline">
-                <Link href={`/user/bookings/create?requestId=${request.id}`}>
-                  Edit and Resubmit
-                </Link>
-              </Button>
-            )}
+          {canEdit && (
+            <Button asChild variant="outline">
+              <Link href={`/user/bookings/create?requestId=${request.id}`}>
+                {request.status === "RETURNED_FOR_REVISION"
+                  ? "Edit and Resubmit"
+                  : "Edit Reservation"}
+              </Link>
+            </Button>
+          )}
           <Button asChild variant="outline">
             <a href={`/api/sapf/${request.id}/preview`} target="_blank">
               <FileDown className="mr-2 h-4 w-4" />

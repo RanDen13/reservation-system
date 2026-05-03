@@ -657,6 +657,23 @@ async function buildApprovalChain(data: FormData) {
   return steps;
 }
 
+function adviserHasApproved(request: { approvalSteps?: Array<{ position: string; status: string }> }) {
+  return request.approvalSteps?.some(
+    (step) => step.position === "ADVISER" && step.status === "APPROVED",
+  );
+}
+
+function canEditSapfRequest(request: {
+  status: string;
+  approvalSteps?: Array<{ position: string; status: string }>;
+}) {
+  if (["DRAFT", "RETURNED_FOR_REVISION"].includes(request.status)) return true;
+  if (["SUBMITTED", "IN_REVIEW"].includes(request.status)) {
+    return !adviserHasApproved(request);
+  }
+  return false;
+}
+
 export async function getPublicCalendarData(): Promise<ActionResult<any>> {
   try {
     const venues = await prisma.eventSpace.findMany({
@@ -1275,13 +1292,11 @@ export async function saveSapfRequest(
       };
     }
 
-    if (
-      existing &&
-      !["DRAFT", "RETURNED_FOR_REVISION"].includes(existing.status)
-    ) {
+    if (existing && !canEditSapfRequest(existing)) {
       return {
         success: false,
-        message: "Only draft or returned requests can be edited.",
+        message:
+          "This request can only be edited before the adviser approves it.",
       };
     }
 

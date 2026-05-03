@@ -225,7 +225,8 @@ export default function SapfBookingForm({
   const [signatoryPopoverOpen, setSignatoryPopoverOpen] = useState(false);
   const [signatorySearch, setSignatorySearch] = useState("");
   const isEditing = Boolean(initialRequest);
-  const lockApprovalChain = initialRequest?.status === "RETURNED_FOR_REVISION";
+  const lockApprovalChain =
+    Boolean(initialRequest) && initialRequest.status !== "DRAFT";
   const formKey = initialRequest?.id || preselectedVenueIds.join("-") || "new";
   const part1 = initialRequest?.sapfPart1 || {};
   const part2 = initialRequest?.sapfPart2 || {};
