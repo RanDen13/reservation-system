@@ -4,8 +4,10 @@ import VenueMonthCalendar, {
 } from "@/app/components/pages/Calendar/VenueMonthCalendar";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
+import { ModeToggle } from "@/components/mode-toggle";
 import { getVenueCalendarData } from "@/lib/venue-calendar-data";
 import { ArrowLeft, MapPin, Users } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -58,8 +60,16 @@ function calendarItems(venue: any, globalBlocks: any[]): VenueCalendarItem[] {
   );
 }
 
-const page = async ({ params }: { params: Promise<{ id: string }> }) => {
+const page = async ({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ kiosk?: string }>;
+}) => {
   const { id } = await params;
+  const { kiosk } = await searchParams;
+  const isKiosk = kiosk === "true";
   const { venues, globalBlocks } = await getVenueCalendarData();
   const venue = venues.find((item) => item.id === id);
 
@@ -78,14 +88,46 @@ const page = async ({ params }: { params: Promise<{ id: string }> }) => {
       : [];
 
   return (
-    <main className="min-h-screen bg-background p-4 lg:p-8">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <Button asChild variant="outline">
-          <Link href="/calendar">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to venues
-          </Link>
-        </Button>
+    <main className="relative min-h-screen overflow-hidden bg-background">
+      <div className="absolute inset-x-0 top-0 h-[24rem] overflow-hidden">
+        <Image
+          src="/lcupBg.png"
+          alt=""
+          fill
+          priority
+          className="object-cover"
+          sizes="100vw"
+        />
+        <div className="absolute inset-0 bg-slate-950/75" />
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-background to-transparent" />
+      </div>
+      <div className="relative mx-auto max-w-7xl space-y-6 p-4 lg:p-8">
+        <div className="flex flex-wrap gap-2">
+          {!isKiosk && (
+            <>
+              <Button
+                asChild
+                variant="outline"
+                className="border-white/35 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+              >
+                <Link href="/calendar">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to venues
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="border-white/35 bg-transparent text-white hover:bg-white/10 hover:text-white"
+              >
+                <Link href="/">Home</Link>
+              </Button>
+            </>
+          )}
+          <div className="text-foreground">
+            <ModeToggle />
+          </div>
+        </div>
 
         <VenueImageCarousel
           images={images}

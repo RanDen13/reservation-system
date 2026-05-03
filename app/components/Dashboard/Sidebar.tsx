@@ -141,7 +141,7 @@ export default function Sidebar({
                   href={item.href}
                   onClick={() => setIsMobileOpen(false)}
                   className={cn(
-                    "relative isolate flex items-center gap-3 overflow-hidden rounded-lg px-4 py-3 transition-colors duration-200",
+                    "relative isolate flex items-center gap-3 overflow-visible rounded-lg px-4 py-3 transition-colors duration-200",
                     isActive
                       ? "text-sidebar-primary-foreground"
                       : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
@@ -150,7 +150,7 @@ export default function Sidebar({
                   {isActive && (
                     <motion.span
                       layoutId="sidebar-active-page"
-                      className="absolute inset-0 -z-10 rounded-lg bg-sidebar-primary shadow-sm"
+                      className="absolute inset-0 z-0 rounded-lg bg-sidebar-primary shadow-sm"
                       transition={{
                         type: "spring",
                         stiffness: 420,
