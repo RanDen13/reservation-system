@@ -1,9 +1,9 @@
 "use server";
 
 import ActionResult from "@/app/components/ActionResult";
+import type { Prisma } from "@/generated/prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import type { Prisma } from "@/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { v4 as uuid } from "uuid";
@@ -641,7 +641,9 @@ export async function getPublicCalendarData(): Promise<ActionResult<any>> {
       data: jsonSafe({
         venues: venues.map((venue: any) => ({
           ...venue,
-          sapfRequests: venue.sapfRequestVenues.map((item: any) => item.request),
+          sapfRequests: venue.sapfRequestVenues.map(
+            (item: any) => item.request,
+          ),
         })),
         globalBlocks,
       }),
@@ -1628,6 +1630,48 @@ export async function reviewSapfRequest(
       return { success: false, message: "You are not assigned to this step." };
     }
 
+    const requiresDeanSelection =
+      action === "approve" && step.position === "ADVISER";
+    let selectedDeanId: string | null = null;
+    const deanStep = requiresDeanSelection
+      ? request.approvalSteps.find((item) => item.position === "DEAN")
+      : null;
+
+    if (requiresDeanSelection) {
+      const deanId = field(data, "deanId");
+      if (!deanId) {
+        return {
+          success: false,
+          message: "Please select a dean for the next approval.",
+        };
+      }
+
+      const deanPosition = await prisma.approverPositionUser.findFirst({
+        where: {
+          userId: deanId,
+          position: "DEAN" as any,
+          active: true,
+        },
+        select: { userId: true },
+      });
+
+      if (!deanPosition) {
+        return {
+          success: false,
+          message: "Selected dean is not an active approver.",
+        };
+      }
+
+      if (!deanStep) {
+        return {
+          success: false,
+          message: "Dean approval step is missing from this request.",
+        };
+      }
+
+      selectedDeanId = deanPosition.userId;
+    }
+
     if (action === "return" && !comment) {
       return { success: false, message: "A revision comment is required." };
     }
@@ -1778,6 +1822,13 @@ export async function reviewSapfRequest(
     }
 
     await prisma.$transaction(async (tx) => {
+      if (selectedDeanId && deanStep) {
+        await tx.approvalStep.update({
+          where: { id: deanStep.id },
+          data: { reviewerId: selectedDeanId },
+        });
+      }
+
       await tx.approvalStep.update({
         where: { id: step.id },
         data: {
@@ -1864,8 +1915,12 @@ export async function reviewSapfRequest(
     );
 
     if (nextStep) {
+      const nextReviewerId =
+        selectedDeanId && nextStep.position === "DEAN"
+          ? selectedDeanId
+          : nextStep.reviewerId;
       await createNotification(
-        nextStep.reviewerId,
+        nextReviewerId,
         "Reservation request needs review",
         `${request.requestNumber} - ${request.title} is waiting for your approval.`,
         "APPROVAL",
@@ -2520,7 +2575,10 @@ export async function updateManagedName(
       return { success: false, message: "Name must be at least 2 characters." };
     }
     if (title.length > 120) {
-      return { success: false, message: "Title must be 120 characters or less." };
+      return {
+        success: false,
+        message: "Title must be 120 characters or less.",
+      };
     }
 
     await prisma.$transaction(async (tx) => {

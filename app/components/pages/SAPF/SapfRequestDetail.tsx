@@ -12,6 +12,13 @@ import {
 } from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/app/components/ui/select";
 import { Textarea } from "@/app/components/ui/textarea";
 import { format, formatDistanceToNow } from "date-fns";
 import {
@@ -262,10 +269,12 @@ function ReviewControls({
   request,
   me,
   onRefresh,
+  approvers,
 }: {
   request: any;
   me: any;
   onRefresh: () => Promise<void>;
+  approvers?: Record<string, any[]>;
 }) {
   const popup = usePopup();
   const [selectedAction, setSelectedAction] = useState<
@@ -326,6 +335,10 @@ function ReviewControls({
         ? "What should the officer revise?"
         : "Why is this request rejected?";
   const attachmentLimitExceeded = attachmentTotal > MAX_ATTACHMENT_BYTES;
+  const deanOptions = approvers?.DEAN || [];
+  const requiresDeanSelection =
+    step.position === "ADVISER" && selectedAction === "approve";
+  const missingDeanOptions = requiresDeanSelection && deanOptions.length === 0;
 
   const yesNoField = (name: string, label: string) => (
     <div className="space-y-2">
@@ -537,6 +550,57 @@ function ReviewControls({
                 <input type="hidden" name="requestId" value={request.id} />
                 <input type="hidden" name="stepId" value={step.id} />
                 <input type="hidden" name="action" value={selectedAction} />
+                {requiresDeanSelection && (
+                  <div className="rounded-lg border bg-muted/40 p-3">
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold text-foreground">
+                        Select the dean reviewer
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        This assigns who will review the request after your
+                        approval.
+                      </p>
+                    </div>
+                    {missingDeanOptions ? (
+                      <p className="mt-3 text-xs text-destructive">
+                        No active dean accounts are configured. Ask a super
+                        admin to assign a dean position before approving.
+                      </p>
+                    ) : (
+                      <div className="mt-3">
+                        <Label htmlFor="dean-select">Dean</Label>
+                        <Select name="deanId" required>
+                          <SelectTrigger
+                            id="dean-select"
+                            className="mt-2 w-full"
+                          >
+                            <SelectValue placeholder="Select dean" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {deanOptions.map((dean: any) => (
+                              <SelectItem key={dean.id} value={dean.id}>
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-medium">
+                                    {dean.name}
+                                  </span>
+                                  {dean.title && (
+                                    <span className="text-xs text-muted-foreground">
+                                      {dean.title}
+                                    </span>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          {deanOptions.length} dean
+                          {deanOptions.length === 1 ? "" : "s"} available.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div>
                   <Label>{selectedActionCommentLabel}</Label>
                   <Textarea
@@ -559,7 +623,9 @@ function ReviewControls({
                     type="submit"
                     disabled={
                       submitting ||
-                      (selectedAction === "approve" && attachmentLimitExceeded)
+                      (selectedAction === "approve" &&
+                        attachmentLimitExceeded) ||
+                      missingDeanOptions
                     }
                     variant={
                       selectedAction === "reject" ? "destructive" : "default"
@@ -594,7 +660,9 @@ function SdsClearanceEditControls({
   const popup = usePopup();
   const part4 = request.sapfPart4 || {};
   const initialHasAttachments =
-    typeof part4.hasAttachments === "boolean" ? String(part4.hasAttachments) : "";
+    typeof part4.hasAttachments === "boolean"
+      ? String(part4.hasAttachments)
+      : "";
   const [hasAttachments, setHasAttachments] = useState(initialHasAttachments);
   const [attachmentTotal, setAttachmentTotal] = useState(0);
   const [attachmentNames, setAttachmentNames] = useState<string[]>([]);
@@ -779,7 +847,11 @@ function SdsClearanceEditControls({
             </div>
           </div>
           <div className="rounded-md border bg-card p-3 shadow-xs">
-            {yesNoField("medicalExam", "Medical Exam Request", part4.medicalExam)}
+            {yesNoField(
+              "medicalExam",
+              "Medical Exam Request",
+              part4.medicalExam,
+            )}
           </div>
         </div>
 
@@ -908,12 +980,14 @@ export function RequestDetail({
   request,
   me,
   onRefresh,
+  approvers,
   showReviewControls = true,
   showConcernThreads = true,
 }: {
   request: any;
   me: any;
   onRefresh: () => Promise<void>;
+  approvers?: Record<string, any[]>;
   showReviewControls?: boolean;
   showConcernThreads?: boolean;
 }) {
@@ -939,7 +1013,12 @@ export function RequestDetail({
       <RequestSummary request={request} />
       <SapfReadonlyDetails request={request} hidePart4={hideReadOnlyPart4} />
       {showReviewControls && (
-        <ReviewControls request={request} me={me} onRefresh={onRefresh} />
+        <ReviewControls
+          request={request}
+          me={me}
+          onRefresh={onRefresh}
+          approvers={approvers}
+        />
       )}
       {showReviewControls && (
         <SdsClearanceEditControls

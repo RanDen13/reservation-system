@@ -71,6 +71,14 @@ function stepName(request: any, position: string) {
   );
 }
 
+function stepTitle(request: any, position: string) {
+  const reviewer = request.approvalSteps?.find(
+    (step: any) => step.position === position,
+  )?.reviewer;
+  const credentialAccount = reviewer?.accounts?.[0];
+  return credentialAccount?.title || "";
+}
+
 export async function renderSapfDocx({ request }: { request: any }) {
   const template = await readFile(TEMPLATE_PATH);
   const zip = new PizZip(template);
@@ -241,6 +249,7 @@ export async function renderSapfDocx({ request }: { request: any }) {
     adviserName,
     sdsName: stepName(request, "SDS"),
     deanName,
+    deanTitle: stepTitle(request, "DEAN"),
     sasName: stepName(request, "SAS"),
     additionalSignatoryName,
     vpaaAsst: stepName(request, "VPAA_ASSISTANT"),

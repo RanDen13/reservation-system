@@ -18,7 +18,7 @@ import {
 import { ArrowLeft, FileDown, RefreshCcw } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getSapfRequestById } from "./SapfActions";
+import { getApproverOptions, getSapfRequestById } from "./SapfActions";
 import { ConcernThreads, RequestDetail } from "./SapfRequestDetail";
 
 export default function SapfApprovalDetailPage({
@@ -27,18 +27,33 @@ export default function SapfApprovalDetailPage({
   requestId: string;
 }) {
   const popup = usePopup();
-  const [payload, setPayload] = useState<any>(null);
+  const [payload, setPayload] = useState<{
+    request: any;
+    me: any;
+    approvers: Record<string, any[]>;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refresh = async () => {
     setLoading(true);
-    const result = await getSapfRequestById(requestId);
-    if (!result.success) {
-      popup.showError(result.message);
+    const [requestResult, approversResult] = await Promise.all([
+      getSapfRequestById(requestId),
+      getApproverOptions(),
+    ]);
+    if (!requestResult.success) {
+      popup.showError(requestResult.message);
       setLoading(false);
       return;
     }
-    setPayload(result.data);
+    if (!approversResult.success) {
+      popup.showError(approversResult.message);
+      setLoading(false);
+      return;
+    }
+    setPayload({
+      ...requestResult.data,
+      approvers: approversResult.data || {},
+    });
     setLoading(false);
   };
 
@@ -57,7 +72,7 @@ export default function SapfApprovalDetailPage({
 
   if (!payload) return null;
 
-  const { request, me } = payload;
+  const { request, me, approvers } = payload;
 
   const hasThreads = request.approvalSteps?.some(
     (step: any) => step.concernThread,
@@ -118,6 +133,7 @@ export default function SapfApprovalDetailPage({
             request={request}
             me={me}
             onRefresh={refresh}
+            approvers={approvers}
             showConcernThreads={false}
           />
         </TabsContent>

@@ -1,7 +1,7 @@
 import { normalizeSapfRequest } from "@/app/components/pages/SAPF/sapfData";
 import { auth } from "@/lib/auth";
-import { renderSapfDocx } from "@/lib/sapf-docx";
 import { prisma } from "@/lib/prisma";
+import { renderSapfDocx } from "@/lib/sapf-docx";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
@@ -59,7 +59,14 @@ export async function GET(
       },
       approvalSteps: {
         include: {
-          reviewer: true,
+          reviewer: {
+            include: {
+              accounts: {
+                where: { providerId: "credential" },
+                select: { title: true },
+              },
+            },
+          },
         },
         orderBy: {
           stepOrder: "asc",

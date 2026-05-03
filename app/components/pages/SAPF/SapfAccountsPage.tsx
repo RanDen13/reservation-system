@@ -29,8 +29,8 @@ import {
   getAccountsWorkspace,
   reactivateAccount,
   sendMagicEmail,
-  updateManagedName,
   updateApproverPosition,
+  updateManagedName,
   updateManagedRole,
 } from "./SapfActions";
 
@@ -238,96 +238,96 @@ function AccountRow({
     <>
       <tr className="border-t">
         <td className="px-4 py-3">
-        <div className="flex items-start gap-2">
-          <div>
-            <p className="text-sm font-semibold text-foreground">
-              {user.name}
-            </p>
-            <p className="text-xs text-muted-foreground">{user.email}</p>
-            {user.title && (
-              <p className="text-xs font-medium text-muted-foreground">
-                {user.title}
+          <div className="flex items-start gap-2">
+            <div>
+              <p className="text-sm font-semibold text-foreground">
+                {user.name}
               </p>
-            )}
+              <p className="text-xs text-muted-foreground">{user.email}</p>
+              {user.title && (
+                <p className="text-xs font-medium text-muted-foreground">
+                  {user.title}
+                </p>
+              )}
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2"
+              onClick={() => setEditingName(true)}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              <span className="sr-only">Edit account details</span>
+            </Button>
           </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2"
-            onClick={() => setEditingName(true)}
+        </td>
+        <td className="px-4 py-3">
+          <Select
+            value={role}
+            onValueChange={handleRoleChange}
+            disabled={savingRole || isSelf}
           >
-            <Pencil className="h-3.5 w-3.5" />
-            <span className="sr-only">Edit account details</span>
-          </Button>
-        </div>
+            <SelectTrigger className="h-9 w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {roleOptions.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option.replaceAll("_", " ")}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </td>
         <td className="px-4 py-3">
-        <Select
-          value={role}
-          onValueChange={handleRoleChange}
-          disabled={savingRole || isSelf}
-        >
-          <SelectTrigger className="h-9 w-[180px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {roleOptions.map((option) => (
-              <SelectItem key={option} value={option}>
-                {option.replaceAll("_", " ")}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <Select
+            value={position}
+            onValueChange={handlePositionChange}
+            disabled={savingPosition || !canEditPosition}
+          >
+            <SelectTrigger className="h-9 w-[200px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {positionOptions.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option === "NONE"
+                    ? "No position"
+                    : option.replaceAll("_", " ")}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </td>
         <td className="px-4 py-3">
-        <Select
-          value={position}
-          onValueChange={handlePositionChange}
-          disabled={savingPosition || !canEditPosition}
-        >
-          <SelectTrigger className="h-9 w-[200px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {positionOptions.map((option) => (
-              <SelectItem key={option} value={option}>
-                {option === "NONE"
-                  ? "No position"
-                  : option.replaceAll("_", " ")}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        </td>
-        <td className="px-4 py-3">
-        <StatusBadge status={user.status} />
+          <StatusBadge status={user.status} />
         </td>
         <td className="px-4 py-3 text-sm text-muted-foreground">
-        {format(new Date(user.createdAt), "MMM d, yyyy")}
+          {format(new Date(user.createdAt), "MMM d, yyyy")}
         </td>
         <td className="px-4 py-3">
-        <Select
-          value={actionValue}
-          onValueChange={handleActionChange}
-          disabled={savingAction || isSelf}
-        >
-          <SelectTrigger className="h-9 w-[200px]">
-            <SelectValue placeholder="Select action" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="EDIT_NAME">Edit details</SelectItem>
-            {user.status === "PENDING" && (
-              <SelectItem value="RESEND_MAGIC">Resend magic code</SelectItem>
-            )}
-            {!isSelf && user.status !== "INACTIVE" && (
-              <SelectItem value="DEACTIVATE">Deactivate account</SelectItem>
-            )}
-            {!isSelf && user.status === "INACTIVE" && (
-              <SelectItem value="ACTIVATE">Activate account</SelectItem>
-            )}
-          </SelectContent>
-        </Select>
+          <Select
+            value={actionValue}
+            onValueChange={handleActionChange}
+            disabled={savingAction || isSelf}
+          >
+            <SelectTrigger className="h-9 w-[200px]">
+              <SelectValue placeholder="Select action" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="EDIT_NAME">Edit details</SelectItem>
+              {user.status === "PENDING" && (
+                <SelectItem value="RESEND_MAGIC">Resend magic code</SelectItem>
+              )}
+              {!isSelf && user.status !== "INACTIVE" && (
+                <SelectItem value="DEACTIVATE">Deactivate account</SelectItem>
+              )}
+              {!isSelf && user.status === "INACTIVE" && (
+                <SelectItem value="ACTIVATE">Activate account</SelectItem>
+              )}
+            </SelectContent>
+          </Select>
         </td>
       </tr>
       {editingName && (
