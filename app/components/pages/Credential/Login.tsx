@@ -12,15 +12,7 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { signIn } from "@/lib/auth-client";
 import { motion } from "framer-motion";
-import {
-  ArrowLeft,
-  Eye,
-  EyeOff,
-  KeyRound,
-  Lock,
-  Mail,
-  Send,
-} from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, KeyRound, Lock, Mail } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { usePopup } from "../../Popup/PopupProvider";
@@ -103,34 +95,6 @@ const Login = () => {
     );
 
     setLoading(false);
-  }
-
-  async function handleSendMagicCode() {
-    if (!loginEmail) {
-      statusPopup.showError("Enter your email address first.");
-      return;
-    }
-
-    setSendingMagicCode(true);
-    await signIn.magicLink(
-      {
-        email: loginEmail,
-        callbackURL: "/first-login",
-        newUserCallbackURL: "/first-login",
-        errorCallbackURL: "/login",
-      },
-      {
-        onSuccess: () => {
-          statusPopup.showSuccess("Magic code sent. Check your email.");
-        },
-        onError: (ctx) => {
-          statusPopup.showError(
-            ctx.error.message || "Unable to send magic code.",
-          );
-        },
-      },
-    );
-    setSendingMagicCode(false);
   }
 
   function handleMagicCodeLogin() {
@@ -310,17 +274,6 @@ const Login = () => {
               </div>
 
               <div className="space-y-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={busy}
-                  onClick={handleSendMagicCode}
-                  className="h-12 w-full"
-                >
-                  <Send className="mr-2 h-5 w-5" />
-                  {sendingMagicCode ? "Sending..." : "Email Me a Magic Code"}
-                </Button>
-
                 <div className="space-y-2">
                   <Label htmlFor="magic-code" className="text-sm font-semibold">
                     Magic Code
