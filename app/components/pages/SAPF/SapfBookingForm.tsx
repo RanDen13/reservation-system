@@ -103,9 +103,7 @@ function getRequestSchedule(initialRequest?: any) {
   const endAt = new Date(initialRequest.endAt);
 
   return {
-    date: Number.isNaN(startAt.getTime())
-      ? ""
-      : format(startAt, "yyyy-MM-dd"),
+    date: Number.isNaN(startAt.getTime()) ? "" : format(startAt, "yyyy-MM-dd"),
     startTime: Number.isNaN(startAt.getTime()) ? "" : format(startAt, "HH:mm"),
     endTime: Number.isNaN(endAt.getTime()) ? "" : format(endAt, "HH:mm"),
   };
@@ -259,7 +257,8 @@ export default function SapfBookingForm({
     : REQUIRED_CHAIN_POSITIONS.filter(
         (position) => (approvers[position] || []).length === 0,
       );
-  const missingAdviserOptions = !lockApprovalChain && adviserOptions.length === 0;
+  const missingAdviserOptions =
+    !lockApprovalChain && adviserOptions.length === 0;
   const hasMissingChainOptions =
     !lockApprovalChain &&
     (missingAdviserOptions || missingRequiredPositions.length > 0);

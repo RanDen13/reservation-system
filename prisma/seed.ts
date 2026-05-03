@@ -1,4 +1,7 @@
-import { provisionCredentialAccount, type ManagedRole } from "@/lib/account-provisioning";
+import {
+  provisionCredentialAccount,
+  type ManagedRole,
+} from "@/lib/account-provisioning";
 import { prisma } from "@/lib/prisma";
 import { v4 as uuid } from "uuid";
 
@@ -33,7 +36,12 @@ async function main() {
     "Super Admin",
     "SUPER_ADMIN",
   );
-  await createAccount("officer@lcup.edu.ph", "officer123", "Org Officer", "OFFICER");
+  await createAccount(
+    "officer@lcup.edu.ph",
+    "officer123",
+    "Org Officer",
+    "OFFICER",
+  );
   const adviser = await createAccount(
     "adviser@lcup.edu.ph",
     "adviser123",
@@ -46,14 +54,14 @@ async function main() {
     "dean12345",
     "College Dean",
     "APPROVER",
-    "College Dean",
+    "Dean, CITE",
   );
   const sds = await createAccount(
     "sds@lcup.edu.ph",
     "sds12345",
-    "SDS Admin",
+    "Dr. Rosalyn Galvez",
     "ADMIN",
-    "SDS/Admin",
+    "Director, Student Affairs and Services",
   );
   const sas = await createAccount(
     "sas@lcup.edu.ph",
@@ -65,9 +73,23 @@ async function main() {
   const finance = await createAccount(
     "finance@lcup.edu.ph",
     "finance123",
-    "VP Finance",
+    "Sr. Jennifer Dela Cruz, OSA, Ph.D.",
     "APPROVER",
-    "VP for Finance",
+    "Vice President for Finance and Administration",
+  );
+  const spiritual = await createAccount(
+    "spiritual@lcup.edu.ph",
+    "spiritual123",
+    "Sr. Regina M. Cesar, OSA",
+    "APPROVER",
+    "Asst. Vice President for Spiritual Formation and Extension",
+  );
+  const research = await createAccount(
+    "research@lcup.edu.ph",
+    "research123",
+    "Dr. Mark Rey Santos",
+    "APPROVER",
+    "Vice President Research and Innovation",
   );
   const vpaaAssistant = await createAccount(
     "vpaa.assistant@lcup.edu.ph",
@@ -86,7 +108,7 @@ async function main() {
   const president = await createAccount(
     "president@lcup.edu.ph",
     "president123",
-    "University President",
+    "Sr. Niceta M. Vargas, OSA, Ph.D.",
     "APPROVER",
     "University President",
   );
@@ -98,6 +120,8 @@ async function main() {
       { userId: sds.id, position: "SDS" },
       { userId: sas.id, position: "SAS" },
       { userId: finance.id, position: "ADDITIONAL_SIGNATORY" },
+      { userId: research.id, position: "ADDITIONAL_SIGNATORY" },
+      { userId: spiritual.id, position: "ADDITIONAL_SIGNATORY" },
       { userId: vpaaAssistant.id, position: "VPAA_ASSISTANT" },
       { userId: vpaa.id, position: "VPAA" },
       { userId: president.id, position: "UNIVERSITY_PRESIDENT" },
@@ -186,7 +210,8 @@ async function main() {
       name: "Function Hall",
       capacity: 120,
       location: "Administration Building, 2nd Floor",
-      description: "Flexible indoor venue for councils, seminars, and receptions.",
+      description:
+        "Flexible indoor venue for councils, seminars, and receptions.",
       status: "ACTIVE",
       amenities: {
         connect: [{ id: wifi.id }, { id: projector.id }, { id: air.id }],

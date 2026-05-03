@@ -112,6 +112,21 @@ export async function renderSapfDocx({ request }: { request: any }) {
     .map((step: any) => step.reviewer?.name)
     .filter(Boolean)
     .join(" / ");
+  const additionalSignatories = (request.approvalSteps || [])
+    .filter((step: any) => step.position === "ADDITIONAL_SIGNATORY")
+    .map((step: any) => {
+      const reviewer = step.reviewer || {};
+      const credentialAccount = reviewer.accounts?.[0];
+      const name = reviewer.name || "";
+      const title = credentialAccount?.title || "";
+      return {
+        name,
+        title,
+        signatoryName: name,
+        signatoryTitle: title,
+      };
+    })
+    .filter((entry: any) => entry.name || entry.title);
   const deanName = stepName(request, "DEAN");
   const adviserName = stepName(request, "ADVISER");
 
@@ -252,6 +267,8 @@ export async function renderSapfDocx({ request }: { request: any }) {
     deanTitle: stepTitle(request, "DEAN"),
     sasName: stepName(request, "SAS"),
     additionalSignatoryName,
+    additionalSignatories,
+    additionalAssignatories: additionalSignatories,
     vpaaAsst: stepName(request, "VPAA_ASSISTANT"),
     vpaaName: stepName(request, "VPAA"),
     presidentName: stepName(request, "UNIVERSITY_PRESIDENT"),
