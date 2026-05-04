@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import DeactivatedNotice from "./DeactivatedNotice";
+import TermsAndConditionsPrompt from "./TermsAndConditionsPrompt";
 
 const layout = async ({ children }: { children: React.ReactNode }) => {
   const session = await auth.api.getSession({
@@ -41,6 +42,7 @@ const layout = async ({ children }: { children: React.ReactNode }) => {
         userEmail={session.user.email}
       />
       <main className="flex-1 overflow-y-auto">{children}</main>
+      <TermsAndConditionsPrompt sessionId={session.session.id} />
     </div>
   );
 };
