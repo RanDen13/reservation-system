@@ -162,6 +162,79 @@ function approvalImageToken(approved: boolean) {
   return approved ? APPROVED_IMAGE_TOKEN : BLANK_IMAGE_TOKEN;
 }
 
+function humanizeAction(value: any) {
+  return short(value)
+    .replaceAll("_", " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function parseLogMetadata(metadata: any) {
+  if (!metadata) return {};
+  if (typeof metadata === "object") return metadata;
+
+  try {
+    return JSON.parse(String(metadata));
+  } catch {
+    return {};
+  }
+}
+
+function docxHistoryRows(request: any) {
+  const logs = Array.isArray(request.activityLogs)
+    ? request.activityLogs.filter((log: any) => {
+        const metadata = parseLogMetadata(log.metadata);
+        const hasChanges =
+          Array.isArray(metadata.changes) && metadata.changes.length > 0;
+        return !(
+          hasChanges &&
+          ["SUBMITTED", "RESUBMITTED"].includes(String(log.action))
+        );
+      })
+    : [];
+
+  if (logs.length > 0) {
+    return logs.map((log: any) => {
+      const metadata = parseLogMetadata(log.metadata);
+      const changes = Array.isArray(metadata.changes) ? metadata.changes : [];
+      const comment = [log.description, metadata.reason]
+        .map(short)
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .filter((value, index, values) => values.indexOf(value) === index)
+        .join("\n");
+
+      return {
+        historyDate: log.createdAt
+          ? format(asDate(log.createdAt), "MMM d, yyyy h:mm a")
+          : "",
+        historyAction: log.title || humanizeAction(log.action),
+        historyActor: log.actor?.name || "System",
+        historyComment: comment,
+        changes: changes.map((change: any) => ({
+          field: change.label || humanizeAction(change.field),
+          before: short(change.before),
+          after: short(change.after),
+        })),
+      };
+    });
+  }
+
+  const actions = Array.isArray(request.approvalActions)
+    ? request.approvalActions
+    : [];
+
+  return actions.map((action: any) => ({
+    historyDate: action.createdAt
+      ? format(asDate(action.createdAt), "MMM d, yyyy h:mm a")
+      : "",
+    historyAction: humanizeAction(action.action),
+    historyActor: action.actor?.name || "System",
+    historyComment: action.comment || "",
+    changes: [],
+  }));
+}
+
 function approvalStampXml(rId: number, size: [number, number]) {
   const [width, height] = size;
 
@@ -395,6 +468,7 @@ export async function renderSapfDocx({ request }: { request: any }) {
     studentPersonnelRatio: part4.studentPersonnelRatio,
     conductedRemarks: short(part6.conductedRemarks),
     cancelledRemarks: short(part6.cancelledRemarks),
+    history: docxHistoryRows(request),
 
     preparedBy: request.officer?.name || "",
     adviserApproval: approvalImageToken(stepApproved(request, "ADVISER")),

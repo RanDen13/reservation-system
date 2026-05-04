@@ -39,6 +39,14 @@ export async function GET(
           createdAt: "asc",
         },
       },
+      activityLogs: {
+        include: {
+          actor: true,
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
     },
   });
 
