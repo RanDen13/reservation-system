@@ -29,6 +29,12 @@ import { motion } from "framer-motion";
 import {
   CheckCircle,
   Clock,
+  Cloud,
+  CloudDrizzle,
+  CloudFog,
+  CloudLightning,
+  CloudRain,
+  CloudSun,
   GitCompareArrows,
   FileDown,
   History,
@@ -37,11 +43,12 @@ import {
   Paperclip,
   RefreshCcw,
   ShieldCheck,
+  Sun,
   UserRound,
   XCircle,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ModalBase from "../../Popup/ModalBase";
 import ApprovalProgressTimeline from "./ApprovalProgressTimeline";
 import {
@@ -55,6 +62,15 @@ import SapfReadonlyDetails from "./SapfReadonlyDetails";
 import { formatSapfDate, formatSapfTime } from "./sapfSchedule";
 
 const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
+
+type SapfWeatherDay = {
+  date: string;
+  weatherCode: number | null;
+  temperatureMax: number | null;
+  temperatureMin: number | null;
+  precipitationProbability: number | null;
+  precipitationSum: number | null;
+};
 
 function ButtonSpinner() {
   return <Loader2 className="mr-2 h-4 w-4 animate-spin" />;
@@ -101,6 +117,126 @@ function venueLabel(request: any) {
     .filter(Boolean);
 
   return names.length ? names.join(", ") : request.venue || "No venue";
+}
+
+function firstScheduleDateKey(request: any) {
+  const schedule = Array.isArray(request.schedules) ? request.schedules[0] : null;
+  if (!schedule?.startAt) return "";
+  return format(new Date(schedule.startAt), "yyyy-MM-dd");
+}
+
+function weatherSummary(code: number | null) {
+  if (code === null || code === undefined) return "Forecast";
+  if (code === 0) return "Clear";
+  if ([1, 2].includes(code)) return "Partly cloudy";
+  if (code === 3) return "Cloudy";
+  if ([45, 48].includes(code)) return "Fog";
+  if ([51, 53, 55, 56, 57].includes(code)) return "Drizzle";
+  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return "Rain";
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return "Snow";
+  if ([95, 96, 99].includes(code)) return "Thunderstorm";
+  return "Forecast";
+}
+
+function WeatherIcon({
+  code,
+  className,
+}: {
+  code: number | null;
+  className?: string;
+}) {
+  if (code === 0) return <Sun className={className} />;
+  if ([1, 2].includes(code ?? -1)) return <CloudSun className={className} />;
+  if (code === 3) return <Cloud className={className} />;
+  if ([45, 48].includes(code ?? -1)) return <CloudFog className={className} />;
+  if ([51, 53, 55, 56, 57].includes(code ?? -1)) {
+    return <CloudDrizzle className={className} />;
+  }
+  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code ?? -1)) {
+    return <CloudRain className={className} />;
+  }
+  if ([95, 96, 99].includes(code ?? -1)) {
+    return <CloudLightning className={className} />;
+  }
+  return <CloudSun className={className} />;
+}
+
+function temperatureLabel(weather: SapfWeatherDay) {
+  const max =
+    typeof weather.temperatureMax === "number"
+      ? `${Math.round(weather.temperatureMax)}`
+      : "";
+  const min =
+    typeof weather.temperatureMin === "number"
+      ? `${Math.round(weather.temperatureMin)}`
+      : "";
+  if (max && min) return `${min}-${max}°C`;
+  if (max) return `${max}°C`;
+  if (min) return `${min}°C`;
+  return "";
+}
+
+function rainLabel(weather: SapfWeatherDay) {
+  if (typeof weather.precipitationProbability === "number") {
+    return `${Math.round(weather.precipitationProbability)}% rain`;
+  }
+  if (typeof weather.precipitationSum === "number") {
+    return `${weather.precipitationSum.toFixed(1)} mm`;
+  }
+  return "";
+}
+
+function RequestWeather({ request }: { request: any }) {
+  const scheduleDate = firstScheduleDateKey(request);
+  const [weatherDays, setWeatherDays] = useState<SapfWeatherDay[]>([]);
+
+  useEffect(() => {
+    if (!scheduleDate) return;
+    let cancelled = false;
+
+    async function loadWeather() {
+      const response = await fetch("/api/weather/forecast");
+      if (!response.ok) return;
+      const payload = await response.json();
+      if (!cancelled) {
+        setWeatherDays(Array.isArray(payload.days) ? payload.days : []);
+      }
+    }
+
+    void loadWeather();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [scheduleDate]);
+
+  const weather = useMemo(
+    () => weatherDays.find((day) => day.date === scheduleDate),
+    [scheduleDate, weatherDays],
+  );
+
+  if (!weather) return null;
+
+  return (
+    <div className="mt-3 flex w-fit flex-wrap items-center gap-2 rounded-md border bg-sky-500/5 px-3 py-2 text-sm">
+      <WeatherIcon
+        code={weather.weatherCode}
+        className="h-4 w-4 text-sky-600"
+      />
+      <span className="font-semibold text-foreground">
+        {weatherSummary(weather.weatherCode)}
+      </span>
+      {temperatureLabel(weather) && (
+        <span className="text-muted-foreground">
+          {temperatureLabel(weather)}
+        </span>
+      )}
+      {rainLabel(weather) && (
+        <span className="text-muted-foreground">{rainLabel(weather)}</span>
+      )}
+      <span className="text-xs text-muted-foreground">Open-Meteo</span>
+    </div>
+  );
 }
 
 function parseActivityMetadata(metadata?: string | null) {
@@ -177,6 +313,7 @@ export function RequestSummary({
               })}
             </p>
           )}
+          <RequestWeather request={request} />
         </div>
         <div className="flex flex-wrap gap-2">
           {showBadges && (

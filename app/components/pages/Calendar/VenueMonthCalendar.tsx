@@ -31,8 +31,20 @@ import {
   subDays,
   subMonths,
 } from "date-fns";
-import { CalendarDays, ChevronLeft, ChevronRight, Clock } from "lucide-react";
-import { useMemo, useState } from "react";
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Cloud,
+  CloudDrizzle,
+  CloudFog,
+  CloudLightning,
+  CloudRain,
+  CloudSun,
+  Clock,
+  Sun,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 export type VenueCalendarItem = {
   id: string;
@@ -50,11 +62,86 @@ type NormalizedCalendarItem = Omit<VenueCalendarItem, "startAt" | "endAt"> & {
 };
 
 type CalendarView = "month" | "day";
+type CalendarWeatherDay = {
+  date: string;
+  weatherCode: number | null;
+  temperatureMax: number | null;
+  temperatureMin: number | null;
+  precipitationProbability: number | null;
+  precipitationSum: number | null;
+};
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const DAY_START_HOUR = 0;
 const DAY_END_HOUR = 24;
 const HOUR_HEIGHT = 72;
+
+function weatherDateKey(day: Date) {
+  return format(day, "yyyy-MM-dd");
+}
+
+function weatherSummary(code: number | null) {
+  if (code === null || code === undefined) return "Forecast";
+  if (code === 0) return "Clear";
+  if ([1, 2].includes(code)) return "Partly cloudy";
+  if (code === 3) return "Cloudy";
+  if ([45, 48].includes(code)) return "Fog";
+  if ([51, 53, 55, 56, 57].includes(code)) return "Drizzle";
+  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return "Rain";
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return "Snow";
+  if ([95, 96, 99].includes(code)) return "Thunderstorm";
+  return "Forecast";
+}
+
+function WeatherIcon({
+  code,
+  className,
+}: {
+  code: number | null;
+  className?: string;
+}) {
+  if (code === 0) return <Sun className={className} />;
+  if ([1, 2].includes(code ?? -1)) return <CloudSun className={className} />;
+  if (code === 3) return <Cloud className={className} />;
+  if ([45, 48].includes(code ?? -1)) return <CloudFog className={className} />;
+  if ([51, 53, 55, 56, 57].includes(code ?? -1)) {
+    return <CloudDrizzle className={className} />;
+  }
+  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code ?? -1)) {
+    return <CloudRain className={className} />;
+  }
+  if ([95, 96, 99].includes(code ?? -1)) {
+    return <CloudLightning className={className} />;
+  }
+  return <CloudSun className={className} />;
+}
+
+function temperatureLabel(weather?: CalendarWeatherDay) {
+  if (!weather) return "";
+  const max =
+    typeof weather.temperatureMax === "number"
+      ? `${Math.round(weather.temperatureMax)}`
+      : "";
+  const min =
+    typeof weather.temperatureMin === "number"
+      ? `${Math.round(weather.temperatureMin)}`
+      : "";
+  if (max && min) return `${min}-${max}°C`;
+  if (max) return `${max}°C`;
+  if (min) return `${min}°C`;
+  return "";
+}
+
+function rainLabel(weather?: CalendarWeatherDay) {
+  if (!weather) return "";
+  if (typeof weather.precipitationProbability === "number") {
+    return `${Math.round(weather.precipitationProbability)}% rain`;
+  }
+  if (typeof weather.precipitationSum === "number") {
+    return `${weather.precipitationSum.toFixed(1)} mm`;
+  }
+  return "";
+}
 
 function statusClass(item: Pick<VenueCalendarItem, "status" | "scope">) {
   if (item.scope === "UNIVERSITY") {
@@ -120,6 +207,33 @@ export default function VenueMonthCalendar({
     startOfMonth(sapfCalendarDate(new Date())),
   );
   const [calendarView, setCalendarView] = useState<CalendarView>("month");
+  const [weatherDays, setWeatherDays] = useState<CalendarWeatherDay[]>([]);
+  const [weatherLoading, setWeatherLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadWeather() {
+      try {
+        const response = await fetch("/api/weather/forecast");
+        if (!response.ok) return;
+        const payload = await response.json();
+        if (!cancelled) {
+          setWeatherDays(Array.isArray(payload.days) ? payload.days : []);
+        }
+      } finally {
+        if (!cancelled) {
+          setWeatherLoading(false);
+        }
+      }
+    }
+
+    void loadWeather();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const calendarDays = useMemo(() => {
     const start = startOfWeek(startOfMonth(visibleMonth));
@@ -148,6 +262,14 @@ export default function VenueMonthCalendar({
   const selectedDayItems = monthItems.filter((item) =>
     itemTouchesDay(item, selectedDay),
   );
+  const weatherByDate = useMemo(
+    () =>
+      new Map(
+        weatherDays.map((weather) => [weather.date, weather] as const),
+      ),
+    [weatherDays],
+  );
+  const selectedWeather = weatherByDate.get(weatherDateKey(selectedDay));
 
   const goPrevious = () => {
     if (calendarView === "day") {
@@ -224,6 +346,24 @@ export default function VenueMonthCalendar({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {selectedWeather ? (
+            <div className="inline-flex h-9 items-center gap-2 rounded-md border bg-background px-3 text-sm shadow-xs">
+              <WeatherIcon
+                code={selectedWeather.weatherCode}
+                className="h-4 w-4 text-sky-600"
+              />
+              <span className="font-medium">
+                {weatherSummary(selectedWeather.weatherCode)}
+              </span>
+              <span className="text-muted-foreground">
+                {temperatureLabel(selectedWeather)}
+              </span>
+            </div>
+          ) : weatherLoading ? (
+            <div className="inline-flex h-9 items-center rounded-md border bg-background px-3 text-sm text-muted-foreground shadow-xs">
+              Loading weather...
+            </div>
+          ) : null}
           <div className="flex overflow-hidden rounded-md border shadow-xs">
             <Button
               type="button"
@@ -313,6 +453,7 @@ export default function VenueMonthCalendar({
           selectedDay={selectedDay}
           visibleMonth={visibleMonth}
           weeks={weeks}
+          weatherByDate={weatherByDate}
           onSelectDay={(day) => selectCalendarDay(day)}
           onOpenDay={(day) => selectCalendarDay(day, "day")}
         />
@@ -329,6 +470,7 @@ export default function VenueMonthCalendar({
           items={monthItems}
           selectedDay={selectedDay}
           visibleMonth={visibleMonth}
+          weatherByDate={weatherByDate}
           onSelectDay={(day) => selectCalendarDay(day, "day")}
         />
         </motion.div>
@@ -345,6 +487,7 @@ function MonthCalendar({
   selectedDay,
   visibleMonth,
   weeks,
+  weatherByDate,
   onSelectDay,
   onOpenDay,
 }: {
@@ -353,6 +496,7 @@ function MonthCalendar({
   selectedDay: Date;
   visibleMonth: Date;
   weeks: Date[][];
+  weatherByDate: Map<string, CalendarWeatherDay>;
   onSelectDay: (day: Date) => void;
   onOpenDay: (day: Date) => void;
 }) {
@@ -416,30 +560,46 @@ function MonthCalendar({
               className="relative grid grid-cols-7 border-b last:border-b-0"
               style={{ minHeight: weekMinHeight }}
             >
-              {week.map((day) => (
-                <button
-                  key={day.toISOString()}
-                  type="button"
-                  className={cn(
-                    "min-h-full border-r bg-card p-2 text-left align-top last:border-r-0 hover:bg-muted/50",
-                    !isSameMonth(day, visibleMonth) &&
-                      "bg-muted/25 text-muted-foreground/70",
-                    isToday(day) && "bg-blue-500/10",
-                    isSameDay(day, selectedDay) && "ring-2 ring-inset ring-violet-500/50",
-                  )}
-                  onClick={() => onSelectDay(day)}
-                  onDoubleClick={() => onOpenDay(day)}
-                >
-                  <span
+              {week.map((day) => {
+                const weather = weatherByDate.get(weatherDateKey(day));
+
+                return (
+                  <button
+                    key={day.toISOString()}
+                    type="button"
                     className={cn(
-                      "flex h-6 min-w-6 w-fit items-center justify-center rounded-full px-1.5 text-xs font-semibold",
-                      isToday(day) && "bg-violet-600 text-white",
+                      "min-h-full border-r bg-card p-2 text-left align-top last:border-r-0 hover:bg-muted/50",
+                      !isSameMonth(day, visibleMonth) &&
+                        "bg-muted/25 text-muted-foreground/70",
+                      isToday(day) && "bg-blue-500/10",
+                      isSameDay(day, selectedDay) &&
+                        "ring-2 ring-inset ring-violet-500/50",
                     )}
+                    onClick={() => onSelectDay(day)}
+                    onDoubleClick={() => onOpenDay(day)}
                   >
-                    {format(day, "d")}
-                  </span>
-                </button>
-              ))}
+                    <div className="flex items-start justify-between gap-1">
+                      <span
+                        className={cn(
+                          "flex h-6 min-w-6 w-fit items-center justify-center rounded-full px-1.5 text-xs font-semibold",
+                          isToday(day) && "bg-violet-600 text-white",
+                        )}
+                      >
+                        {format(day, "d")}
+                      </span>
+                      {weather && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700 dark:text-sky-300">
+                          <WeatherIcon
+                            code={weather.weatherCode}
+                            className="h-3 w-3"
+                          />
+                          {temperatureLabel(weather)}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
 
               <div className="pointer-events-none absolute inset-x-0 top-9 grid grid-cols-7 gap-y-1 px-2">
                 {visibleSegments.map(({ item, colStart, span, lane }) => (
@@ -486,11 +646,13 @@ function DayCalendar({
   items,
   selectedDay,
   visibleMonth,
+  weatherByDate,
   onSelectDay,
 }: {
   items: NormalizedCalendarItem[];
   selectedDay: Date;
   visibleMonth: Date;
+  weatherByDate: Map<string, CalendarWeatherDay>;
   onSelectDay: (day: Date) => void;
 }) {
   const hours = Array.from(
@@ -547,6 +709,7 @@ function DayCalendar({
   const nowTop =
     ((now.getHours() * 60 + now.getMinutes() - DAY_START_HOUR * 60) / 60) *
     HOUR_HEIGHT;
+  const selectedWeather = weatherByDate.get(weatherDateKey(selectedDay));
 
   return (
     <div className="grid min-h-[620px] lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -654,6 +817,41 @@ function DayCalendar({
           <h4 className="font-semibold text-foreground">
             {format(selectedDay, "EEEE, MMM d")}
           </h4>
+          {selectedWeather && (
+            <div className="rounded-md border bg-sky-500/5 p-3 text-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-foreground">
+                    {weatherSummary(selectedWeather.weatherCode)}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Forecast for LCUP Malolos
+                  </p>
+                </div>
+                <WeatherIcon
+                  code={selectedWeather.weatherCode}
+                  className="h-5 w-5 text-sky-600"
+                />
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                <div className="rounded bg-background p-2">
+                  <p className="text-muted-foreground">Temperature</p>
+                  <p className="font-semibold text-foreground">
+                    {temperatureLabel(selectedWeather) || "Not available"}
+                  </p>
+                </div>
+                <div className="rounded bg-background p-2">
+                  <p className="text-muted-foreground">Precipitation</p>
+                  <p className="font-semibold text-foreground">
+                    {rainLabel(selectedWeather) || "Not available"}
+                  </p>
+                </div>
+              </div>
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Weather by Open-Meteo
+              </p>
+            </div>
+          )}
           {dayItems.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               No reservations or blocks scheduled.
