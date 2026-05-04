@@ -75,6 +75,11 @@ function short(value: any) {
   return value === null || value === undefined ? "" : String(value);
 }
 
+function textField(value: any) {
+  const text = short(value).trim();
+  return text || "N/A";
+}
+
 function marker(value: boolean) {
   return value ? "X" : "  ";
 }
@@ -343,25 +348,25 @@ export async function renderSapfDocx({ request }: { request: any }) {
     year: schoolYear(startAt),
     schoolYear: schoolYear(startAt),
     proposalDate: format(createdAt, "MMMM d, yyyy"),
-    activityTitle: part1.activityTitle,
-    organization: part1.organization,
-    activityTime: scheduleText(request),
-    activityDate: scheduleText(request),
-    programCourse: part1.programCourse,
-    venue: part1.venue,
-    departmentCategory: part1.departmentCategory,
-    department: part1.department,
-    personnelInCharge: part1.personnelInCharge,
-    attire: part1.attire,
-    noOfParticipants: part1.noOfParticipants,
-    rationale: part1.rationale,
-    objectives: part1.objectives,
-    programFlow: part1.programFlow,
-    emergencyPlan: part1.emergencyPlan,
-    budget: part1.budget,
-    sourceOfBudget: part1.sourceOfBudget,
-    otherDetails: sapf.part3,
-    otherDetailsText: sapf.part3,
+    activityTitle: textField(part1.activityTitle),
+    organization: textField(part1.organization),
+    activityTime: textField(scheduleText(request)),
+    activityDate: textField(scheduleText(request)),
+    programCourse: textField(part1.programCourse),
+    venue: textField(part1.venue),
+    departmentCategory: textField(part1.departmentCategory),
+    department: textField(part1.department),
+    personnelInCharge: textField(part1.personnelInCharge),
+    attire: textField(part1.attire),
+    noOfParticipants: textField(part1.noOfParticipants),
+    rationale: textField(part1.rationale),
+    objectives: textField(part1.objectives),
+    programFlow: textField(part1.programFlow),
+    emergencyPlan: textField(part1.emergencyPlan),
+    budget: textField(part1.budget),
+    sourceOfBudget: textField(part1.sourceOfBudget),
+    otherDetails: textField(sapf.part3),
+    otherDetailsText: textField(sapf.part3),
 
     departmentCollege: marker(
       !["alternative", "graduate", "extension", "com"].some((value) =>
@@ -378,7 +383,9 @@ export async function renderSapfDocx({ request }: { request: any }) {
     modalityHybrid: marker(same(part1.modality, "Hybrid")),
     settingInCampus: marker(same(part1.setting, "In-Campus")),
     settingOffCampus: marker(same(part1.setting, "Off-Campus")),
-    offCampAgree: same(part1.setting, "Off-Campus") ? part1.offCampAgree : "",
+    offCampAgree: same(part1.setting, "Off-Campus")
+      ? textField(part1.offCampAgree)
+      : "",
     activityTypeCoCurricular: marker(same(part1.activityType, "Co-Curricular")),
     activityTypeExtraCurricular: marker(
       same(part1.activityType, "Extra-Curricular"),
@@ -402,7 +409,7 @@ export async function renderSapfDocx({ request }: { request: any }) {
     programSeminarConvention: marker(
       programIncludes(program, "seminar", "convention"),
     ),
-    programOther: hasKnownProgram ? "" : program,
+    programOther: hasKnownProgram ? "" : textField(program),
 
     coreCourage: marker(includes(part1.coreValues, "Courage")),
     coreCompassion: marker(includes(part1.coreValues, "Compassion")),
@@ -438,36 +445,38 @@ export async function renderSapfDocx({ request }: { request: any }) {
     ),
 
     supportBudget: marker(includes(part2.supportRequests, "Budget")),
-    budgetDetails: part2.budgetDetails,
+    budgetDetails: textField(part2.budgetDetails),
     supportVehicle: marker(includes(part2.supportRequests, "Vehicle")),
-    vehiclePassengers: part2.vehiclePassengers,
+    vehiclePassengers: textField(part2.vehiclePassengers),
     supportFoodSnacks: marker(includes(part2.supportRequests, "Food/Snacks")),
-    foodPax: part2.foodPax,
+    foodPax: textField(part2.foodPax),
     supportRoomVenue: marker(includes(part2.supportRequests, "Room/Venue")),
-    roomVenueDetails: part2.roomVenueDetails,
+    roomVenueDetails: textField(part2.roomVenueDetails),
     supportSoundSystem: marker(includes(part2.supportRequests, "Sound System")),
     supportMicrophone: marker(includes(part2.supportRequests, "Microphone")),
-    microphoneQty: part2.microphoneQty,
+    microphoneQty: textField(part2.microphoneQty),
     supportLcdProjector: marker(
       includes(part2.supportRequests, "LCD Projector"),
     ),
     supportLongTable: marker(includes(part2.supportRequests, "One Long Table")),
-    extraProvisions: part2.extraProvisions,
-    otherSupport: part2.otherSupport,
+    extraProvisions: textField(part2.extraProvisions),
+    otherSupport: textField(part2.otherSupport),
 
     parentsConsentYes: marker(positive(part4.parentsConsent)),
     parentsConsentNotApplicable: marker(negative(part4.parentsConsent)),
     attachments: part4.attachmentsForDocument || "-",
     academicInterruptionYes: marker(positive(part4.academicInterruption)),
     academicInterruptionNone: marker(negative(part4.academicInterruption)),
-    academicRemarks: part4.academicInterruptionRemarks || part4.academicRemarks,
+    academicRemarks: textField(
+      part4.academicInterruptionRemarks || part4.academicRemarks,
+    ),
     medicalExamYes: marker(positive(part4.medicalExam)),
     medicalExamNotApplicable: marker(negative(part4.medicalExam)),
     reportComplianceYes: marker(positive(part4.reportOfCompliance)),
     reportComplianceNotApplicable: marker(negative(part4.reportOfCompliance)),
-    studentPersonnelRatio: part4.studentPersonnelRatio,
-    conductedRemarks: short(part6.conductedRemarks),
-    cancelledRemarks: short(part6.cancelledRemarks),
+    studentPersonnelRatio: textField(part4.studentPersonnelRatio),
+    conductedRemarks: textField(part6.conductedRemarks),
+    cancelledRemarks: textField(part6.cancelledRemarks),
     history: docxHistoryRows(request),
 
     preparedBy: request.officer?.name || "",
