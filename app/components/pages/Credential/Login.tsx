@@ -15,6 +15,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Eye, EyeOff, KeyRound, Lock, Mail } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { FcGoogle } from "react-icons/fc";
 import { usePopup } from "../../Popup/PopupProvider";
 
 const containerVariants = {
@@ -40,7 +41,7 @@ function formatMagicCode(value: string) {
   );
 }
 
-function magicCodeErrorMessage(errorCode: string) {
+function signInErrorMessage(errorCode: string) {
   switch (errorCode) {
     case "INVALID_TOKEN":
       return "That magic code was not recognized. Check the code and try again.";
@@ -48,8 +49,12 @@ function magicCodeErrorMessage(errorCode: string) {
       return "That magic code has expired. Request a new code and try again.";
     case "new_user_signup_disabled":
       return "This account must be created by the super admin first.";
+    case "OAUTH_LINK_ERROR":
+      return "Google sign-in could not be linked to this account.";
+    case "PROVIDER_NOT_FOUND":
+      return "Google sign-in is not configured yet.";
     default:
-      return "Magic code sign-in could not be completed. Please try again.";
+      return "Sign-in could not be completed. Please try again.";
   }
 }
 
@@ -57,7 +62,7 @@ const Login = () => {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [sendingMagicCode, setSendingMagicCode] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [verifyingMagicCode, setVerifyingMagicCode] = useState(false);
   const [magicCode, setMagicCode] = useState("");
   const [showLoginPassword, setShowLoginPassword] = useState(false);
@@ -66,14 +71,14 @@ const Login = () => {
     () => normalizeMagicCode(magicCode),
     [magicCode],
   );
-  const busy = loading || sendingMagicCode || verifyingMagicCode;
+  const busy = loading || googleLoading || verifyingMagicCode;
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const error = params.get("error");
     if (!error) return;
 
-    statusPopup.showError(magicCodeErrorMessage(error));
+    statusPopup.showError(signInErrorMessage(error));
     window.history.replaceState({}, "", window.location.pathname);
   }, [statusPopup]);
 
@@ -95,6 +100,24 @@ const Login = () => {
     );
 
     setLoading(false);
+  }
+
+  async function handleGoogleSignIn() {
+    setGoogleLoading(true);
+
+    await signIn.social(
+      {
+        provider: "google",
+        callbackURL: "/user/dashboard",
+        errorCallbackURL: "/login",
+      },
+      {
+        onError: (ctx) => {
+          statusPopup.showError(ctx.error.message || "Google sign-in failed");
+          setGoogleLoading(false);
+        },
+      },
+    );
   }
 
   function handleMagicCodeLogin() {
@@ -264,6 +287,39 @@ const Login = () => {
                   )}
                 </Button>
               </form>
+
+              <div className="my-6 flex items-center gap-3">
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Or Continue With
+                </span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busy}
+                onClick={handleGoogleSignIn}
+                className="h-12 w-full bg-background text-base shadow-sm hover:bg-muted/60"
+              >
+                {googleLoading ? (
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{
+                      duration: 1,
+                      repeat: Infinity,
+                      ease: "linear",
+                    }}
+                    className="mr-2"
+                  >
+                    <Lock className="h-5 w-5" />
+                  </motion.div>
+                ) : (
+                  <FcGoogle className="mr-2 h-5 w-5" />
+                )}
+                {googleLoading ? "Opening Google..." : "Sign In With Google"}
+              </Button>
 
               <div className="my-6 flex items-center gap-3">
                 <div className="h-px flex-1 bg-border" />

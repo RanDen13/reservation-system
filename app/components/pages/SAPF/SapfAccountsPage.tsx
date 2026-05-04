@@ -29,6 +29,7 @@ import { Pencil, Plus, RefreshCcw, UserPlus, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   createManagedAccount,
+  deleteManagedAccount,
   deactivateAccount,
   getAccountsWorkspace,
   reactivateAccount,
@@ -191,9 +192,10 @@ function AccountRow({
 
     setActionValue(nextAction);
 
-    const actionLabel = nextAction.replaceAll("_", " ").toLowerCase();
     const confirmed = await popup.showWarning(
-      `Run ${actionLabel} for ${user.name}?`,
+      nextAction === "DELETE"
+        ? `Permanently delete ${user.name}'s account? This cannot be undone and will remove related account data.`
+        : `Run ${nextAction.replaceAll("_", " ").toLowerCase()} for ${user.name}?`,
     );
     if (!confirmed) {
       setActionValue("");
@@ -209,6 +211,8 @@ function AccountRow({
       result = await deactivateAccount([user.id]);
     } else if (nextAction === "ACTIVATE") {
       result = await reactivateAccount([user.id]);
+    } else if (nextAction === "DELETE") {
+      result = await deleteManagedAccount(user.id);
     }
 
     setSavingAction(false);
@@ -331,6 +335,11 @@ function AccountRow({
               {!isSelf && user.status === "INACTIVE" && (
                 <SelectItem value="ACTIVATE">Activate account</SelectItem>
               )}
+              {!isSelf && (
+                <SelectItem value="DELETE" className="text-destructive">
+                  Delete account
+                </SelectItem>
+              )}
             </SelectContent>
           </Select>
         </td>
@@ -409,7 +418,9 @@ export default function SapfAccountsPage() {
   };
 
   useEffect(() => {
-    refresh();
+    queueMicrotask(() => {
+      void refresh();
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

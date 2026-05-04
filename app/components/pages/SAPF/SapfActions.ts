@@ -2655,6 +2655,57 @@ export async function reactivateAccount(
   }
 }
 
+export async function deleteManagedAccount(
+  userId: string,
+): Promise<ActionResult<void>> {
+  try {
+    const user = await getSessionUser();
+    if (!user || !requireRole(user.role, ["SUPER_ADMIN"])) {
+      return {
+        success: false,
+        message: "Only super admins can delete accounts.",
+      };
+    }
+
+    if (!userId) {
+      return { success: false, message: "User is required." };
+    }
+
+    if (userId === user.id) {
+      return {
+        success: false,
+        message: "You cannot delete your own account.",
+      };
+    }
+
+    const target = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+
+    if (!target) {
+      return { success: false, message: "Account not found." };
+    }
+
+    await auth.api.removeUser({
+      body: { userId: target.id },
+      headers: await headers(),
+    });
+
+    revalidatePath("/user/accounts");
+    revalidatePath("/user/dashboard");
+    revalidatePath("/user/approvals");
+    revalidatePath("/user/bookings");
+    return { success: true, message: "Account deleted." };
+  } catch (error) {
+    console.error("Account delete failed:", error);
+    return {
+      success: false,
+      message: (error as Error).message || "Failed to delete account.",
+    };
+  }
+}
+
 export async function updateManagedRole(
   data: FormData,
 ): Promise<ActionResult<void>> {

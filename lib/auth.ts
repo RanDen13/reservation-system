@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
-import { adminAc, userAc } from "better-auth/plugins/admin/access";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { admin, magicLink } from "better-auth/plugins";
+import { adminAc, userAc } from "better-auth/plugins/admin/access";
 import { randomInt } from "node:crypto";
 import { sendEmail } from "./email";
 import { prisma } from "./prisma";
@@ -22,7 +22,8 @@ const generateMagicCode = () =>
   ).join("");
 
 const formatMagicCode = (token: string) =>
-  token.match(new RegExp(`.{1,${magicCodeGroupSize}}`, "g"))?.join("-") ?? token;
+  token.match(new RegExp(`.{1,${magicCodeGroupSize}}`, "g"))?.join("-") ??
+  token;
 
 export const auth = betterAuth({
   baseURL: appUrl,
@@ -32,6 +33,14 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     disableSignUp: true,
+  },
+  socialProviders: {
+    google: {
+      prompt: "select_account",
+      clientId: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      disableSignUp: true,
+    },
   },
   plugins: [
     admin({

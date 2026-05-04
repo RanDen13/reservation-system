@@ -1,4 +1,7 @@
-import { inferAdditionalFields, magicLinkClient } from "better-auth/client/plugins";
+import {
+  inferAdditionalFields,
+  magicLinkClient,
+} from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import { env } from "next-runtime-env";
 import type { auth } from "./auth";
