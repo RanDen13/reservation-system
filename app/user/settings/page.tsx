@@ -1,4 +1,7 @@
-import { getSystemSettings } from "@/app/components/pages/Settings/SystemSettingsActions";
+import {
+  getSystemSettings,
+  getUserNotificationPreferences,
+} from "@/app/components/pages/Settings/SystemSettingsActions";
 import SystemSettingsPage from "@/app/components/pages/Settings/SystemSettingsPage";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -14,6 +17,14 @@ export default async function Page() {
   }
 
   let settings = null;
+  let notificationPreferences = {
+    emailNotificationsEnabled: true,
+  };
+
+  const notificationResult = await getUserNotificationPreferences();
+  if (notificationResult.success && notificationResult.data) {
+    notificationPreferences = notificationResult.data;
+  }
 
   if (session.user.role?.toUpperCase() === "SUPER_ADMIN") {
     const result = await getSystemSettings();
@@ -23,5 +34,10 @@ export default async function Page() {
     settings = result.data;
   }
 
-  return <SystemSettingsPage initialSettings={settings} />;
+  return (
+    <SystemSettingsPage
+      initialSettings={settings}
+      initialNotificationPreferences={notificationPreferences}
+    />
+  );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import ModalBase from "@/app/components/Popup/ModalBase";
 import { usePopup } from "@/app/components/Popup/PopupProvider";
 import { Button } from "@/app/components/ui/button";
 import {
@@ -15,12 +16,30 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/app/components/ui/tabs";
-import { ArrowLeft, FileDown, Loader2, RefreshCcw } from "lucide-react";
+import { Label } from "@/app/components/ui/label";
+import { Textarea } from "@/app/components/ui/textarea";
+import {
+  ArrowLeft,
+  FileDown,
+  History,
+  Loader2,
+  PencilLine,
+  RefreshCcw,
+  XCircle,
+} from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getApproverOptions, getSapfRequestById } from "./SapfActions";
+import {
+  cancelSapfRequest,
+  getApproverOptions,
+  getSapfRequestById,
+} from "./SapfActions";
 import SapfPageLoading from "./SapfPageLoading";
-import { ConcernThreads, RequestDetail } from "./SapfRequestDetail";
+import {
+  ConcernThreads,
+  RequestDetail,
+  SapfActivityLog,
+} from "./SapfRequestDetail";
 
 function ButtonSpinner() {
   return <Loader2 className="mr-2 h-4 w-4 animate-spin" />;
@@ -38,6 +57,9 @@ export default function SapfApprovalDetailPage({
     approvers: Record<string, any[]>;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showCancel, setShowCancel] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelling, setCancelling] = useState(false);
 
   const refresh = async () => {
     setLoading(true);
@@ -104,6 +126,48 @@ export default function SapfApprovalDetailPage({
     (step: any) => step.concernThread,
   );
   const showChat = hasThreads && me?.role !== "SUPER_ADMIN";
+  const sdsStep = request.approvalSteps?.find(
+    (step: any) => step.position === "SDS" && step.reviewerId === me?.id,
+  );
+  const reachedSds =
+    sdsStep &&
+    (sdsStep.status !== "PENDING" ||
+      (request.currentStepOrder ?? 0) >= sdsStep.stepOrder ||
+      request.status === "APPROVED");
+  const canSdsManage =
+    Boolean(sdsStep) &&
+    reachedSds &&
+    !["CANCELLED", "REJECTED"].includes(request.status);
+
+  const handleCancel = async () => {
+    if (cancelling) return;
+
+    const reason = cancelReason.trim();
+    if (!reason) {
+      popup.showError("Enter a reason before cancelling this reservation.");
+      return;
+    }
+
+    setCancelling(true);
+    try {
+      const formData = new FormData();
+      formData.set("requestId", request.id);
+      formData.set("comment", reason);
+      const result = await cancelSapfRequest(formData);
+
+      if (!result.success) {
+        popup.showError(result.message || "Failed to cancel reservation.");
+        return;
+      }
+
+      popup.showSuccess(result.message || "Reservation cancelled.");
+      setShowCancel(false);
+      setCancelReason("");
+      await refresh();
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   return (
     <div className="space-y-6 p-4 lg:p-8">
@@ -125,6 +189,29 @@ export default function SapfApprovalDetailPage({
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          {canSdsManage && (
+            <Button asChild variant="outline">
+              <Link href={`/user/bookings/create?requestId=${request.id}`}>
+                <PencilLine className="mr-2 h-4 w-4" />
+                Edit Booking
+              </Link>
+            </Button>
+          )}
+          {canSdsManage && (
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => setShowCancel(true)}
+              disabled={cancelling}
+            >
+              {cancelling ? (
+                <ButtonSpinner />
+              ) : (
+                <XCircle className="mr-2 h-4 w-4" />
+              )}
+              {cancelling ? "Cancelling..." : "Cancel Booking"}
+            </Button>
+          )}
           <Button asChild variant="outline">
             <a href={`/api/sapf/${request.id}/preview`} target="_blank">
               <FileDown className="mr-2 h-4 w-4" />
@@ -151,10 +238,14 @@ export default function SapfApprovalDetailPage({
       <Tabs defaultValue="details" className="space-y-4">
         <TabsList
           className={`grid w-full ${
-            showChat ? "grid-cols-2 md:w-[320px]" : "grid-cols-1 md:w-45"
+            showChat ? "grid-cols-3 md:w-[440px]" : "grid-cols-2 md:w-[320px]"
           }`}
         >
           <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="activity">
+            <History className="h-4 w-4" />
+            Activity
+          </TabsTrigger>
           {showChat && <TabsTrigger value="chat">Chat</TabsTrigger>}
         </TabsList>
 
@@ -166,6 +257,10 @@ export default function SapfApprovalDetailPage({
             approvers={approvers}
             showConcernThreads={false}
           />
+        </TabsContent>
+
+        <TabsContent value="activity">
+          <SapfActivityLog request={request} />
         </TabsContent>
 
         {showChat && (
@@ -184,6 +279,54 @@ export default function SapfApprovalDetailPage({
           </TabsContent>
         )}
       </Tabs>
+
+      {showCancel && (
+        <ModalBase onClose={() => setShowCancel(false)}>
+          <Card className="w-full max-w-lg">
+            <CardHeader>
+              <CardTitle>Cancel Booking</CardTitle>
+              <CardDescription>
+                SDS cancellation stops the approval flow and releases the slot.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="sds-cancel-reason">
+                  Reason <span className="text-destructive">*</span>
+                </Label>
+                <Textarea
+                  id="sds-cancel-reason"
+                  value={cancelReason}
+                  onChange={(event) => setCancelReason(event.target.value)}
+                  placeholder="Explain why SDS is cancelling this booking."
+                  className="min-h-28"
+                  disabled={cancelling}
+                  required
+                />
+              </div>
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowCancel(false)}
+                  disabled={cancelling}
+                >
+                  Keep Booking
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={handleCancel}
+                  disabled={cancelling || !cancelReason.trim()}
+                >
+                  {cancelling && <ButtonSpinner />}
+                  {cancelling ? "Cancelling..." : "Cancel Booking"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </ModalBase>
+      )}
     </div>
   );
 }

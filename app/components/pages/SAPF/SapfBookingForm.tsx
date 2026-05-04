@@ -205,11 +205,13 @@ export default function SapfBookingForm({
   venues,
   approvers,
   initialRequest,
+  editorMode = "officer",
   preselectedVenueIds = [],
 }: {
   venues: EventSpaceData[];
   approvers: Record<string, any[]>;
   initialRequest?: any;
+  editorMode?: "officer" | "sds";
   preselectedVenueIds?: string[];
 }) {
   const popup = usePopup();
@@ -236,6 +238,7 @@ export default function SapfBookingForm({
   const [savingIntent, setSavingIntent] = useState("");
   const [submissionKey] = useState(createSubmissionKey);
   const isEditing = Boolean(initialRequest);
+  const isSdsEditor = editorMode === "sds";
   const lockApprovalChain =
     Boolean(initialRequest) && initialRequest.status !== "DRAFT";
   const formKey = initialRequest?.id || preselectedVenueIds.join("-") || "new";
@@ -543,6 +546,10 @@ export default function SapfBookingForm({
       return;
     }
     popup.showSuccess(result.message || "Reservation saved.");
+    if (isSdsEditor && initialRequest?.id) {
+      router.push(`/user/approvals/${initialRequest.id}`);
+      return;
+    }
     if (isEditing && intent === "submit" && initialRequest?.id) {
       router.push(`/user/bookings/${initialRequest.id}`);
       return;
@@ -1464,33 +1471,39 @@ export default function SapfBookingForm({
       </Card>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+        {!isSdsEditor && (
+          <Button
+            type="submit"
+            name="intent"
+            value="draft"
+            variant="outline"
+            disabled={Boolean(savingIntent)}
+          >
+            {savingIntent === "draft" ? (
+              <ButtonSpinner />
+            ) : (
+              <Save className="mr-2 h-4 w-4" />
+            )}
+            {savingIntent === "draft" ? "Saving..." : "Save Draft"}
+          </Button>
+        )}
         <Button
           type="submit"
           name="intent"
-          value="draft"
-          variant="outline"
-          disabled={Boolean(savingIntent)}
-        >
-          {savingIntent === "draft" ? (
-            <ButtonSpinner />
-          ) : (
-            <Save className="mr-2 h-4 w-4" />
-          )}
-          {savingIntent === "draft" ? "Saving..." : "Save Draft"}
-        </Button>
-        <Button
-          type="submit"
-          name="intent"
-          value="submit"
+          value={isSdsEditor ? "save" : "submit"}
           className="bg-emerald-600 hover:bg-emerald-700"
           disabled={Boolean(savingIntent)}
         >
-          {savingIntent === "submit" ? (
+          {savingIntent === (isSdsEditor ? "save" : "submit") ? (
             <ButtonSpinner />
           ) : (
             <Send className="mr-2 h-4 w-4" />
           )}
-          {savingIntent === "submit" ? "Submitting..." : "Submit Reservation"}
+          {savingIntent === (isSdsEditor ? "save" : "submit")
+            ? "Saving..."
+            : isSdsEditor
+              ? "Save Booking Changes"
+              : "Submit Reservation"}
         </Button>
       </div>
     </form>

@@ -28,6 +28,17 @@ type ApproverWorkflowEmail = {
   message?: string;
 };
 
+type SapfUpdateEmail = {
+  requestId: string;
+  actorName?: string | null;
+  changes?: Array<{
+    label?: string;
+    field?: string;
+    before?: string;
+    after?: string;
+  }>;
+};
+
 const appUrl =
   process.env.BETTER_AUTH_URL ||
   process.env.NEXT_PUBLIC_URL ||
@@ -87,6 +98,10 @@ async function getRequestForEmail(requestId: string) {
   });
 }
 
+function canReceiveWorkflowEmail(user: any) {
+  return Boolean(user?.email) && user.emailNotificationsEnabled !== false;
+}
+
 function emailLayout({
   preview,
   eyebrow,
@@ -141,7 +156,7 @@ function emailLayout({
             </tr>
             <tr>
               <td style="padding:0 32px;">
-                <div style="margin-top:-24px;display:inline-block;background:${color};color:#ffffff;border-radius:999px;padding:10px 16px;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;box-shadow:0 10px 24px rgba(15,23,42,.18);">${escapeHtml(badge)}</div>
+                <div style="margin-top:14px;display:inline-block;background:${color};color:#ffffff;border-radius:999px;padding:10px 16px;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;box-shadow:0 10px 24px rgba(15,23,42,.18);">${escapeHtml(badge)}</div>
               </td>
             </tr>
             <tr>
@@ -212,7 +227,9 @@ export async function notifyApproverForSapfReview({
       prisma.user.findUnique({ where: { id: reviewerId } }),
     ]);
 
-    if (!request || !reviewer?.email) return;
+    if (!request || !reviewer || !canReceiveWorkflowEmail(reviewer)) return;
+    const reviewerEmail = reviewer.email;
+    if (!reviewerEmail) return;
 
     const detailUrl = absoluteUrl(`/user/approvals/${request.id}`);
     const rows: Array<[string, string]> = [
@@ -247,7 +264,7 @@ export async function notifyApproverForSapfReview({
       `Review link: ${detailUrl}`,
     ].join("\n");
 
-    await sendSapfWorkflowEmail({ to: reviewer.email, subject, html, text });
+    await sendSapfWorkflowEmail({ to: reviewerEmail, subject, html, text });
   } catch (error) {
     console.error("Failed to send approver SAPF email:", error);
   }
@@ -267,7 +284,9 @@ export async function notifyOfficerForSapfWorkflow({
 }: OfficerWorkflowEmail) {
   try {
     const request = await getRequestForEmail(requestId);
-    if (!request?.officer?.email) return;
+    if (!request || !canReceiveWorkflowEmail(request.officer)) return;
+    const officerEmail = request.officer.email;
+    if (!officerEmail) return;
 
     const detailUrl = absoluteUrl(`/user/bookings/${request.id}`);
     const rows: Array<[string, string]> = [
@@ -308,12 +327,125 @@ export async function notifyOfficerForSapfWorkflow({
       .join("\n");
 
     await sendSapfWorkflowEmail({
-      to: request.officer.email,
+      to: officerEmail,
       subject,
       html,
       text,
     });
   } catch (error) {
     console.error("Failed to send officer SAPF email:", error);
+  }
+}
+
+function changesSummary(changes: SapfUpdateEmail["changes"]) {
+  if (!changes?.length) return "The booking details were updated.";
+
+  return changes
+    .slice(0, 6)
+    .map((change) => {
+      const label = change.label || change.field || "Field";
+      return `${label}: ${change.before || "Not set"} -> ${
+        change.after || "Not set"
+      }`;
+    })
+    .join("\n");
+}
+
+export async function notifySapfBookingUpdated({
+  requestId,
+  actorName,
+  changes = [],
+}: SapfUpdateEmail) {
+  try {
+    const request = await prisma.sAPFRequest.findUnique({
+      where: { id: requestId },
+      include: {
+        officer: true,
+        schedules: { orderBy: { startAt: "asc" } },
+        venues: { include: { eventSpace: true } },
+        approvalSteps: {
+          include: { reviewer: true },
+          orderBy: { stepOrder: "asc" },
+        },
+      },
+    });
+
+    if (!request) return;
+
+    const reviewerRecipients = request.approvalSteps
+      .filter((step: any) => step.status === "APPROVED")
+      .map((step: any) => step.reviewer)
+      .filter(Boolean);
+    const recipients = [request.officer, ...reviewerRecipients]
+      .filter(canReceiveWorkflowEmail)
+      .filter(
+        (user, index, users) =>
+          users.findIndex((candidate) => candidate.id === user.id) === index,
+      );
+
+    if (recipients.length === 0) return;
+
+    const rows: Array<[string, string]> = [
+      ["Request No.", escapeHtml(request.requestNumber)],
+      ["Activity", escapeHtml(request.title)],
+      ["Organization", escapeHtml(request.organization)],
+      ["Venue", escapeHtml(venueText(request))],
+      ["Schedule", formatSchedule(request)],
+      ["Updated By", escapeHtml(actorName || "SDS")],
+    ];
+    const changedFields = changes
+      .slice(0, 6)
+      .map((change) => change.label || change.field || "Field")
+      .join(", ");
+    const detailRows: Array<[string, string]> = changedFields
+      ? [...rows, ["Changed Fields", escapeHtml(changedFields)]]
+      : rows;
+
+    await Promise.all(
+      recipients.map((recipient: any) => {
+        const isOfficer = recipient.id === request.officerId;
+        const detailUrl = absoluteUrl(
+          isOfficer
+            ? `/user/bookings/${request.id}`
+            : `/user/approvals/${request.id}`,
+        );
+        const subject = `[Zerve] ${request.requestNumber} was updated`;
+        const html = emailLayout({
+          preview: `${request.requestNumber} was updated by ${
+            actorName || "SDS"
+          }.`,
+          eyebrow: "Booking update",
+          headline: "A reservation booking was updated",
+          message:
+            "SDS updated this reservation. Review the updated booking details and activity log when needed.",
+          badge: "Updated",
+          tone: "info",
+          rows: detailRows,
+          ctaHref: detailUrl,
+          ctaLabel: isOfficer ? "View Booking" : "View Approval",
+          comment: changesSummary(changes),
+        });
+        const text = [
+          "A reservation booking was updated",
+          "",
+          `Request No: ${request.requestNumber}`,
+          `Activity: ${request.title}`,
+          `Updated by: ${actorName || "SDS"}`,
+          "",
+          changesSummary(changes),
+          "",
+          `Details: ${detailUrl}`,
+        ].join("\n");
+
+        return sendSapfWorkflowEmail({
+          to: recipient.email,
+          subject,
+          html,
+          text,
+        });
+      }),
+    );
+  } catch (error) {
+    console.error("Failed to send SAPF update emails:", error);
   }
 }

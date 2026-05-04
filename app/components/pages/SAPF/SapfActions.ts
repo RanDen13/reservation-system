@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import {
   notifyApproverForSapfReview,
   notifyOfficerForSapfWorkflow,
+  notifySapfBookingUpdated,
 } from "@/lib/sapf-notification-email";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
@@ -15,6 +16,7 @@ import { normalizeSapfRequest } from "./sapfData";
 import {
   addSapfCalendarDays,
   formatSapfDateForMessage,
+  formatSapfTime,
   sapfLocalDateTime,
   startOfSapfDay,
 } from "./sapfSchedule";
@@ -57,11 +59,50 @@ const sapfAttachmentMetadataSelect = {
   createdAt: true,
 } as const;
 
+const editableRequestFieldLabels: Record<string, string> = {
+  title: "Activity title",
+  organization: "Organization",
+  department: "Department",
+  attendeeCount: "No. of participants",
+  departmentCategory: "Department category",
+  modality: "Modality",
+  programCourse: "Program/Course",
+  venue: "Venue text",
+  setting: "Setting",
+  offCampAgree: "Off-campus agreement",
+  personnelInCharge: "Personnel in charge",
+  activityType: "Activity type",
+  attire: "Attire",
+  scope: "Scope",
+  program: "Program",
+  rationale: "Rationale",
+  objectives: "Objectives",
+  programFlow: "Program flow",
+  emergencyPlan: "Emergency plan",
+  budget: "Budget",
+  sourceOfBudget: "Source of budget",
+  budgetDetails: "Budget details",
+  vehiclePassengers: "Vehicle passengers",
+  foodPax: "Food/snacks pax",
+  roomVenueDetails: "Room/venue details",
+  microphoneQty: "Microphone quantity",
+  extraProvisions: "Diverse-needs provisions",
+  otherSupport: "Other support requests",
+  otherDetails: "Additional information",
+};
+
 type UserRoleValue = (typeof roleValues)[number];
 type ApproverRoleValue = (typeof approverRoleValues)[number];
 type ApproverPositionValue = (typeof approverPositionValues)[number];
 type ExclusiveApproverPositionValue =
   (typeof exclusiveApproverPositions)[number];
+type SapfDbClient = typeof prisma | Prisma.TransactionClient;
+type SapfChange = {
+  field: string;
+  label: string;
+  before: string;
+  after: string;
+};
 
 function approverPositionLabel(position: string) {
   if (position === "SDS") return "SDS/Admin";
@@ -304,6 +345,99 @@ async function createNotification(
       requestId,
     },
   });
+}
+
+function activityMetadata(value: Record<string, any>) {
+  return JSON.stringify(value);
+}
+
+async function logSapfActivity(
+  db: SapfDbClient,
+  {
+    requestId,
+    actorId,
+    action,
+    title,
+    description,
+    metadata,
+  }: {
+    requestId: string;
+    actorId?: string | null;
+    action: string;
+    title: string;
+    description?: string | null;
+    metadata?: Record<string, any> | null;
+  },
+) {
+  await db.sAPFActivityLog.create({
+    data: {
+      id: uuid(),
+      requestId,
+      actorId: actorId || null,
+      action,
+      title,
+      description: description || null,
+      metadata: metadata ? activityMetadata(metadata) : null,
+    },
+  });
+}
+
+function userDisplayName(user: { name?: string | null; email?: string | null }) {
+  return user.name || user.email || "A user";
+}
+
+function logValue(value: any): string {
+  if (Array.isArray(value)) {
+    return value.length ? value.map(logValue).join(", ") : "None";
+  }
+  if (value instanceof Date) return value.toISOString();
+  if (value === null || value === undefined || value === "") return "Not set";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  return String(value);
+}
+
+function addChange(
+  changes: SapfChange[],
+  fieldName: string,
+  label: string,
+  before: any,
+  after: any,
+) {
+  const beforeValue = logValue(before);
+  const afterValue = logValue(after);
+  if (beforeValue === afterValue) return;
+
+  changes.push({
+    field: fieldName,
+    label,
+    before: beforeValue,
+    after: afterValue,
+  });
+}
+
+function valuesFromRows(rows: Array<{ value?: string }> | undefined) {
+  return (rows || []).map((row) => row.value).filter(Boolean).sort();
+}
+
+function venueNamesForLog(request: {
+  venues?: Array<{ eventSpace?: { name?: string | null } }>;
+  venue?: string | null;
+}) {
+  const names = (request.venues || [])
+    .map((item) => item.eventSpace?.name)
+    .filter(Boolean)
+    .sort();
+
+  return names.length ? names : request.venue || "";
+}
+
+function scheduleSlotsForLog(slots: ScheduleRange[]) {
+  return slots.map(
+    (slot) =>
+      `${formatSapfDateForMessage(slot.startAt)} ${formatSapfTime(
+        slot.startAt,
+      )}-${formatSapfTime(slot.endAt)}`,
+  );
 }
 
 async function getFirstActiveApprover(position: string) {
@@ -575,6 +709,103 @@ async function programFlowAttachments(data: FormData, requestId: string) {
   );
 }
 
+function sapfRequestChanges({
+  existing,
+  requestData,
+  selectedVenueNames,
+  scheduleSlots,
+  sapf,
+}: {
+  existing: any;
+  requestData: Record<string, any>;
+  selectedVenueNames: string[];
+  scheduleSlots: ScheduleSlot[];
+  sapf: ReturnType<typeof buildSapfPayload>;
+}) {
+  const changes: SapfChange[] = [];
+
+  for (const [fieldName, label] of Object.entries(editableRequestFieldLabels)) {
+    if (!(fieldName in requestData)) continue;
+    addChange(changes, fieldName, label, existing[fieldName], requestData[fieldName]);
+  }
+
+  addChange(
+    changes,
+    "venues",
+    "Selected venues",
+    venueNamesForLog(existing),
+    selectedVenueNames.sort(),
+  );
+  addChange(
+    changes,
+    "schedules",
+    "Schedule",
+    scheduleSlotsForLog(existing.schedules || []),
+    scheduleSlotsForLog(scheduleSlots),
+  );
+  addChange(
+    changes,
+    "coreValues",
+    "Core values",
+    valuesFromRows(existing.coreValues),
+    sapf.coreValues.sort(),
+  );
+  addChange(
+    changes,
+    "graduateAttributes",
+    "Graduate attributes",
+    valuesFromRows(existing.graduateAttributes),
+    sapf.graduateAttributes.sort(),
+  );
+  addChange(
+    changes,
+    "supportRequests",
+    "Support requests",
+    valuesFromRows(existing.supportRequests),
+    sapf.supportRequests.sort(),
+  );
+
+  return changes;
+}
+
+function part4Changes(existing: any, nextPart4: Record<string, any>) {
+  const labels: Record<string, string> = {
+    parentsConsent: "Parent's Consent Form",
+    hasAttachments: "SDS attachments",
+    academicInterruption: "Academic class interruption",
+    academicInterruptionRemarks: "Academic interruption remarks",
+    medicalExam: "Medical exam request",
+    reportOfCompliance: "Report of compliance",
+    studentPersonnelRatio: "Student-personnel ratio",
+  };
+  const changes: SapfChange[] = [];
+
+  for (const [fieldName, label] of Object.entries(labels)) {
+    addChange(changes, fieldName, label, existing[fieldName], nextPart4[fieldName]);
+  }
+
+  return changes;
+}
+
+function part6Changes(existing: any, data: FormData) {
+  const changes: SapfChange[] = [];
+  addChange(
+    changes,
+    "conductedRemarks",
+    "Conducted remarks",
+    existing.conductedRemarks,
+    field(data, "conductedRemarks"),
+  );
+  addChange(
+    changes,
+    "cancelledRemarks",
+    "Cancelled remarks",
+    existing.cancelledRemarks,
+    field(data, "cancelledRemarks"),
+  );
+  return changes;
+}
+
 async function buildApprovalChain(data: FormData) {
   const adviserId = field(data, "adviserId");
   const additionalSignatoryIds = data
@@ -661,21 +892,74 @@ async function buildApprovalChain(data: FormData) {
   return steps;
 }
 
-function adviserHasApproved(request: { approvalSteps?: Array<{ position: string; status: string }> }) {
-  return request.approvalSteps?.some(
-    (step) => step.position === "ADVISER" && step.status === "APPROVED",
+function sdsStepForRequest(request: {
+  approvalSteps?: Array<{
+    id?: string;
+    position: string;
+    status: string;
+    stepOrder: number;
+    reviewerId?: string;
+  }>;
+}) {
+  return request.approvalSteps?.find((step) => step.position === "SDS") || null;
+}
+
+function hasReachedSds(request: {
+  status: string;
+  currentStepOrder?: number | null;
+  approvalSteps?: Array<{ position: string; status: string; stepOrder: number }>;
+}) {
+  const sdsStep = sdsStepForRequest(request);
+  if (!sdsStep) return false;
+  if (sdsStep.status !== "PENDING") return true;
+  if ((request.currentStepOrder ?? 0) >= sdsStep.stepOrder) return true;
+  return request.status === "APPROVED";
+}
+
+function isAssignedSdsReviewer(
+  request: {
+    approvalSteps?: Array<{ position: string; reviewerId?: string }>;
+  },
+  userId?: string | null,
+) {
+  return Boolean(
+    userId &&
+      request.approvalSteps?.some(
+        (step) => step.position === "SDS" && step.reviewerId === userId,
+      ),
   );
 }
 
-function canEditSapfRequest(request: {
+function canOfficerEditSapfRequest(request: {
   status: string;
-  approvalSteps?: Array<{ position: string; status: string }>;
+  currentStepOrder?: number | null;
+  approvalSteps?: Array<{ position: string; status: string; stepOrder: number }>;
 }) {
   if (["DRAFT", "RETURNED_FOR_REVISION"].includes(request.status)) return true;
   if (["SUBMITTED", "IN_REVIEW"].includes(request.status)) {
-    return !adviserHasApproved(request);
+    return !hasReachedSds(request);
   }
   return false;
+}
+
+function canSdsEditSapfRequest(
+  request: {
+    status: string;
+    currentStepOrder?: number | null;
+    approvalSteps?: Array<{
+      position: string;
+      status: string;
+      stepOrder: number;
+      reviewerId?: string;
+    }>;
+  },
+  userId?: string | null,
+) {
+  return (
+    isAssignedSdsReviewer(request, userId) &&
+    hasReachedSds(request) &&
+    !["CANCELLED", "REJECTED"].includes(request.status)
+  );
 }
 
 export async function getPublicCalendarData(): Promise<ActionResult<any>> {
@@ -932,6 +1216,40 @@ export async function getSapfWorkspace(): Promise<ActionResult<any>> {
         },
         orderBy: { createdAt: "asc" as const },
       },
+      activityLogs: {
+        include: {
+          actor: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" as const },
+      },
+      changeRequests: {
+        include: {
+          requestedBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
+          },
+          reviewedBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" as const },
+      },
     };
 
     const requestWhere =
@@ -1145,6 +1463,40 @@ export async function getSapfRequestById(
         },
         orderBy: { createdAt: "asc" as const },
       },
+      activityLogs: {
+        include: {
+          actor: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" as const },
+      },
+      changeRequests: {
+        include: {
+          requestedBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
+          },
+          reviewedBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" as const },
+      },
     };
 
     const requestWhere =
@@ -1211,10 +1563,18 @@ export async function saveSapfRequest(
 ): Promise<ActionResult<any>> {
   try {
     const user = await getSessionUser();
-    if (!user || !requireRole(user.role, ["OFFICER"])) {
+    const requestId = field(data, "requestId");
+    const role = normalizeRole(user?.role);
+    const canOpenExistingEditor =
+      Boolean(requestId) && role && ["APPROVER", "ADMIN"].includes(role);
+    if (
+      !user ||
+      !role ||
+      (!requireRole(user.role, ["OFFICER"]) && !canOpenExistingEditor)
+    ) {
       return {
         success: false,
-        message: "Only officers can submit venue reservation requests.",
+        message: "You do not have access to save this reservation request.",
       };
     }
 
@@ -1224,14 +1584,41 @@ export async function saveSapfRequest(
           .getAll("venueIds")
           .map(String)
           .map((value) => value.trim())
-          .filter(Boolean),
+        .filter(Boolean),
       ),
     ];
-    const requestId = field(data, "requestId");
     const intent = field(data, "intent", "draft");
     const scheduleSlots = parseScheduleSlots(data);
-    validateScheduleSlots(scheduleSlots, { enforceAdvance: true });
     const isSubmit = intent === "submit";
+    const existing = requestId
+      ? await prisma.sAPFRequest.findUnique({
+          where: { id: requestId },
+          include: {
+            approvalSteps: true,
+            venues: requestVenueInclude(),
+            schedules: {
+              select: {
+                id: true,
+                startAt: true,
+                endAt: true,
+              },
+              orderBy: { startAt: "asc" },
+            },
+            coreValues: { select: { value: true } },
+            graduateAttributes: { select: { value: true } },
+            supportRequests: { select: { value: true } },
+          },
+        })
+      : null;
+
+    if (requestId && !existing) {
+      return {
+        success: false,
+        message: "Reservation request not found.",
+      };
+    }
+
+    validateScheduleSlots(scheduleSlots, { enforceAdvance: !existing });
 
     if (venueIds.length === 0) {
       return {
@@ -1268,7 +1655,7 @@ export async function saveSapfRequest(
       scheduleSlots,
       requestId || undefined,
     );
-    if (isSubmit && conflict.hardConflict) {
+    if ((isSubmit || existing?.status !== "DRAFT") && conflict.hardConflict) {
       return {
         success: false,
         message:
@@ -1282,12 +1669,6 @@ export async function saveSapfRequest(
     const organization = sapf.organization || "Unspecified organization";
     const department = sapf.department || "Unspecified department";
 
-    const existing = requestId
-      ? await prisma.sAPFRequest.findUnique({
-          where: { id: requestId },
-          include: { approvalSteps: true },
-        })
-      : null;
     const submissionKey = !requestId ? field(data, "submissionKey") : "";
     const duplicateSubmission =
       submissionKey && !existing
@@ -1307,18 +1688,30 @@ export async function saveSapfRequest(
       };
     }
 
-    if (existing && existing.officerId !== user.id) {
+    if (!existing && role !== "OFFICER") {
       return {
         success: false,
-        message: "You can only edit your own venue reservation requests.",
+        message: "Only officers can create venue reservation requests.",
       };
     }
 
-    if (existing && !canEditSapfRequest(existing)) {
+    const isOfficerOwner =
+      existing && role === "OFFICER" && existing.officerId === user.id;
+    const isSdsEditor = existing && canSdsEditSapfRequest(existing, user.id);
+
+    if (existing && !isOfficerOwner && !isSdsEditor) {
       return {
         success: false,
-        message:
-          "This request can only be edited before the adviser approves it.",
+        message: "You do not have permission to edit this reservation request.",
+      };
+    }
+
+    if (existing && isOfficerOwner && !canOfficerEditSapfRequest(existing)) {
+      return {
+        success: false,
+        message: hasReachedSds(existing)
+          ? "This request has reached SDS. Request SDS approval before editing."
+          : "This request can no longer be edited by the officer.",
       };
     }
 
@@ -1341,6 +1734,16 @@ export async function saveSapfRequest(
       conflictWarning: conflict.pendingConflict,
       ...sapfColumnData(sapf),
     };
+    const selectedVenueNames = selectedVenues.map((venue) => venue.name);
+    const changes = existing
+      ? sapfRequestChanges({
+          existing,
+          requestData,
+          selectedVenueNames,
+          scheduleSlots,
+          sapf,
+        })
+      : [];
 
     if (!existing) {
       const requestNumber = await nextRequestNumber();
@@ -1383,6 +1786,19 @@ export async function saveSapfRequest(
           );
         }
         await replaceSapfListRows(tx, created.id, sapf);
+        await logSapfActivity(tx, {
+          requestId: created.id,
+          actorId: user.id,
+          action: isSubmit ? "SUBMITTED" : "DRAFT_CREATED",
+          title: isSubmit ? "Reservation submitted" : "Draft created",
+          description: isSubmit
+            ? `${userDisplayName(user)} submitted the reservation for approval.`
+            : `${userDisplayName(user)} created a draft reservation.`,
+          metadata: {
+            status: isSubmit ? "IN_REVIEW" : "DRAFT",
+            conflictWarning: conflict.pendingConflict,
+          },
+        });
         return created;
       });
     } else {
@@ -1466,6 +1882,21 @@ export async function saveSapfRequest(
           });
         }
 
+        if (changes.length > 0) {
+          await logSapfActivity(tx, {
+            requestId: updated.id,
+            actorId: user.id,
+            action: isSdsEditor ? "SDS_UPDATED" : "UPDATED",
+            title: isSdsEditor
+              ? "SDS updated the booking"
+              : "Booking updated",
+            description: `${userDisplayName(user)} updated ${changes.length} field${
+              changes.length === 1 ? "" : "s"
+            }.`,
+            metadata: { changes },
+          });
+        }
+
         return updated;
       });
     }
@@ -1504,6 +1935,24 @@ export async function saveSapfRequest(
         },
       });
 
+      if (existing && changes.length === 0) {
+        const resubmitted = existing.status === "RETURNED_FOR_REVISION";
+        await logSapfActivity(prisma, {
+          requestId: request.id,
+          actorId: user.id,
+          action: resubmitted ? "RESUBMITTED" : "SUBMITTED",
+          title: resubmitted
+            ? "Reservation resubmitted"
+            : "Reservation submitted",
+          description: resubmitted
+            ? `${userDisplayName(user)} resubmitted the revised reservation.`
+            : `${userDisplayName(user)} submitted the reservation for approval.`,
+          metadata: {
+            conflictWarning: conflict.pendingConflict,
+          },
+        });
+      }
+
       if (firstStep) {
         await createNotification(
           firstStep.reviewerId,
@@ -1541,16 +1990,56 @@ export async function saveSapfRequest(
       }
     }
 
+    if (existing && isSdsEditor && changes.length > 0) {
+      const passedReviewerIds = [
+        ...new Set(
+          existing.approvalSteps
+            .filter((step: any) => step.status === "APPROVED")
+            .map((step: any) => step.reviewerId),
+        ),
+      ];
+      const notificationTargets = [
+        existing.officerId,
+        ...passedReviewerIds,
+      ].filter((id, index, ids) => id && ids.indexOf(id) === index);
+
+      await Promise.all(
+        notificationTargets.map((targetId) =>
+          createNotification(
+            targetId,
+            "Booking updated by SDS",
+            `${request.requestNumber} was updated by ${userDisplayName(user)}.`,
+            "REQUEST",
+            request.id,
+          ),
+        ),
+      );
+
+      await notifySapfBookingUpdated({
+        requestId: request.id,
+        actorName: userDisplayName(user),
+        changes,
+      });
+    }
+
     revalidatePath("/user/dashboard");
     revalidatePath("/user/spaces");
+    revalidatePath("/user/bookings");
+    revalidatePath("/user/approvals");
+    if (request?.id) {
+      revalidatePath(`/user/bookings/${request.id}`);
+      revalidatePath(`/user/approvals/${request.id}`);
+    }
     return {
       success: true,
       data: jsonSafe(request),
-      message: isSubmit
-        ? conflict.pendingConflict
-          ? "Reservation submitted with a pending-slot warning."
-          : "Reservation submitted successfully."
-        : "Draft saved.",
+      message: isSdsEditor
+        ? "Booking changes saved."
+        : isSubmit
+          ? conflict.pendingConflict
+            ? "Reservation submitted with a pending-slot warning."
+            : "Reservation submitted successfully."
+          : "Draft saved.",
     };
   } catch (error) {
     const submissionKey = field(data, "submissionKey");
@@ -1580,7 +2069,107 @@ export async function saveSapfRequest(
   }
 }
 
-export async function cancelSapfRequest(
+async function createSapfChangeRequest({
+  request,
+  user,
+  type,
+  reason,
+}: {
+  request: any;
+  user: { id: string; name?: string | null; email?: string | null };
+  type: "EDIT" | "CANCEL";
+  reason: string;
+}) {
+  const sdsStep = sdsStepForRequest(request);
+  if (!sdsStep?.reviewerId) {
+    throw new Error("SDS reviewer is not assigned to this request.");
+  }
+
+  const pending = await prisma.sAPFChangeRequest.findFirst({
+    where: {
+      requestId: request.id,
+      status: "PENDING" as any,
+    },
+  });
+
+  if (pending) {
+    throw new Error(
+      `A ${pending.type.toLowerCase()} request is already waiting for SDS review.`,
+    );
+  }
+
+  const changeRequest = await prisma.$transaction(async (tx) => {
+    const created = await tx.sAPFChangeRequest.create({
+      data: {
+        id: uuid(),
+        requestId: request.id,
+        requestedById: user.id,
+        type: type as any,
+        reason,
+      },
+    });
+
+    await logSapfActivity(tx, {
+      requestId: request.id,
+      actorId: user.id,
+      action: type === "EDIT" ? "EDIT_REQUESTED" : "CANCEL_REQUESTED",
+      title:
+        type === "EDIT"
+          ? "Edit approval requested"
+          : "Cancellation approval requested",
+      description:
+        type === "EDIT"
+          ? `${userDisplayName(user)} requested SDS approval to edit the booking.`
+          : `${userDisplayName(user)} requested SDS approval to cancel the booking.`,
+      metadata: {
+        reason,
+        changeRequestId: created.id,
+      },
+    });
+
+    await tx.approvalAction.create({
+      data: {
+        id: uuid(),
+        requestId: request.id,
+        stepId: sdsStep.id,
+        actorId: user.id,
+        action: "COMMENTED" as any,
+        comment:
+          type === "EDIT"
+            ? `Edit approval requested: ${reason}`
+            : `Cancellation approval requested: ${reason}`,
+      },
+    });
+
+    return created;
+  });
+
+  await createNotification(
+    sdsStep.reviewerId,
+    type === "EDIT"
+      ? "Edit approval requested"
+      : "Cancellation approval requested",
+    `${request.requestNumber} needs SDS review before the officer can ${
+      type === "EDIT" ? "edit" : "cancel"
+    } it.`,
+    "APPROVAL",
+    request.id,
+  );
+  await notifyApproverForSapfReview({
+    requestId: request.id,
+    reviewerId: sdsStep.reviewerId,
+    title:
+      type === "EDIT"
+        ? "Officer requested booking edit approval"
+        : "Officer requested cancellation approval",
+    eyebrow: type === "EDIT" ? "Edit approval needed" : "Cancellation approval needed",
+    message: reason,
+  });
+
+  return changeRequest;
+}
+
+export async function requestSapfEditApproval(
   data: FormData,
 ): Promise<ActionResult<void>> {
   try {
@@ -1588,17 +2177,16 @@ export async function cancelSapfRequest(
     if (!user || !requireRole(user.role, ["OFFICER"])) {
       return {
         success: false,
-        message: "Only officers can cancel their reservations.",
+        message: "Only officers can request booking edit approval.",
       };
     }
 
     const requestId = field(data, "requestId");
-    const comment = field(data, "comment");
-
-    if (!comment) {
+    const reason = field(data, "comment") || field(data, "reason");
+    if (!reason) {
       return {
         success: false,
-        message: "Cancellation reason is required.",
+        message: "Edit reason is required.",
       };
     }
 
@@ -1622,7 +2210,114 @@ export async function cancelSapfRequest(
     if (["CANCELLED", "REJECTED"].includes(request.status)) {
       return {
         success: false,
+        message: "This reservation can no longer be opened for editing.",
+      };
+    }
+
+    if (!hasReachedSds(request)) {
+      return {
+        success: false,
+        message: "This reservation can still be edited directly.",
+      };
+    }
+
+    await createSapfChangeRequest({
+      request,
+      user,
+      type: "EDIT",
+      reason,
+    });
+
+    revalidatePath("/user/dashboard");
+    revalidatePath("/user/bookings");
+    revalidatePath("/user/approvals");
+    revalidatePath(`/user/bookings/${request.id}`);
+    revalidatePath(`/user/approvals/${request.id}`);
+
+    return {
+      success: true,
+      message: "Edit request sent to SDS for approval.",
+    };
+  } catch (error) {
+    console.error("Edit approval request failed:", error);
+    return {
+      success: false,
+      message: (error as Error).message || "Failed to request edit approval.",
+    };
+  }
+}
+
+export async function cancelSapfRequest(
+  data: FormData,
+): Promise<ActionResult<void>> {
+  try {
+    const user = await getSessionUser();
+    const role = normalizeRole(user?.role);
+    if (!user || !role || !requireRole(user.role, ["OFFICER", "APPROVER", "ADMIN"])) {
+      return {
+        success: false,
+        message: "You do not have access to cancel reservations.",
+      };
+    }
+
+    const requestId = field(data, "requestId");
+    const comment = field(data, "comment");
+
+    if (!comment) {
+      return {
+        success: false,
+        message: "Cancellation reason is required.",
+      };
+    }
+
+    const request = await prisma.sAPFRequest.findFirst({
+      where: { id: requestId },
+      include: {
+        approvalSteps: true,
+      },
+    });
+
+    if (!request) {
+      return {
+        success: false,
+        message: "Reservation request not found.",
+      };
+    }
+
+    if (["CANCELLED", "REJECTED"].includes(request.status)) {
+      return {
+        success: false,
         message: "This reservation can no longer be cancelled.",
+      };
+    }
+
+    const isOfficerOwner = role === "OFFICER" && request.officerId === user.id;
+    const isSdsCanceller = canSdsEditSapfRequest(request, user.id);
+
+    if (!isOfficerOwner && !isSdsCanceller) {
+      return {
+        success: false,
+        message: "You do not have permission to cancel this reservation.",
+      };
+    }
+
+    if (isOfficerOwner && hasReachedSds(request)) {
+      await createSapfChangeRequest({
+        request,
+        user,
+        type: "CANCEL",
+        reason: comment,
+      });
+
+      revalidatePath("/user/dashboard");
+      revalidatePath("/user/bookings");
+      revalidatePath(`/user/bookings/${request.id}`);
+      revalidatePath("/user/approvals");
+      revalidatePath(`/user/approvals/${request.id}`);
+
+      return {
+        success: true,
+        message: "Cancellation request sent to SDS for approval.",
       };
     }
 
@@ -1658,6 +2353,19 @@ export async function cancelSapfRequest(
           comment,
         },
       });
+      await logSapfActivity(tx, {
+        requestId: request.id,
+        actorId: user.id,
+        action: "CANCELLED",
+        title: isSdsCanceller
+          ? "SDS cancelled the booking"
+          : "Reservation cancelled",
+        description: `${userDisplayName(user)} cancelled this reservation.`,
+        metadata: {
+          reason: comment,
+          bySds: isSdsCanceller,
+        },
+      });
     });
 
     const reviewerIds = [
@@ -1675,7 +2383,7 @@ export async function cancelSapfRequest(
         createNotification(
           reviewerId,
           "Reservation cancelled",
-          `${request.requestNumber} was cancelled by the officer.`,
+          `${request.requestNumber} was cancelled by ${userDisplayName(user)}.`,
           "REQUEST",
           request.id,
         ),
@@ -1686,6 +2394,7 @@ export async function cancelSapfRequest(
     revalidatePath("/user/bookings");
     revalidatePath(`/user/bookings/${request.id}`);
     revalidatePath("/user/approvals");
+    revalidatePath(`/user/approvals/${request.id}`);
     revalidatePath("/calendar");
 
     return {
@@ -1697,6 +2406,270 @@ export async function cancelSapfRequest(
     return {
       success: false,
       message: (error as Error).message || "Failed to cancel reservation.",
+    };
+  }
+}
+
+export async function reviewSapfChangeRequest(
+  data: FormData,
+): Promise<ActionResult<void>> {
+  try {
+    const user = await getSessionUser();
+    if (!user || !requireRole(user.role, ["APPROVER", "ADMIN"])) {
+      return { success: false, message: "SDS access required." };
+    }
+
+    const changeRequestId = field(data, "changeRequestId");
+    const decision = field(data, "decision");
+    const comment = field(data, "comment");
+
+    if (!["approve", "reject"].includes(decision)) {
+      return { success: false, message: "Choose approve or reject." };
+    }
+    if (decision === "reject" && !comment) {
+      return { success: false, message: "A rejection reason is required." };
+    }
+
+    const changeRequest = await prisma.sAPFChangeRequest.findUnique({
+      where: { id: changeRequestId },
+      include: {
+        requestedBy: true,
+        request: {
+          include: {
+            officer: true,
+            approvalSteps: {
+              orderBy: { stepOrder: "asc" },
+            },
+          },
+        },
+      },
+    });
+
+    if (!changeRequest || changeRequest.status !== "PENDING") {
+      return {
+        success: false,
+        message: "Pending change request not found.",
+      };
+    }
+
+    const request = changeRequest.request;
+    const sdsStep = sdsStepForRequest(request);
+    if (!sdsStep || sdsStep.reviewerId !== user.id) {
+      return {
+        success: false,
+        message: "Only the assigned SDS reviewer can review this request.",
+      };
+    }
+
+    const approved = decision === "approve";
+    const now = new Date();
+    const typeLabel =
+      changeRequest.type === "EDIT" ? "edit request" : "cancellation request";
+    const editThread =
+      approved && changeRequest.type === "EDIT"
+        ? await getOrCreateThread(request, sdsStep)
+        : null;
+
+    await prisma.$transaction(async (tx) => {
+      await tx.sAPFChangeRequest.update({
+        where: { id: changeRequest.id },
+        data: {
+          status: approved ? ("APPROVED" as any) : ("REJECTED" as any),
+          reviewedById: user.id,
+          reviewedAt: now,
+          resolutionComment: comment || null,
+        },
+      });
+
+      if (!approved) {
+        await tx.approvalAction.create({
+          data: {
+            id: uuid(),
+            requestId: request.id,
+            stepId: sdsStep.id,
+            actorId: user.id,
+            action: "COMMENTED" as any,
+            comment: `SDS rejected ${typeLabel}: ${comment}`,
+          },
+        });
+        await logSapfActivity(tx, {
+          requestId: request.id,
+          actorId: user.id,
+          action:
+            changeRequest.type === "EDIT"
+              ? "EDIT_REQUEST_REJECTED"
+              : "CANCEL_REQUEST_REJECTED",
+          title:
+            changeRequest.type === "EDIT"
+              ? "Edit request rejected"
+              : "Cancellation request rejected",
+          description: `${userDisplayName(user)} rejected the officer's ${typeLabel}.`,
+          metadata: {
+            reason: changeRequest.reason,
+            resolutionComment: comment,
+            changeRequestId: changeRequest.id,
+          },
+        });
+        return;
+      }
+
+      if (changeRequest.type === "CANCEL") {
+        const cancelReason = comment || changeRequest.reason;
+        await tx.sAPFRequest.update({
+          where: { id: request.id },
+          data: {
+            status: "CANCELLED" as any,
+            currentStepOrder: null,
+            conflictWarning: false,
+            cancelledRemarks: cancelReason,
+          },
+        });
+        await tx.approvalStep.updateMany({
+          where: {
+            requestId: request.id,
+            status: {
+              in: ["PENDING", "ACTIVE", "RETURNED"] as any,
+            },
+          },
+          data: {
+            status: "SKIPPED" as any,
+            comment: cancelReason,
+            actedAt: now,
+          },
+        });
+        await tx.approvalAction.create({
+          data: {
+            id: uuid(),
+            requestId: request.id,
+            stepId: sdsStep.id,
+            actorId: user.id,
+            action: "CANCELLED" as any,
+            comment: cancelReason,
+          },
+        });
+        await logSapfActivity(tx, {
+          requestId: request.id,
+          actorId: user.id,
+          action: "CANCEL_REQUEST_APPROVED",
+          title: "Cancellation approved by SDS",
+          description: `${userDisplayName(user)} approved the cancellation request and cancelled the booking.`,
+          metadata: {
+            reason: changeRequest.reason,
+            resolutionComment: comment || null,
+            changeRequestId: changeRequest.id,
+          },
+        });
+        return;
+      }
+
+      const revisionComment =
+        comment ||
+        `SDS approved this edit request. Requested reason: ${changeRequest.reason}`;
+
+      await tx.approvalStep.update({
+        where: { id: sdsStep.id },
+        data: {
+          status: "RETURNED" as any,
+          comment: revisionComment,
+          actedAt: now,
+        },
+      });
+      await tx.approvalStep.updateMany({
+        where: {
+          requestId: request.id,
+          stepOrder: { gt: sdsStep.stepOrder },
+          status: { in: ["ACTIVE", "RETURNED", "SKIPPED", "APPROVED"] as any },
+        },
+        data: {
+          status: "PENDING" as any,
+          comment: null,
+          actedAt: null,
+        },
+      });
+      await tx.concernThread.updateMany({
+        where: { id: editThread!.id },
+        data: { status: "OPEN" as any },
+      });
+      await tx.sAPFRequest.update({
+        where: { id: request.id },
+        data: {
+          status: "RETURNED_FOR_REVISION" as any,
+          currentStepOrder: sdsStep.stepOrder,
+          approvedAt: null,
+          verificationToken: null,
+        },
+      });
+      await tx.approvalAction.create({
+        data: {
+          id: uuid(),
+          requestId: request.id,
+          stepId: sdsStep.id,
+          actorId: user.id,
+          action: "RETURNED" as any,
+          comment: revisionComment,
+        },
+      });
+      await tx.concernMessage.create({
+        data: {
+          id: uuid(),
+          threadId: editThread!.id,
+          authorId: user.id,
+          body: revisionComment,
+        },
+      });
+      await logSapfActivity(tx, {
+        requestId: request.id,
+        actorId: user.id,
+        action: "EDIT_REQUEST_APPROVED",
+        title: "Edit request approved by SDS",
+        description: `${userDisplayName(user)} approved the edit request and returned the booking for revision.`,
+        metadata: {
+          reason: changeRequest.reason,
+          resolutionComment: comment || null,
+          changeRequestId: changeRequest.id,
+        },
+      });
+    });
+
+    await createNotification(
+      request.officerId,
+      approved
+        ? changeRequest.type === "EDIT"
+          ? "Edit request approved"
+          : "Cancellation request approved"
+        : changeRequest.type === "EDIT"
+          ? "Edit request rejected"
+          : "Cancellation request rejected",
+      approved
+        ? changeRequest.type === "EDIT"
+          ? `${request.requestNumber} was returned to you for editing.`
+          : `${request.requestNumber} was cancelled after SDS approval.`
+        : `${request.requestNumber} remains unchanged: ${comment}`,
+      approved && changeRequest.type === "EDIT" ? "REVISION" : "REQUEST",
+      request.id,
+    );
+
+    revalidatePath("/user/dashboard");
+    revalidatePath("/user/bookings");
+    revalidatePath(`/user/bookings/${request.id}`);
+    revalidatePath("/user/approvals");
+    revalidatePath(`/user/approvals/${request.id}`);
+    revalidatePath("/calendar");
+
+    return {
+      success: true,
+      message: approved
+        ? changeRequest.type === "EDIT"
+          ? "Edit request approved. The officer can now revise and resubmit."
+          : "Cancellation approved and booking cancelled."
+        : "Change request rejected.",
+    };
+  } catch (error) {
+    console.error("Change request review failed:", error);
+    return {
+      success: false,
+      message:
+        (error as Error).message || "Failed to review the change request.",
     };
   }
 }
@@ -1925,6 +2898,18 @@ export async function reviewSapfRequest(
             comment,
           },
         });
+        await logSapfActivity(tx, {
+          requestId: request.id,
+          actorId: user.id,
+          action: "REJECTED",
+          title: `${step.label} rejected the booking`,
+          description: `${userDisplayName(user)} rejected the request.`,
+          metadata: {
+            stepId: step.id,
+            stepLabel: step.label,
+            reason: comment,
+          },
+        });
       });
 
       await createNotification(
@@ -1986,6 +2971,18 @@ export async function reviewSapfRequest(
             body: comment,
           },
         });
+        await logSapfActivity(tx, {
+          requestId: request.id,
+          actorId: user.id,
+          action: "RETURNED",
+          title: `${step.label} returned the booking`,
+          description: `${userDisplayName(user)} returned the request for revision.`,
+          metadata: {
+            stepId: step.id,
+            stepLabel: step.label,
+            reason: comment,
+          },
+        });
       });
 
       await createNotification(
@@ -2044,6 +3041,7 @@ export async function reviewSapfRequest(
       uploadedAttachments = parsed.uploadedAttachments;
       shouldReplaceAttachments = parsed.shouldReplaceAttachments;
     }
+    const sdsClearanceChanges = part4 ? part4Changes(request, part4) : [];
 
     const nextStep = request.approvalSteps.find(
       (item) => item.stepOrder > step.stepOrder && item.status === "PENDING",
@@ -2094,6 +3092,19 @@ export async function reviewSapfRequest(
           comment: comment || null,
         },
       });
+      await logSapfActivity(tx, {
+        requestId: request.id,
+        actorId: user.id,
+        action: "APPROVED",
+        title: `${step.label} approved the booking`,
+        description: `${userDisplayName(user)} approved this step.`,
+        metadata: {
+          stepId: step.id,
+          stepLabel: step.label,
+          reason: comment || null,
+          changes: sdsClearanceChanges,
+        },
+      });
 
       if (part4 && shouldReplaceAttachments) {
         await tx.sAPFAttachment.deleteMany({
@@ -2142,6 +3153,16 @@ export async function reviewSapfRequest(
             actorId: user.id,
             action: "FINALIZED" as any,
             comment: "Reservation finalized and slot locked.",
+          },
+        });
+        await logSapfActivity(tx, {
+          requestId: request.id,
+          actorId: user.id,
+          action: "FINALIZED",
+          title: "Reservation fully approved",
+          description: "All required approvers have completed the workflow.",
+          metadata: {
+            approvedAt: new Date().toISOString(),
           },
         });
       }
@@ -2256,6 +3277,7 @@ export async function updateSdsClearance(
 
     const { part4, uploadedAttachments, shouldReplaceAttachments } =
       await parseSdsClearancePayload(data, request.id);
+    const changes = part4Changes(request, part4);
 
     await prisma.$transaction(async (tx) => {
       if (shouldReplaceAttachments) {
@@ -2288,7 +3310,26 @@ export async function updateSdsClearance(
           comment: "SDS Office Clearance updated.",
         },
       });
+      await logSapfActivity(tx, {
+        requestId: request.id,
+        actorId: user.id,
+        action: "SDS_CLEARANCE_UPDATED",
+        title: "SDS clearance updated",
+        description: `${userDisplayName(user)} updated Part 4 clearance details.`,
+        metadata: {
+          changes,
+          attachmentsReplaced: shouldReplaceAttachments,
+        },
+      });
     });
+
+    if (changes.length > 0 || shouldReplaceAttachments) {
+      await notifySapfBookingUpdated({
+        requestId: request.id,
+        actorName: userDisplayName(user),
+        changes,
+      });
+    }
 
     revalidatePath("/user/dashboard");
     revalidatePath("/user/approvals");
@@ -2347,13 +3388,43 @@ export async function updateSdsEvaluation(
       };
     }
 
-    await prisma.sAPFRequest.update({
-      where: { id: request.id },
-      data: {
-        conductedRemarks: field(data, "conductedRemarks"),
-        cancelledRemarks: field(data, "cancelledRemarks"),
-      },
+    const changes = part6Changes(request, data);
+
+    await prisma.$transaction(async (tx) => {
+      await tx.sAPFRequest.update({
+        where: { id: request.id },
+        data: {
+          conductedRemarks: field(data, "conductedRemarks"),
+          cancelledRemarks: field(data, "cancelledRemarks"),
+        },
+      });
+      await tx.approvalAction.create({
+        data: {
+          id: uuid(),
+          requestId: request.id,
+          stepId: sdsStep.id,
+          actorId: user.id,
+          action: "COMMENTED" as any,
+          comment: "SDS Part 6 evaluation updated.",
+        },
+      });
+      await logSapfActivity(tx, {
+        requestId: request.id,
+        actorId: user.id,
+        action: "SDS_EVALUATION_UPDATED",
+        title: "SDS evaluation updated",
+        description: `${userDisplayName(user)} updated Part 6 evaluation details.`,
+        metadata: { changes },
+      });
     });
+
+    if (changes.length > 0) {
+      await notifySapfBookingUpdated({
+        requestId: request.id,
+        actorName: userDisplayName(user),
+        changes,
+      });
+    }
 
     revalidatePath("/user/dashboard");
     revalidatePath("/user/approvals");
@@ -2428,24 +3499,38 @@ export async function addConcernMessage(
     }
 
     const thread = await getOrCreateThread(request, step);
-    await prisma.concernMessage.create({
-      data: {
-        id: uuid(),
-        threadId: thread.id,
-        authorId: user.id,
-        body,
-      },
-    });
+    await prisma.$transaction(async (tx) => {
+      await tx.concernMessage.create({
+        data: {
+          id: uuid(),
+          threadId: thread.id,
+          authorId: user.id,
+          body,
+        },
+      });
 
-    await prisma.approvalAction.create({
-      data: {
-        id: uuid(),
+      await tx.approvalAction.create({
+        data: {
+          id: uuid(),
+          requestId: request.id,
+          stepId: step.id,
+          actorId: user.id,
+          action: "COMMENTED" as any,
+          comment: body,
+        },
+      });
+      await logSapfActivity(tx, {
         requestId: request.id,
-        stepId: step.id,
         actorId: user.id,
-        action: "COMMENTED" as any,
-        comment: body,
-      },
+        action: "COMMENTED",
+        title: "Concern message added",
+        description: `${userDisplayName(user)} added a concern-thread message.`,
+        metadata: {
+          stepId: step.id,
+          stepLabel: step.label,
+          message: body,
+        },
+      });
     });
 
     const notificationTargets = [

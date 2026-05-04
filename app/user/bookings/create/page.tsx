@@ -35,18 +35,35 @@ function ErrorCard({ message }: { message: string }) {
   );
 }
 
-function adviserHasApproved(request: any) {
-  return request.approvalSteps?.some(
-    (step: any) => step.position === "ADVISER" && step.status === "APPROVED",
+function hasReachedSds(request: any) {
+  const sdsStep = request.approvalSteps?.find(
+    (step: any) => step.position === "SDS",
+  );
+  if (!sdsStep) return false;
+  return (
+    sdsStep.status !== "PENDING" ||
+    (request.currentStepOrder ?? 0) >= sdsStep.stepOrder ||
+    request.status === "APPROVED"
   );
 }
 
-function canEditRequest(request: any) {
+function canOfficerEditRequest(request: any) {
   if (["DRAFT", "RETURNED_FOR_REVISION"].includes(request.status)) return true;
   if (["SUBMITTED", "IN_REVIEW"].includes(request.status)) {
-    return !adviserHasApproved(request);
+    return !hasReachedSds(request);
   }
   return false;
+}
+
+function canSdsEditRequest(request: any, userId: string) {
+  const isAssignedSds = request.approvalSteps?.some(
+    (step: any) => step.position === "SDS" && step.reviewerId === userId,
+  );
+  return (
+    isAssignedSds &&
+    hasReachedSds(request) &&
+    !["CANCELLED", "REJECTED"].includes(request.status)
+  );
 }
 
 const page = async ({
@@ -62,11 +79,12 @@ const page = async ({
     redirect("/login");
   }
 
-  if (session.user.role?.toUpperCase() !== "OFFICER") {
+  const role = session.user.role?.toUpperCase();
+  const { venueId, requestId } = await searchParams;
+  if (!requestId && role !== "OFFICER") {
     return <ErrorCard message="Only officers can create bookings." />;
   }
 
-  const { venueId, requestId } = await searchParams;
   const [venuesResult, approversResult, requestResult] = await Promise.all([
     getAllEventSpaces(),
     getApproverOptions(),
@@ -94,16 +112,24 @@ const page = async ({
   }
 
   const request = requestResult?.data?.request;
-  if (request && !canEditRequest(request)) {
+  if (request && role === "OFFICER" && !canOfficerEditRequest(request)) {
     return (
-      <ErrorCard message="This request can only be edited before the adviser approves it." />
+      <ErrorCard message="This request has reached SDS. Request SDS approval before editing." />
+    );
+  }
+
+  if (request && role !== "OFFICER" && !canSdsEditRequest(request, session.user.id)) {
+    return (
+      <ErrorCard message="Only the assigned SDS reviewer can edit this booking after it reaches SDS." />
     );
   }
 
   return (
     <div className="space-y-6 p-4 lg:p-8">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Create Booking</h1>
+        <h1 className="text-3xl font-bold text-foreground">
+          {request ? "Edit Booking" : "Create Booking"}
+        </h1>
         <p className="mt-2 text-muted-foreground">
           Select venues and complete the SAPF reservation request.
         </p>
@@ -122,6 +148,7 @@ const page = async ({
         venues={venuesResult.data || []}
         approvers={approversResult.data || {}}
         initialRequest={request}
+        editorMode={role === "OFFICER" ? "officer" : "sds"}
         preselectedVenueIds={venueId ? [venueId] : []}
       />
     </div>

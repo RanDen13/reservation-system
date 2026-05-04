@@ -73,6 +73,17 @@ enum NotificationType {
   COMMENT
 }
 
+enum SAPFChangeRequestType {
+  EDIT
+  CANCEL
+}
+
+enum SAPFChangeRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum UserRole {
   OFFICER
   APPROVER
@@ -84,6 +95,7 @@ model User {
   id            String    @id
   name          String
   email         String
+  emailNotificationsEnabled Boolean   @default(true)
   emailVerified Boolean   @default(false)
   image         String?
   createdAt     DateTime  @default(now())
@@ -100,6 +112,9 @@ model User {
   assignedSteps      ApprovalStep[]         @relation("StepReviewer")
   approvalActions    ApprovalAction[]       @relation("ActionActor")
   approverPositions  ApproverPositionUser[]
+  sapfActivityLogs    SAPFActivityLog[]      @relation("SapfActivityActor")
+  sapfChangeRequests  SAPFChangeRequest[]    @relation("SapfChangeRequestRequester")
+  reviewedSapfChanges SAPFChangeRequest[]    @relation("SapfChangeRequestReviewer")
   notifications      Notification[]
   concernMessages    ConcernMessage[]       @relation("ConcernMessageAuthor")
   officerThreads     ConcernThread[]        @relation("ConcernOfficer")
@@ -213,6 +228,8 @@ model SAPFRequest {
   attachments        SAPFAttachment[]
   approvalSteps      ApprovalStep[]
   approvalActions    ApprovalAction[]
+  activityLogs       SAPFActivityLog[]
+  changeRequests     SAPFChangeRequest[]
   notifications      Notification[]
   concernThreads     ConcernThread[]
 
@@ -338,6 +355,46 @@ model ApprovalAction {
   @@index([requestId])
   @@index([actorId])
   @@map("approval_action")
+}
+
+model SAPFActivityLog {
+  id          String      @id
+  requestId   String
+  request     SAPFRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  actorId     String?
+  actor       User?       @relation("SapfActivityActor", fields: [actorId], references: [id], onDelete: SetNull)
+  action      String
+  title       String
+  description String?
+  metadata    String?
+  createdAt   DateTime    @default(now())
+
+  @@index([requestId])
+  @@index([actorId])
+  @@index([action])
+  @@map("sapf_activity_log")
+}
+
+model SAPFChangeRequest {
+  id                String                  @id
+  requestId         String
+  request           SAPFRequest             @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  requestedById     String
+  requestedBy       User                    @relation("SapfChangeRequestRequester", fields: [requestedById], references: [id], onDelete: Cascade)
+  reviewedById      String?
+  reviewedBy        User?                   @relation("SapfChangeRequestReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  type              SAPFChangeRequestType
+  status            SAPFChangeRequestStatus @default(PENDING)
+  reason            String
+  resolutionComment String?
+  createdAt         DateTime                @default(now())
+  reviewedAt        DateTime?
+
+  @@index([requestId])
+  @@index([requestedById])
+  @@index([reviewedById])
+  @@index([status])
+  @@map("sapf_change_request")
 }
 
 model ApproverPositionUser {

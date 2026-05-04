@@ -21,8 +21,6 @@ import {
 } from "@/app/components/ui/select";
 import { Textarea } from "@/app/components/ui/textarea";
 import {
-  MotionItem,
-  MotionList,
   MotionPage,
   MotionSection,
 } from "@/app/components/ui/motion";
@@ -30,11 +28,16 @@ import { format, formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
 import {
   CheckCircle,
+  Clock,
+  GitCompareArrows,
   FileDown,
+  History,
   Loader2,
   MessageSquare,
   Paperclip,
   RefreshCcw,
+  ShieldCheck,
+  UserRound,
   XCircle,
 } from "lucide-react";
 import { useState } from "react";
@@ -42,6 +45,7 @@ import ModalBase from "../../Popup/ModalBase";
 import ApprovalProgressTimeline from "./ApprovalProgressTimeline";
 import {
   addConcernMessage,
+  reviewSapfChangeRequest,
   reviewSapfRequest,
   updateSdsClearance,
   updateSdsEvaluation,
@@ -96,6 +100,27 @@ function venueLabel(request: any) {
     .filter(Boolean);
 
   return names.length ? names.join(", ") : request.venue || "No venue";
+}
+
+function parseActivityMetadata(metadata?: string | null) {
+  if (!metadata) return null;
+  try {
+    return JSON.parse(metadata);
+  } catch {
+    return null;
+  }
+}
+
+function changeRequestTypeLabel(type: string) {
+  return type === "EDIT" ? "Edit" : "Cancellation";
+}
+
+function changeRequestStatusClass(status: string) {
+  if (status === "APPROVED")
+    return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400";
+  if (status === "REJECTED")
+    return "bg-red-500/15 text-red-700 dark:text-red-400";
+  return "bg-blue-500/15 text-blue-700 dark:text-blue-400";
 }
 
 export function RequestSummary({
@@ -171,36 +196,153 @@ export function RequestSummary({
   );
 }
 
-function Timeline({ request }: { request: any }) {
+export function SapfActivityLog({ request }: { request: any }) {
+  const logs = Array.isArray(request.activityLogs)
+    ? request.activityLogs.filter((log: any) => {
+        const metadata = parseActivityMetadata(log.metadata);
+        const hasChanges =
+          Array.isArray(metadata?.changes) && metadata.changes.length > 0;
+        return !(
+          hasChanges &&
+          ["SUBMITTED", "RESUBMITTED"].includes(log.action)
+        );
+      })
+    : [];
+  const changeRequests = Array.isArray(request.changeRequests)
+    ? request.changeRequests
+    : [];
+
   return (
-    <div className="space-y-2">
-      <p className="text-sm font-semibold text-foreground">Approval chain</p>
-      <MotionList className="grid gap-2 md:grid-cols-2">
-        {request.approvalSteps?.map((step: any) => (
-          <MotionItem
-            key={step.id}
-            className="flex items-start justify-between gap-3 rounded-lg border bg-muted p-3"
-          >
-            <div>
-              <p className="text-sm font-semibold">
-                {step.stepOrder}. {step.label}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {step.reviewer?.name}
-              </p>
-              {step.comment && (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {step.comment}
-                </p>
-              )}
-            </div>
-            <Badge className={statusClass(step.status)}>
-              {step.status.replaceAll("_", " ")}
-            </Badge>
-          </MotionItem>
-        ))}
-      </MotionList>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <History className="h-5 w-5" />
+          Activity Log
+        </CardTitle>
+        <CardDescription>
+          Updates, approvals, returns, cancellation requests, and SDS decisions.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        {changeRequests.length > 0 && (
+          <div className="grid gap-3 md:grid-cols-2">
+            {changeRequests.map((item: any) => (
+              <div
+                key={item.id}
+                className="rounded-lg border bg-muted/40 p-4 shadow-xs"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <ShieldCheck className="h-4 w-4" />
+                      {changeRequestTypeLabel(item.type)} request
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Requested by {item.requestedBy?.name || "Officer"} on{" "}
+                      {format(new Date(item.createdAt), "MMM d, yyyy h:mm a")}
+                    </p>
+                  </div>
+                  <Badge className={changeRequestStatusClass(item.status)}>
+                    {item.status}
+                  </Badge>
+                </div>
+                <p className="mt-3 text-sm text-foreground">{item.reason}</p>
+                {item.resolutionComment && (
+                  <p className="mt-3 rounded-md bg-background p-3 text-sm text-muted-foreground">
+                    {item.resolutionComment}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {logs.length === 0 ? (
+          <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+            No activity has been logged yet.
+          </div>
+        ) : (
+          <div className="relative space-y-4 before:absolute before:bottom-0 before:left-4 before:top-2 before:w-px before:bg-border">
+            {logs.map((log: any) => {
+              const metadata = parseActivityMetadata(log.metadata);
+              const changes = Array.isArray(metadata?.changes)
+                ? metadata.changes
+                : [];
+
+              return (
+                <div key={log.id} className="relative pl-10">
+                  <span className="absolute left-0 top-1 flex h-8 w-8 items-center justify-center rounded-full border bg-background shadow-sm">
+                    {changes.length > 0 ? (
+                      <GitCompareArrows className="h-4 w-4 text-primary" />
+                    ) : log.action.includes("REQUEST") ? (
+                      <ShieldCheck className="h-4 w-4 text-blue-600" />
+                    ) : (
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </span>
+                  <div className="rounded-lg border bg-card p-4 shadow-sm">
+                    <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                      <div>
+                        <p className="font-semibold text-foreground">
+                          {log.title}
+                        </p>
+                        {log.description && (
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {log.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <UserRound className="h-3.5 w-3.5" />
+                        <span>{log.actor?.name || "System"}</span>
+                        <span>-</span>
+                        <span>
+                          {format(new Date(log.createdAt), "MMM d, h:mm a")}
+                        </span>
+                      </div>
+                    </div>
+
+                    {changes.length > 0 && (
+                      <div className="mt-4 overflow-hidden rounded-md border">
+                        <div className="grid grid-cols-2 bg-muted px-3 py-2 text-xs font-semibold text-muted-foreground md:grid-cols-[0.8fr_1fr_1fr]">
+                          <span className="hidden md:block">Field</span>
+                          <span>Before</span>
+                          <span>After</span>
+                        </div>
+                        <div className="divide-y">
+                          {changes.map((change: any, index: number) => (
+                            <div
+                              key={`${log.id}-${change.field || index}`}
+                              className="grid gap-2 px-3 py-3 text-sm md:grid-cols-[0.8fr_1fr_1fr]"
+                            >
+                              <p className="font-medium text-foreground">
+                                {change.label || change.field}
+                              </p>
+                              <p className="break-words text-muted-foreground">
+                                {change.before}
+                              </p>
+                              <p className="break-words text-foreground">
+                                {change.after}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {metadata?.reason && (
+                      <p className="mt-3 rounded-md bg-muted/70 p-3 text-sm text-muted-foreground">
+                        {metadata.reason}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -303,6 +445,185 @@ export function ConcernThreads({
         );
       })}
     </div>
+  );
+}
+
+function ChangeRequestReviewControls({
+  request,
+  me,
+  onRefresh,
+}: {
+  request: any;
+  me: any;
+  onRefresh: () => Promise<void>;
+}) {
+  const popup = usePopup();
+  const [selected, setSelected] = useState<{
+    id: string;
+    decision: "approve" | "reject";
+  } | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const pendingRequests = (request.changeRequests || []).filter(
+    (item: any) => item.status === "PENDING",
+  );
+  const isAssignedSds = request.approvalSteps?.some(
+    (step: any) => step.position === "SDS" && step.reviewerId === me?.id,
+  );
+
+  if (!isAssignedSds || pendingRequests.length === 0) return null;
+
+  const selectedRequest = selected
+    ? pendingRequests.find((item: any) => item.id === selected.id)
+    : null;
+
+  const handleReview = async (formData: FormData) => {
+    if (submitting) return;
+
+    setSubmitting(true);
+    try {
+      const result = await reviewSapfChangeRequest(formData);
+      if (!result.success) {
+        popup.showError(result.message);
+        return;
+      }
+      popup.showSuccess(result.message || "Change request reviewed.");
+      setSelected(null);
+      await onRefresh();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Card className="border-blue-500/30 bg-blue-500/5">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <ShieldCheck className="h-5 w-5 text-blue-600" />
+          SDS Change Requests
+        </CardTitle>
+        <CardDescription>
+          Officer edits or cancellations after SDS require your approval.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {pendingRequests.map((item: any) => (
+          <div
+            key={item.id}
+            className="flex flex-col gap-3 rounded-lg border bg-card p-4 shadow-sm md:flex-row md:items-start md:justify-between"
+          >
+            <div className="space-y-2">
+              <Badge className="w-fit bg-blue-500/15 text-blue-700 dark:text-blue-400">
+                {changeRequestTypeLabel(item.type)} approval needed
+              </Badge>
+              <p className="font-semibold text-foreground">
+                {item.requestedBy?.name || "Officer"}
+              </p>
+              <p className="text-sm text-muted-foreground">{item.reason}</p>
+              <p className="text-xs text-muted-foreground">
+                {format(new Date(item.createdAt), "MMM d, yyyy h:mm a")}
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row md:flex-col">
+              <Button
+                type="button"
+                className="bg-emerald-600 hover:bg-emerald-700"
+                onClick={() => setSelected({ id: item.id, decision: "approve" })}
+                disabled={submitting}
+              >
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Approve
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => setSelected({ id: item.id, decision: "reject" })}
+                disabled={submitting}
+              >
+                <XCircle className="mr-2 h-4 w-4" />
+                Reject
+              </Button>
+            </div>
+          </div>
+        ))}
+      </CardContent>
+
+      {selected && selectedRequest && (
+        <ModalBase onClose={() => !submitting && setSelected(null)}>
+          <Card className="w-[min(92vw,520px)]">
+            <CardHeader>
+              <CardTitle>
+                {selected.decision === "approve" ? "Approve" : "Reject"}{" "}
+                {changeRequestTypeLabel(selectedRequest.type).toLowerCase()} request
+              </CardTitle>
+              <CardDescription>
+                {selectedRequest.type === "EDIT"
+                  ? "Approving returns the booking to the officer for revision and sends it back to SDS after resubmission."
+                  : "Approving immediately cancels the booking and records your SDS decision."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form action={handleReview} className="space-y-4">
+                <input
+                  type="hidden"
+                  name="changeRequestId"
+                  value={selected.id}
+                />
+                <input
+                  type="hidden"
+                  name="decision"
+                  value={selected.decision}
+                />
+                <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+                  {selectedRequest.reason}
+                </div>
+                <div className="space-y-2">
+                  <Label>
+                    {selected.decision === "approve"
+                      ? "SDS note"
+                      : "Rejection reason"}
+                  </Label>
+                  <Textarea
+                    name="comment"
+                    rows={4}
+                    required={selected.decision === "reject"}
+                    placeholder={
+                      selected.decision === "approve"
+                        ? "Optional note for the officer"
+                        : "Why is this request rejected?"
+                    }
+                  />
+                </div>
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setSelected(null)}
+                    disabled={submitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant={
+                      selected.decision === "reject" ? "destructive" : "default"
+                    }
+                    className={
+                      selected.decision === "approve"
+                        ? "bg-emerald-600 hover:bg-emerald-700"
+                        : ""
+                    }
+                    disabled={submitting}
+                  >
+                    {submitting && <ButtonSpinner />}
+                    {submitting ? "Saving..." : "Save decision"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </ModalBase>
+      )}
+    </Card>
   );
 }
 
@@ -1073,49 +1394,51 @@ export function RequestDetail({
   return (
     <MotionPage className="space-y-5">
       <MotionSection>
-      <RequestSummary request={request} />
+        <RequestSummary request={request} />
       </MotionSection>
       <MotionSection>
-      <SapfReadonlyDetails request={request} hidePart4={hideReadOnlyPart4} />
+        <SapfReadonlyDetails request={request} hidePart4={hideReadOnlyPart4} />
       </MotionSection>
       {showReviewControls && (
         <MotionSection>
-        <ReviewControls
-          request={request}
-          me={me}
-          onRefresh={onRefresh}
-          approvers={approvers}
-        />
+          <ChangeRequestReviewControls
+            request={request}
+            me={me}
+            onRefresh={onRefresh}
+          />
         </MotionSection>
       )}
       {showReviewControls && (
         <MotionSection>
-        <SdsClearanceEditControls
-          request={request}
-          me={me}
-          onRefresh={onRefresh}
-        />
+          <ReviewControls
+            request={request}
+            me={me}
+            onRefresh={onRefresh}
+            approvers={approvers}
+          />
         </MotionSection>
       )}
       {showReviewControls && (
         <MotionSection>
-        <SdsEvaluationControls
-          request={request}
-          me={me}
-          onRefresh={onRefresh}
-        />
+          <SdsClearanceEditControls
+            request={request}
+            me={me}
+            onRefresh={onRefresh}
+          />
         </MotionSection>
       )}
-      <MotionSection>
-      <Card>
-        <CardContent className="p-5">
-          <Timeline request={request} />
-        </CardContent>
-      </Card>
-      </MotionSection>
+      {showReviewControls && (
+        <MotionSection>
+          <SdsEvaluationControls
+            request={request}
+            me={me}
+            onRefresh={onRefresh}
+          />
+        </MotionSection>
+      )}
       {showConcernThreads && (
         <MotionSection>
-        <ConcernThreads request={request} onRefresh={onRefresh} />
+          <ConcernThreads request={request} onRefresh={onRefresh} />
         </MotionSection>
       )}
     </MotionPage>

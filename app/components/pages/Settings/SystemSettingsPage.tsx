@@ -17,6 +17,7 @@ import { MotionPage, MotionSection } from "@/app/components/ui/motion";
 import { authClient } from "@/lib/auth-client";
 import {
   CheckCircle2,
+  Mail,
   Eye,
   EyeOff,
   KeyRound,
@@ -24,7 +25,10 @@ import {
   X,
 } from "lucide-react";
 import { type FormEvent, useMemo, useState } from "react";
-import { updateSystemSettings } from "./SystemSettingsActions";
+import {
+  updateSystemSettings,
+  updateUserNotificationPreferences,
+} from "./SystemSettingsActions";
 
 type SystemSettingsData = {
   smtpHost: string;
@@ -37,11 +41,16 @@ type SystemSettingsData = {
 
 export default function SystemSettingsPage({
   initialSettings,
+  initialNotificationPreferences,
 }: {
   initialSettings: SystemSettingsData | null;
+  initialNotificationPreferences: {
+    emailNotificationsEnabled: boolean;
+  };
 }) {
   const popup = usePopup();
   const [saving, setSaving] = useState(false);
+  const [savingNotifications, setSavingNotifications] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
 
   const handleSubmit = async (formData: FormData) => {
@@ -55,6 +64,19 @@ export default function SystemSettingsPage({
     }
 
     popup.showSuccess(result.message || "Settings updated.");
+  };
+
+  const handleNotificationSubmit = async (formData: FormData) => {
+    setSavingNotifications(true);
+    const result = await updateUserNotificationPreferences(formData);
+    setSavingNotifications(false);
+
+    if (!result.success) {
+      popup.showError(result.message);
+      return;
+    }
+
+    popup.showSuccess(result.message || "Notification preferences updated.");
   };
 
   return (
@@ -83,6 +105,52 @@ export default function SystemSettingsPage({
           <Button onClick={() => setPasswordOpen(true)}>Change Password</Button>
         </CardContent>
       </Card>
+      </MotionSection>
+
+      <MotionSection>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Email Notifications
+            </CardTitle>
+            <CardDescription>
+              Control whether workflow updates are sent to your email address.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form
+              action={handleNotificationSubmit}
+              className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="emailNotificationsEnabled"
+                  name="emailNotificationsEnabled"
+                  defaultChecked={
+                    initialNotificationPreferences.emailNotificationsEnabled
+                  }
+                  className="mt-1"
+                />
+                <div className="space-y-1">
+                  <Label
+                    htmlFor="emailNotificationsEnabled"
+                    className="cursor-pointer font-medium"
+                  >
+                    Receive email workflow notifications
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    In-app notifications will still appear even when email is
+                    disabled.
+                  </p>
+                </div>
+              </div>
+              <Button type="submit" disabled={savingNotifications}>
+                {savingNotifications ? "Saving..." : "Save preference"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       </MotionSection>
 
       {initialSettings && (

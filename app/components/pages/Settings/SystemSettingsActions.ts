@@ -17,6 +17,10 @@ type SystemSettingsData = {
 
 export type SystemEmailSettings = SystemSettingsData;
 
+export type UserNotificationPreferences = {
+  emailNotificationsEnabled: boolean;
+};
+
 async function getSessionUser() {
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -95,6 +99,68 @@ export async function getEmailSettings(): Promise<SystemEmailSettings> {
     senderEmail: settings.senderEmail,
     senderName: settings.senderName,
   };
+}
+
+export async function getUserNotificationPreferences(): Promise<
+  ActionResult<UserNotificationPreferences>
+> {
+  try {
+    const user = await getSessionUser();
+    if (!user) {
+      return { success: false, message: "Unauthorized access." };
+    }
+
+    const account = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { emailNotificationsEnabled: true },
+    });
+
+    return {
+      success: true,
+      data: {
+        emailNotificationsEnabled:
+          account?.emailNotificationsEnabled ?? true,
+      },
+    };
+  } catch (error) {
+    console.error("Notification preferences load failed:", error);
+    return {
+      success: false,
+      message:
+        (error as Error).message ||
+        "Failed to load notification preferences.",
+    };
+  }
+}
+
+export async function updateUserNotificationPreferences(
+  data: FormData,
+): Promise<ActionResult<void>> {
+  try {
+    const user = await getSessionUser();
+    if (!user) {
+      return { success: false, message: "Unauthorized access." };
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailNotificationsEnabled:
+          data.get("emailNotificationsEnabled") === "on",
+      },
+    });
+
+    revalidatePath("/user/settings");
+    return { success: true, message: "Notification preferences updated." };
+  } catch (error) {
+    console.error("Notification preferences update failed:", error);
+    return {
+      success: false,
+      message:
+        (error as Error).message ||
+        "Failed to update notification preferences.",
+    };
+  }
 }
 
 export async function updateSystemSettings(
