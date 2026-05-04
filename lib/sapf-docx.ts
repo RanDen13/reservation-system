@@ -18,10 +18,11 @@ const APPROVED_IMAGE_PATH = path.join(process.cwd(), "public", "approved.png");
 const APPROVED_IMAGE_TOKEN = "__approved_stamp__";
 const BLANK_IMAGE_TOKEN = "__blank_stamp__";
 const APPROVAL_STAMP_SIZE: [number, number] = [96, 22];
+const BLANK_IMAGE_SIZE: [number, number] = [1, 1];
 const EMUS_PER_PIXEL = 9525;
 const APPROVAL_STAMP_VERTICAL_OFFSET = -18 * EMUS_PER_PIXEL;
 const BLANK_IMAGE = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lpKZ4wAAAABJRU5ErkJggg==",
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAANSURBVBhXY/j///9/AAn7A/0FQ0XKAAAAAElFTkSuQmCC",
   "base64",
 );
 
@@ -207,7 +208,11 @@ export async function renderSapfDocx({ request }: { request: any }) {
 
       return approvedImage;
     },
-    getSize() {
+    getSize(_image: Buffer | Uint8Array, tagValue: unknown) {
+      if (tagValue === BLANK_IMAGE_TOKEN) {
+        return BLANK_IMAGE_SIZE;
+      }
+
       return APPROVAL_STAMP_SIZE;
     },
   });
