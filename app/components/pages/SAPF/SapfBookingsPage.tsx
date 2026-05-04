@@ -10,6 +10,12 @@ import {
   CardTitle,
 } from "@/app/components/ui/card";
 import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/app/components/ui/tabs";
+import {
   MotionItem,
   MotionList,
   MotionPage,
@@ -17,23 +23,20 @@ import {
 } from "@/app/components/ui/motion";
 import { CheckCircle, Clock, History, Loader2, RefreshCcw } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { getSapfWorkspace } from "./SapfActions";
+import { getSapfRequestList } from "./SapfActions";
 import SapfPageLoading from "./SapfPageLoading";
 import { RequestSummary } from "./SapfRequestDetail";
+import {
+  emptySapfRequestFilters,
+  filterSapfRequests,
+  SapfRequestFilters,
+  uniqueSapfStatuses,
+} from "./SapfRequestFilters";
 
-const activeStatuses = new Set([
-  "DRAFT",
-  "SUBMITTED",
-  "IN_REVIEW",
-  "RETURNED_FOR_REVISION",
-]);
-const historyStatuses = new Set(["APPROVED", "REJECTED", "CANCELLED"]);
-const followStatuses = new Set([
-  "SUBMITTED",
-  "IN_REVIEW",
-  "RETURNED_FOR_REVISION",
-]);
+type BookingTab = "pending" | "following" | "history";
+const EMPTY_REQUESTS: any[] = [];
 
 function ButtonSpinner() {
   return <Loader2 className="mr-2 h-4 w-4 animate-spin" />;
@@ -61,13 +64,16 @@ function RequestList({
   return (
     <MotionList className="space-y-4">
       {requests.map((request: any) => (
-        <MotionItem key={request.id} className="space-y-3">
-          <RequestSummary request={request} {...summaryProps} />
-          <div className="flex justify-end">
-            <Button asChild variant="outline">
-              <Link href={hrefFor(request)}>View</Link>
-            </Button>
-          </div>
+        <MotionItem key={request.id}>
+          <RequestSummary
+            request={request}
+            {...summaryProps}
+            action={
+              <Button asChild variant="outline" size="sm">
+                <Link href={hrefFor(request)}>View</Link>
+              </Button>
+            }
+          />
         </MotionItem>
       ))}
     </MotionList>
@@ -76,79 +82,88 @@ function RequestList({
 
 export default function SapfBookingsPage() {
   const popup = usePopup();
-  const [workspace, setWorkspace] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [me, setMe] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<BookingTab>("pending");
+  const [tabRequests, setTabRequests] = useState<Record<string, any[]>>({});
+  const [loadingTab, setLoadingTab] = useState<BookingTab | null>("pending");
+  const [filters, setFilters] = useState(emptySapfRequestFilters);
 
-  const refresh = async () => {
-    setLoading(true);
-    const result = await getSapfWorkspace();
+  const loadTab = async (tab: BookingTab, force = false) => {
+    if (!force && tabRequests[tab]) return;
+
+    setLoadingTab(tab);
+    const result = await getSapfRequestList({
+      surface: "bookings",
+      view: tab,
+    });
     if (!result.success) {
       popup.showError(result.message);
-      setLoading(false);
+      setLoadingTab(null);
       return;
     }
-    setWorkspace(result.data);
-    setLoading(false);
+    setMe(result.data?.me || null);
+    setTabRequests((current) => ({
+      ...current,
+      [tab]: result.data?.requests || [],
+    }));
+    setLoadingTab(null);
+  };
+
+  const refresh = async () => {
+    await loadTab(activeTab, true);
   };
 
   useEffect(() => {
     queueMicrotask(() => {
-      void refresh();
+      void loadTab("pending");
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const historyRequests = useMemo(() => {
-    if (!workspace) return [];
-    return workspace.requests.filter((request: any) =>
-      historyStatuses.has(request.status),
-    );
-  }, [workspace]);
-  const pendingRequests = useMemo(() => {
-    if (!workspace) return [];
+  const currentRequests = tabRequests[activeTab] ?? EMPTY_REQUESTS;
+  const filteredRequests = useMemo(
+    () => filterSapfRequests(currentRequests, filters),
+    [currentRequests, filters],
+  );
+  const statusOptions = useMemo(
+    () => uniqueSapfStatuses(currentRequests),
+    [currentRequests],
+  );
+  const tabItems: Array<{
+    value: BookingTab;
+    label: string;
+    icon: ReactNode;
+    empty: string;
+  }> = [
+    {
+      value: "pending",
+      label: "Pending",
+      icon: <Clock className="h-4 w-4" />,
+      empty: "No pending requests match your filters.",
+    },
+    ...(me?.role === "OFFICER"
+      ? []
+      : [
+          {
+            value: "following" as BookingTab,
+            label: "Following",
+            icon: <CheckCircle className="h-4 w-4" />,
+            empty: "No followed requests match your filters.",
+          },
+        ]),
+    {
+      value: "history",
+      label: "Old",
+      icon: <History className="h-4 w-4" />,
+      empty: "No old requests match your filters.",
+    },
+  ];
 
-    if (workspace.me.role === "OFFICER") {
-      return workspace.requests.filter((request: any) =>
-        activeStatuses.has(request.status),
-      );
-    }
-
-    return workspace.requests.filter((request: any) =>
-      request.approvalSteps.some(
-        (step: any) =>
-          step.status === "ACTIVE" &&
-          (step.reviewerId === workspace.me.id ||
-            workspace.me.role === "SUPER_ADMIN"),
-      ),
-    );
-  }, [workspace]);
-  const followingRequests = useMemo(() => {
-    if (!workspace || workspace.me.role === "OFFICER") return [];
-
-    const pendingIds = new Set(
-      pendingRequests.map((request: any) => request.id),
-    );
-
-    return workspace.requests.filter((request: any) => {
-      const isInApprovalChain =
-        workspace.me.role === "SUPER_ADMIN" ||
-        request.approvalSteps.some(
-          (step: any) => step.reviewerId === workspace.me.id,
-        );
-
-      return (
-        isInApprovalChain &&
-        !pendingIds.has(request.id) &&
-        followStatuses.has(request.status)
-      );
-    });
-  }, [pendingRequests, workspace]);
-
-  if (loading && !workspace) {
+  if (loadingTab && !me) {
     return <SapfPageLoading variant="bookings" />;
   }
 
-  if (!workspace) {
+  if (!me) {
     return (
       <div className="p-4 lg:p-8">
         <Card>
@@ -159,13 +174,13 @@ export default function SapfBookingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={refresh} variant="outline" disabled={loading}>
-              {loading ? (
+            <Button onClick={refresh} variant="outline" disabled={Boolean(loadingTab)}>
+              {loadingTab ? (
                 <ButtonSpinner />
               ) : (
                 <RefreshCcw className="mr-2 h-4 w-4" />
               )}
-              {loading ? "Loading..." : "Try again"}
+              {loadingTab ? "Loading..." : "Try again"}
             </Button>
           </CardContent>
         </Card>
@@ -183,94 +198,81 @@ export default function SapfBookingsPage() {
             records.
           </p>
         </div>
-        <Button onClick={refresh} variant="outline" disabled={loading}>
-          {loading ? (
+        <Button onClick={refresh} variant="outline" disabled={Boolean(loadingTab)}>
+          {loadingTab ? (
             <ButtonSpinner />
           ) : (
             <RefreshCcw className="mr-2 h-4 w-4" />
           )}
-          {loading ? "Refreshing..." : "Refresh"}
+          {loadingTab ? "Refreshing..." : "Refresh"}
         </Button>
       </MotionSection>
 
       <MotionSection>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Pending
-          </CardTitle>
-          <CardDescription>
-            {pendingRequests.length} request
-            {pendingRequests.length === 1 ? "" : "s"} waiting or in progress.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <RequestList
-            requests={pendingRequests}
-            hrefFor={(request) =>
-              workspace.me.role === "OFFICER"
-                ? `/user/bookings/${request.id}`
-                : `/user/approvals/${request.id}`
-            }
-            empty="No pending requests."
-            summaryProps={{
-              showBadges: workspace.me.role === "OFFICER",
-              showConflict: workspace.me.role === "OFFICER",
-              showPdf: false,
-            }}
-          />
-        </CardContent>
-      </Card>
-      </MotionSection>
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => {
+            const tab = value as BookingTab;
+            setActiveTab(tab);
+            setFilters(emptySapfRequestFilters);
+            void loadTab(tab);
+          }}
+          className="space-y-4"
+        >
+          <TabsList
+            className={`grid w-full ${
+              tabItems.length === 2
+                ? "grid-cols-2 md:w-[320px]"
+                : "grid-cols-3 md:w-[420px]"
+            }`}
+          >
+            {tabItems.map((item) => (
+              <TabsTrigger key={item.value} value={item.value}>
+                {item.icon}
+                {item.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-      {workspace.me.role !== "OFFICER" && (
-        <MotionSection>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5" />
-              Following
-            </CardTitle>
-            <CardDescription>
-              {followingRequests.length} request
-              {followingRequests.length === 1 ? "" : "s"} you can monitor after
-              your step.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <RequestList
-              requests={followingRequests}
-              hrefFor={(request) => `/user/approvals/${request.id}`}
-              empty="No requests to follow."
-              summaryProps={{ showConflict: false, showPdf: false }}
-            />
-          </CardContent>
-        </Card>
-        </MotionSection>
-      )}
-
-      <MotionSection>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <History className="h-5 w-5" />
-            Old
-          </CardTitle>
-          <CardDescription>
-            {historyRequests.length} completed request
-            {historyRequests.length === 1 ? "" : "s"}.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <RequestList
-            requests={historyRequests}
-            hrefFor={(request) => `/user/bookings/${request.id}`}
-            empty="No old requests yet."
-            summaryProps={{ showPdf: false }}
+          <SapfRequestFilters
+            value={filters}
+            onChange={setFilters}
+            statuses={statusOptions}
+            resultCount={filteredRequests.length}
+            totalCount={currentRequests.length}
           />
-        </CardContent>
-      </Card>
+
+          {tabItems.map((item) => (
+            <TabsContent key={item.value} value={item.value}>
+              <div className="space-y-4">
+                {loadingTab === item.value ? (
+                  <Card>
+                    <CardContent className="py-6">
+                      <p className="text-sm text-muted-foreground">
+                        Loading...
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <RequestList
+                    requests={filteredRequests}
+                    hrefFor={(request) =>
+                      me.role === "OFFICER"
+                        ? `/user/bookings/${request.id}`
+                        : `/user/approvals/${request.id}`
+                    }
+                    empty={item.empty}
+                    summaryProps={{
+                      showBadges: me.role === "OFFICER",
+                      showConflict: me.role === "OFFICER",
+                      showPdf: false,
+                    }}
+                  />
+                )}
+              </div>
+            </TabsContent>
+          ))}
+        </Tabs>
       </MotionSection>
     </MotionPage>
   );

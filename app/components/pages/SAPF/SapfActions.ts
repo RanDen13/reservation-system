@@ -50,6 +50,25 @@ const requiredFixedPositions = [
 const MIN_BOOKING_ADVANCE_DAYS = 30;
 const MAX_SDS_ATTACHMENT_BYTES = 25 * 1024 * 1024;
 const MAX_PROGRAM_FLOW_ATTACHMENT_BYTES = 25 * 1024 * 1024;
+const elevatedApprovalTimeoutPositions = new Set([
+  "VPAA_ASSISTANT",
+  "VPAA",
+  "UNIVERSITY_PRESIDENT",
+]);
+const listActiveStatuses = [
+  "DRAFT",
+  "SUBMITTED",
+  "IN_REVIEW",
+  "RETURNED_FOR_REVISION",
+] as const;
+const listHistoryStatuses = ["APPROVED", "REJECTED", "CANCELLED"] as const;
+const listFollowStatuses = [
+  "SUBMITTED",
+  "IN_REVIEW",
+  "RETURNED_FOR_REVISION",
+  "APPROVED",
+  "REJECTED",
+] as const;
 const sapfAttachmentMetadataSelect = {
   id: true,
   fileName: true,
@@ -440,6 +459,123 @@ function scheduleSlotsForLog(slots: ScheduleRange[]) {
   );
 }
 
+function approvalTimeoutDays(position: string) {
+  return elevatedApprovalTimeoutPositions.has(position) ? 10 : 5;
+}
+
+function approvalStepTimedOut(step: { position: string; updatedAt: Date }) {
+  const timeoutMs = approvalTimeoutDays(step.position) * 24 * 60 * 60 * 1000;
+  return Date.now() - new Date(step.updatedAt).getTime() >= timeoutMs;
+}
+
+async function enforceSapfApprovalTimeouts(options: { requestId?: string } = {}) {
+  const overdueRequests = await prisma.sAPFRequest.findMany({
+    where: {
+      id: options.requestId,
+      status: { in: ["SUBMITTED", "IN_REVIEW"] as any },
+      approvalSteps: {
+        some: {
+          status: "ACTIVE" as any,
+        },
+      },
+    },
+    include: {
+      officer: true,
+      approvalSteps: {
+        where: { status: "ACTIVE" as any },
+        include: {
+          reviewer: true,
+        },
+        orderBy: { stepOrder: "asc" },
+      },
+    },
+  });
+
+  for (const request of overdueRequests) {
+    const activeStep = request.approvalSteps.find(approvalStepTimedOut);
+    if (!activeStep) continue;
+
+    const days = approvalTimeoutDays(activeStep.position);
+    const comment = `${activeStep.label} did not respond within ${days} days. The reservation was automatically cancelled.`;
+
+    await prisma.$transaction(async (tx) => {
+      await tx.sAPFRequest.update({
+        where: { id: request.id },
+        data: {
+          status: "CANCELLED" as any,
+          currentStepOrder: null,
+          conflictWarning: false,
+          cancelledRemarks: comment,
+        },
+      });
+      await tx.approvalStep.update({
+        where: { id: activeStep.id },
+        data: {
+          status: "SKIPPED" as any,
+          comment,
+          actedAt: new Date(),
+        },
+      });
+      await tx.approvalStep.updateMany({
+        where: {
+          requestId: request.id,
+          id: { not: activeStep.id },
+          status: { in: ["PENDING", "ACTIVE", "RETURNED"] as any },
+        },
+        data: {
+          status: "SKIPPED" as any,
+          comment,
+          actedAt: new Date(),
+        },
+      });
+      await tx.approvalAction.create({
+        data: {
+          id: uuid(),
+          requestId: request.id,
+          stepId: activeStep.id,
+          actorId: activeStep.reviewerId,
+          action: "CANCELLED" as any,
+          comment,
+        },
+      });
+      await logSapfActivity(tx, {
+        requestId: request.id,
+        actorId: activeStep.reviewerId,
+        action: "AUTO_CANCELLED",
+        title: "Reservation automatically cancelled",
+        description: comment,
+        metadata: {
+          stepId: activeStep.id,
+          stepLabel: activeStep.label,
+          reviewerId: activeStep.reviewerId,
+          timeoutDays: days,
+          activeSince: activeStep.updatedAt,
+        },
+      });
+    });
+
+    await createNotification(
+      request.officerId,
+      "Reservation automatically cancelled",
+      `${request.requestNumber} was cancelled because ${activeStep.label} did not respond within ${days} days.`,
+      "REQUEST",
+      request.id,
+    );
+    await notifyOfficerForSapfWorkflow({
+      requestId: request.id,
+      title: "was automatically cancelled",
+      eyebrow: "Approval timeout",
+      headline: "Your reservation was automatically cancelled",
+      message: `${activeStep.label} did not respond within ${days} days, so the reservation was automatically cancelled.`,
+      statusLabel: "Cancelled",
+      tone: "danger",
+      comment,
+      actorName: activeStep.reviewer?.name || activeStep.label,
+      actionLabel: "View Reservation",
+    });
+  }
+}
+
 async function getFirstActiveApprover(position: string) {
   return prisma.approverPositionUser.findFirst({
     where: {
@@ -548,6 +684,58 @@ async function detectConflicts(
     ),
     overlappingRequests,
     overlappingBlocks,
+  };
+}
+
+function sapfListInclude() {
+  return {
+    officer: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+      },
+    },
+    venues: requestVenueInclude(),
+    coreValues: {
+      select: { value: true },
+      orderBy: { createdAt: "asc" as const },
+    },
+    graduateAttributes: {
+      select: { value: true },
+      orderBy: { createdAt: "asc" as const },
+    },
+    supportRequests: {
+      select: { value: true },
+      orderBy: { createdAt: "asc" as const },
+    },
+    schedules: {
+      select: {
+        id: true,
+        startAt: true,
+        endAt: true,
+      },
+      orderBy: { startAt: "asc" as const },
+    },
+    approvalSteps: {
+      include: {
+        reviewer: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            accounts: {
+              where: { providerId: "credential" },
+              select: { title: true },
+            },
+          },
+        },
+      },
+      orderBy: {
+        stepOrder: "asc" as const,
+      },
+    },
   };
 }
 
@@ -1124,6 +1312,135 @@ export async function getApproverOptions(): Promise<ActionResult<any>> {
   }
 }
 
+type SapfListSurface = "bookings" | "approvals";
+type SapfListView = "pending" | "following" | "history";
+
+function sapfListAccessWhere(role: UserRoleValue, userId: string) {
+  if (role === "SUPER_ADMIN") return {};
+  if (role === "OFFICER") return { officerId: userId };
+
+  return {
+    OR: [
+      { approvalSteps: { some: { reviewerId: userId } } },
+      { approvalActions: { some: { actorId: userId } } },
+    ],
+  };
+}
+
+function sapfActiveReviewerWhere(role: UserRoleValue, userId: string) {
+  return role === "SUPER_ADMIN"
+    ? { approvalSteps: { some: { status: "ACTIVE" as any } } }
+    : {
+        approvalSteps: {
+          some: {
+            status: "ACTIVE" as any,
+            reviewerId: userId,
+          },
+        },
+      };
+}
+
+function sapfFollowingWhere(role: UserRoleValue, userId: string) {
+  const activeWhere = sapfActiveReviewerWhere(role, userId);
+  const chainWhere =
+    role === "SUPER_ADMIN"
+      ? {}
+      : { approvalSteps: { some: { reviewerId: userId } } };
+
+  return {
+    ...chainWhere,
+    status: { in: listFollowStatuses as any },
+    NOT: activeWhere,
+  };
+}
+
+export async function getSapfRequestList({
+  surface,
+  view,
+}: {
+  surface: SapfListSurface;
+  view: SapfListView;
+}): Promise<ActionResult<any>> {
+  try {
+    const user = await getSessionUser();
+    if (!user) {
+      return { success: false, message: "Unauthorized access." };
+    }
+
+    const role = normalizeRole(user.role);
+    if (!role) {
+      return { success: false, message: "Your account role is not valid." };
+    }
+
+    await enforceSapfApprovalTimeouts();
+
+    if (surface === "approvals" && role === "OFFICER") {
+      return {
+        success: true,
+        data: jsonSafe({
+          me: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role,
+          },
+          requests: [],
+        }),
+      };
+    }
+
+    let where: any;
+
+    if (surface === "bookings" && role === "OFFICER") {
+      where = {
+        officerId: user.id,
+        status: {
+          in:
+            view === "history"
+              ? (listHistoryStatuses as any)
+              : (listActiveStatuses as any),
+        },
+      };
+    } else if (view === "pending") {
+      where = sapfActiveReviewerWhere(role, user.id);
+    } else if (view === "following") {
+      where = sapfFollowingWhere(role, user.id);
+    } else {
+      where = {
+        ...sapfListAccessWhere(role, user.id),
+        status: { in: listHistoryStatuses as any },
+      };
+    }
+
+    const requests = await prisma.sAPFRequest.findMany({
+      where,
+      include: sapfListInclude(),
+      orderBy: {
+        updatedAt: "desc",
+      },
+    });
+
+    return {
+      success: true,
+      data: jsonSafe({
+        me: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role,
+        },
+        requests: requests.map((request: any) => normalizeSapfRequest(request)),
+      }),
+    };
+  } catch (error) {
+    console.error("SAPF request list load failed:", error);
+    return {
+      success: false,
+      message: (error as Error).message || "Failed to load requests.",
+    };
+  }
+}
+
 export async function getSapfWorkspace(): Promise<ActionResult<any>> {
   try {
     const user = await getSessionUser();
@@ -1135,6 +1452,8 @@ export async function getSapfWorkspace(): Promise<ActionResult<any>> {
     if (!role) {
       return { success: false, message: "Your account role is not valid." };
     }
+
+    await enforceSapfApprovalTimeouts();
 
     const include = {
       officer: {
@@ -1382,6 +1701,8 @@ export async function getSapfRequestById(
     if (!role) {
       return { success: false, message: "Your account role is not valid." };
     }
+
+    await enforceSapfApprovalTimeouts({ requestId: id });
 
     const include = {
       officer: {
@@ -1802,6 +2123,7 @@ export async function saveSapfRequest(
         return created;
       });
     } else {
+      const resubmittedAt = new Date();
       const returnedStep = isSubmit
         ? [...existing.approvalSteps]
             .filter((step) => step.status === "RETURNED")
@@ -1866,6 +2188,7 @@ export async function saveSapfRequest(
               status: "ACTIVE" as any,
               comment: null,
               actedAt: null,
+              updatedAt: resubmittedAt,
             },
           });
           await tx.approvalStep.updateMany({
@@ -2790,6 +3113,8 @@ export async function reviewSapfRequest(
     const requestId = field(data, "requestId");
     const stepId = field(data, "stepId");
     const comment = field(data, "comment");
+
+    await enforceSapfApprovalTimeouts({ requestId });
 
     const request = await prisma.sAPFRequest.findUnique({
       where: { id: requestId },

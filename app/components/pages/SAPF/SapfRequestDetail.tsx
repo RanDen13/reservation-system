@@ -40,6 +40,7 @@ import {
   UserRound,
   XCircle,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import ModalBase from "../../Popup/ModalBase";
 import ApprovalProgressTimeline from "./ApprovalProgressTimeline";
@@ -129,12 +130,14 @@ export function RequestSummary({
   showConflict = true,
   showPdf = true,
   showProgress = true,
+  action,
 }: {
   request: any;
   showBadges?: boolean;
   showConflict?: boolean;
   showPdf?: boolean;
   showProgress?: boolean;
+  action?: ReactNode;
 }) {
   const waitingSince = request.approvalSteps?.find(
     (step: any) => step.status === "ACTIVE",
@@ -154,6 +157,11 @@ export function RequestSummary({
           <h3 className="text-lg font-bold text-foreground">{request.title}</h3>
           <p className="text-sm text-muted-foreground">
             {request.organization}
+          </p>
+          <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+            <UserRound className="h-4 w-4" />
+            Booked by {request.officer?.name || "Unknown user"}
+            {request.officer?.email ? ` (${request.officer.email})` : ""}
           </p>
           <p className="mt-2 text-sm text-foreground">
             {venueLabel(request)} - {formatDateRange(request)}
@@ -189,6 +197,7 @@ export function RequestSummary({
               </Button>
             </a>
           )}
+          {action}
         </div>
       </div>
       {showProgress && <ApprovalProgressTimeline request={request} compact />}
