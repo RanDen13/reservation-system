@@ -14,14 +14,17 @@ import { Checkbox } from "@/app/components/ui/checkbox";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { MotionPage, MotionSection } from "@/app/components/ui/motion";
+import { startTutorialProgress } from "@/app/components/Tutorial/TutorialActions";
 import { authClient } from "@/lib/auth-client";
 import {
   CheckCircle2,
-  Mail,
   Eye,
   EyeOff,
   KeyRound,
   LockKeyhole,
+  Mail,
+  Map,
+  RotateCcw,
   X,
 } from "lucide-react";
 import { type FormEvent, useMemo, useState } from "react";
@@ -39,19 +42,27 @@ type SystemSettingsData = {
   senderName: string;
 };
 
+type AppRole = "OFFICER" | "APPROVER" | "ADMIN" | "SUPER_ADMIN" | string;
+
 export default function SystemSettingsPage({
   initialSettings,
   initialNotificationPreferences,
+  userRole,
 }: {
   initialSettings: SystemSettingsData | null;
   initialNotificationPreferences: {
     emailNotificationsEnabled: boolean;
   };
+  userRole: AppRole;
 }) {
   const popup = usePopup();
   const [saving, setSaving] = useState(false);
   const [savingNotifications, setSavingNotifications] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const [startingTutorial, setStartingTutorial] = useState(false);
+  const canRestartTutorial = ["OFFICER", "APPROVER", "ADMIN"].includes(
+    userRole,
+  );
 
   const handleSubmit = async (formData: FormData) => {
     setSaving(true);
@@ -79,6 +90,19 @@ export default function SystemSettingsPage({
     popup.showSuccess(result.message || "Notification preferences updated.");
   };
 
+  const handleTutorialRestart = async () => {
+    setStartingTutorial(true);
+    const result = await startTutorialProgress();
+    setStartingTutorial(false);
+
+    if (!result.success) {
+      popup.showError(result.message);
+      return;
+    }
+
+    window.dispatchEvent(new Event("zerve:start-tutorial"));
+  };
+
   return (
     <MotionPage className="space-y-6 p-4 lg:p-8">
       <MotionSection>
@@ -89,7 +113,7 @@ export default function SystemSettingsPage({
       </MotionSection>
 
       <MotionSection>
-      <Card>
+      <Card data-tour="settings-password">
         <CardHeader>
           <CardTitle>Password</CardTitle>
           <CardDescription>
@@ -108,7 +132,7 @@ export default function SystemSettingsPage({
       </MotionSection>
 
       <MotionSection>
-        <Card>
+        <Card data-tour="settings-notifications">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Mail className="h-5 w-5" />
@@ -152,6 +176,37 @@ export default function SystemSettingsPage({
           </CardContent>
         </Card>
       </MotionSection>
+
+      {canRestartTutorial && (
+        <MotionSection>
+          <Card data-tour="settings-tutorial">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Map className="h-5 w-5" />
+                Tutorial
+              </CardTitle>
+              <CardDescription>
+                Restart the guided walkthrough for this account role.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted-foreground">
+                The result is saved when you finish or cancel it.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleTutorialRestart}
+                disabled={startingTutorial}
+                className="gap-2"
+              >
+                <RotateCcw className="h-4 w-4" />
+                {startingTutorial ? "Starting..." : "Restart Tutorial"}
+              </Button>
+            </CardContent>
+          </Card>
+        </MotionSection>
+      )}
 
       {initialSettings && (
         <MotionSection>

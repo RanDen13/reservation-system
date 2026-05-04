@@ -91,6 +91,12 @@ enum UserRole {
   SUPER_ADMIN
 }
 
+enum TutorialProgressStatus {
+  STARTED
+  COMPLETED
+  CANCELLED
+}
+
 model User {
   id            String    @id
   name          String
@@ -120,9 +126,26 @@ model User {
   officerThreads     ConcernThread[]        @relation("ConcernOfficer")
   reviewerThreads    ConcernThread[]        @relation("ConcernReviewer")
   createdVenueBlocks VenueBlock[]           @relation("VenueBlockCreator")
+  tutorialProgress   UserTutorialProgress[]
 
   @@unique([email])
   @@map("user")
+}
+
+model UserTutorialProgress {
+  id          String                 @id
+  userId      String
+  user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        UserRole
+  status      TutorialProgressStatus @default(STARTED)
+  startedAt   DateTime               @default(now())
+  completedAt DateTime?
+  cancelledAt DateTime?
+  updatedAt   DateTime               @updatedAt
+
+  @@unique([userId, role])
+  @@index([status])
+  @@map("user_tutorial_progress")
 }
 
 model EventSpace {

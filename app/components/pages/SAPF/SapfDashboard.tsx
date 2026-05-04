@@ -160,7 +160,7 @@ export default function SapfDashboard() {
         </Button>
       </MotionSection>
 
-      <MotionList className="grid gap-4 md:grid-cols-4">
+      <MotionList className="grid gap-4 md:grid-cols-4" data-tour="dashboard-summary">
         <MotionItem>
         <Card className="panel-hover">
           <CardContent className="flex items-center gap-4 p-5">
@@ -251,7 +251,7 @@ export default function SapfDashboard() {
         </MotionItem>
       </MotionList>
 
-      <MotionSection>
+      <MotionSection data-tour="dashboard-progress">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

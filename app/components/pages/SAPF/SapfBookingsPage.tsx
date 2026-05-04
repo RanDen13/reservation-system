@@ -220,6 +220,7 @@ export default function SapfBookingsPage() {
           className="space-y-4"
         >
           <TabsList
+            data-tour="bookings-tabs"
             className={`grid w-full ${
               tabItems.length === 2
                 ? "grid-cols-2 md:w-[320px]"

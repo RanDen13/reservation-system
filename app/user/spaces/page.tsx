@@ -34,7 +34,13 @@ const page = async () => {
   if (role === "SUPER_ADMIN") {
     return <AdminSpaces eventSpaces={result.data || []} globalBlocks={globalBlocks} />;
   } else if (["OFFICER", "APPROVER", "ADMIN"].includes(role || "")) {
-    return <OfficerSpaces eventSpaces={result.data || []} globalBlocks={globalBlocks} />;
+    return (
+      <OfficerSpaces
+        eventSpaces={result.data || []}
+        globalBlocks={globalBlocks}
+        canCreateBooking={role === "OFFICER"}
+      />
+    );
   }
 
   return <ErrorPopup message="Unauthorized access." />;

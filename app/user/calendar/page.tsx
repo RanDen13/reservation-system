@@ -5,7 +5,7 @@ const page = async () => {
   const { venues, globalBlocks } = await getVenueCalendarData();
 
   return (
-    <div className="p-4 lg:p-8">
+    <div className="p-4 lg:p-8" data-tour="calendar-main">
       <AllEventsCalendar
         venues={venues}
         globalBlocks={globalBlocks}

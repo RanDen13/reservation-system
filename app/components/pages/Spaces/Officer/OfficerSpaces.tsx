@@ -26,9 +26,11 @@ import UniversityWideBlocks from "../UniversityWideBlocks";
 export default function OfficerSpaces({
   eventSpaces,
   globalBlocks = [],
+  canCreateBooking = false,
 }: {
   eventSpaces: EventSpaceData[];
   globalBlocks?: any[];
+  canCreateBooking?: boolean;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCapacity, setFilterCapacity] = useState("");
@@ -52,20 +54,23 @@ export default function OfficerSpaces({
               Browse Venues
             </h1>
             <p className="mt-2 text-muted-foreground">
-              Open a venue to review details, check the calendar, and start a
-              reservation.
+              {canCreateBooking
+                ? "Open a venue to review details, check the calendar, and start a reservation."
+                : "Open a venue to review details, check the calendar, and compare availability."}
             </p>
           </div>
-          <Button asChild>
-            <Link href="/user/bookings/create">
-              <Send className="mr-2 h-4 w-4" />
-              Create Booking
-            </Link>
-          </Button>
+          {canCreateBooking && (
+            <Button asChild data-tour="spaces-create-booking">
+              <Link href="/user/bookings/create">
+                <Send className="mr-2 h-4 w-4" />
+                Create Booking
+              </Link>
+            </Button>
+          )}
         </div>
       </MotionSection>
 
-      <MotionSection>
+      <MotionSection data-tour="spaces-search">
         <Card>
           <CardHeader>
             <CardTitle>Search & Filter</CardTitle>
@@ -108,7 +113,7 @@ export default function OfficerSpaces({
         </Card>
       </MotionSection>
 
-      <MotionSection>
+      <MotionSection data-tour="spaces-blocks">
         <UniversityWideBlocks blocks={globalBlocks} />
       </MotionSection>
 

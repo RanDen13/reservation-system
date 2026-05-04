@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type AppRole = "OFFICER" | "APPROVER" | "ADMIN" | "SUPER_ADMIN";
 
@@ -72,6 +72,14 @@ const navItems: NavItem[] = [
   },
 ];
 
+const navTourTargets: Record<string, string> = {
+  "/user/dashboard": "nav-dashboard",
+  "/user/bookings": "nav-bookings",
+  "/user/calendar": "nav-calendar",
+  "/user/spaces": "nav-spaces",
+  "/user/settings": "nav-settings",
+};
+
 function isNavActive(pathname: string, href: string) {
   if (href === "/user/bookings" && pathname.startsWith("/user/approvals")) {
     return true;
@@ -86,6 +94,13 @@ export default function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  useEffect(() => {
+    const openSidebar = () => setIsMobileOpen(true);
+    window.addEventListener("zerve:open-sidebar", openSidebar);
+
+    return () => window.removeEventListener("zerve:open-sidebar", openSidebar);
+  }, []);
 
   const SidebarContent = () => (
     <div className="flex h-full flex-col">
@@ -138,6 +153,7 @@ export default function Sidebar({
                 >
                   <Link
                     href={item.href}
+                    data-tour={navTourTargets[item.href]}
                     onClick={() => setIsMobileOpen(false)}
                     className={cn(
                       "relative isolate flex items-center gap-3 overflow-visible rounded-lg px-4 py-3 transition-colors duration-200",
@@ -193,6 +209,7 @@ export default function Sidebar({
     <>
       <button
         onClick={() => setIsMobileOpen(true)}
+        data-tour="sidebar-menu"
         className="fixed left-4 top-4 z-40 rounded-lg border border-border bg-background p-2 shadow-lg lg:hidden"
       >
         <Menu className="h-6 w-6" />

@@ -1,4 +1,5 @@
 import Sidebar from "@/app/components/Dashboard/Sidebar";
+import GuidedTutorial from "@/app/components/Tutorial/GuidedTutorial";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { headers } from "next/headers";
@@ -33,6 +34,18 @@ const layout = async ({ children }: { children: React.ReactNode }) => {
     | "APPROVER"
     | "ADMIN"
     | "SUPER_ADMIN";
+  const tutorialProgress =
+    userRole !== "SUPER_ADMIN"
+      ? await prisma.userTutorialProgress.findUnique({
+          where: {
+            userId_role: {
+              userId: session.user.id,
+              role: userRole,
+            },
+          },
+          select: { status: true },
+        })
+      : null;
 
   return (
     <div className="app-surface flex min-h-screen">
@@ -43,6 +56,11 @@ const layout = async ({ children }: { children: React.ReactNode }) => {
       />
       <main className="flex-1 overflow-y-auto">{children}</main>
       <TermsAndConditionsPrompt sessionId={session.session.id} />
+      <GuidedTutorial
+        userRole={userRole}
+        initialStatus={tutorialProgress?.status ?? null}
+        sessionId={session.session.id}
+      />
     </div>
   );
 };
