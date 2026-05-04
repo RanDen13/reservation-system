@@ -10,7 +10,12 @@ function escapeHtml(input: string) {
     .replace(/'/g, "&#39;");
 }
 
-export async function sendEmail(to: string, subject: string, text: string) {
+export async function sendEmail(
+  to: string,
+  subject: string,
+  text: string,
+  options?: { html?: string },
+) {
   const settings = await getEmailSettings();
   const host = settings.smtpHost || process.env.SMTP_HOST;
   const port = settings.smtpPort ?? Number(process.env.SMTP_PORT || 465);
@@ -29,7 +34,12 @@ export async function sendEmail(to: string, subject: string, text: string) {
 
   if (!host || !port || !user || !pass || !senderEmail) {
     if (process.env.NODE_ENV !== "production") {
-      console.log("[dev email fallback]", { to, subject, text });
+      console.log("[dev email fallback]", {
+        to,
+        subject,
+        text,
+        html: options?.html,
+      });
       return true;
     }
 
@@ -55,7 +65,7 @@ export async function sendEmail(to: string, subject: string, text: string) {
       to,
       subject,
       text,
-      html: `<p>${escapeHtml(text).replace(/\n/g, "<br />")}</p>`,
+      html: options?.html || `<p>${escapeHtml(text).replace(/\n/g, "<br />")}</p>`,
     });
 
     return info.accepted.length > 0;

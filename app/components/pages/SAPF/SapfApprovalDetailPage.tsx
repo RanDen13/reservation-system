@@ -15,12 +15,16 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/app/components/ui/tabs";
-import { ArrowLeft, FileDown, RefreshCcw } from "lucide-react";
+import { ArrowLeft, FileDown, Loader2, RefreshCcw } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getApproverOptions, getSapfRequestById } from "./SapfActions";
 import SapfPageLoading from "./SapfPageLoading";
 import { ConcernThreads, RequestDetail } from "./SapfRequestDetail";
+
+function ButtonSpinner() {
+  return <Loader2 className="mr-2 h-4 w-4 animate-spin" />;
+}
 
 export default function SapfApprovalDetailPage({
   requestId,
@@ -59,7 +63,9 @@ export default function SapfApprovalDetailPage({
   };
 
   useEffect(() => {
-    refresh();
+    queueMicrotask(() => {
+      void refresh();
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestId]);
 
@@ -78,9 +84,13 @@ export default function SapfApprovalDetailPage({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={refresh} variant="outline">
-              <RefreshCcw className="mr-2 h-4 w-4" />
-              Try again
+            <Button onClick={refresh} variant="outline" disabled={loading}>
+              {loading ? (
+                <ButtonSpinner />
+              ) : (
+                <RefreshCcw className="mr-2 h-4 w-4" />
+              )}
+              {loading ? "Loading..." : "Try again"}
             </Button>
           </CardContent>
         </Card>
@@ -128,8 +138,12 @@ export default function SapfApprovalDetailPage({
             </a>
           </Button>
           <Button onClick={refresh} variant="outline" disabled={loading}>
-            <RefreshCcw className="mr-2 h-4 w-4" />
-            Refresh
+            {loading ? (
+              <ButtonSpinner />
+            ) : (
+              <RefreshCcw className="mr-2 h-4 w-4" />
+            )}
+            {loading ? "Refreshing..." : "Refresh"}
           </Button>
         </div>
       </div>

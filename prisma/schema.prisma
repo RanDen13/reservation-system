@@ -155,6 +155,7 @@ model Amenity {
 model SAPFRequest {
   id                          String            @id
   requestNumber               String            @unique
+  submissionKey               String?           @unique
   officerId                   String
   officer                     User              @relation("OfficerRequests", fields: [officerId], references: [id], onDelete: Cascade)
   title                       String

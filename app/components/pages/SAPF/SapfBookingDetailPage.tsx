@@ -18,13 +18,17 @@ import {
 } from "@/app/components/ui/tabs";
 import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
-import { ArrowLeft, FileDown, RefreshCcw, XCircle } from "lucide-react";
+import { ArrowLeft, FileDown, Loader2, RefreshCcw, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { cancelSapfRequest, getSapfRequestById } from "./SapfActions";
 import SapfPageLoading from "./SapfPageLoading";
 import SapfReadonlyDetails from "./SapfReadonlyDetails";
 import { ConcernThreads, RequestSummary } from "./SapfRequestDetail";
+
+function ButtonSpinner() {
+  return <Loader2 className="mr-2 h-4 w-4 animate-spin" />;
+}
 
 export default function SapfBookingDetailPage({
   requestId,
@@ -100,6 +104,8 @@ export default function SapfBookingDetailPage({
         !adviserApproved));
 
   const handleCancel = async () => {
+    if (cancelling) return;
+
     const reason = cancelReason.trim();
     if (!reason) {
       popup.showError("Enter a reason before cancelling this reservation.");
@@ -107,21 +113,24 @@ export default function SapfBookingDetailPage({
     }
 
     setCancelling(true);
-    const formData = new FormData();
-    formData.set("requestId", request.id);
-    formData.set("comment", reason);
-    const result = await cancelSapfRequest(formData);
-    setCancelling(false);
+    try {
+      const formData = new FormData();
+      formData.set("requestId", request.id);
+      formData.set("comment", reason);
+      const result = await cancelSapfRequest(formData);
 
-    if (!result.success) {
-      popup.showError(result.message || "Failed to cancel reservation.");
-      return;
+      if (!result.success) {
+        popup.showError(result.message || "Failed to cancel reservation.");
+        return;
+      }
+
+      popup.showSuccess(result.message || "Reservation cancelled.");
+      setShowCancel(false);
+      setCancelReason("");
+      await refresh();
+    } finally {
+      setCancelling(false);
     }
-
-    popup.showSuccess(result.message || "Reservation cancelled.");
-    setShowCancel(false);
-    setCancelReason("");
-    await refresh();
   };
 
   return (
@@ -171,13 +180,21 @@ export default function SapfBookingDetailPage({
               variant="destructive"
               disabled={loading || cancelling}
             >
-              <XCircle className="mr-2 h-4 w-4" />
-              Cancel Reservation
+              {cancelling ? (
+                <ButtonSpinner />
+              ) : (
+                <XCircle className="mr-2 h-4 w-4" />
+              )}
+              {cancelling ? "Cancelling..." : "Cancel Reservation"}
             </Button>
           )}
           <Button onClick={refresh} variant="outline" disabled={loading}>
-            <RefreshCcw className="mr-2 h-4 w-4" />
-            Refresh
+            {loading ? (
+              <ButtonSpinner />
+            ) : (
+              <RefreshCcw className="mr-2 h-4 w-4" />
+            )}
+            {loading ? "Refreshing..." : "Refresh"}
           </Button>
         </div>
       </div>
@@ -253,6 +270,7 @@ export default function SapfBookingDetailPage({
                   onClick={handleCancel}
                   disabled={cancelling || !cancelReason.trim()}
                 >
+                  {cancelling && <ButtonSpinner />}
                   {cancelling ? "Cancelling..." : "Cancel Reservation"}
                 </Button>
               </div>

@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/components/ui/card";
-import { CheckCircle, RefreshCcw } from "lucide-react";
+import { CheckCircle, Loader2, RefreshCcw } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { getSapfWorkspace } from "./SapfActions";
@@ -23,6 +23,10 @@ const visibleFollowStatuses = new Set([
   "APPROVED",
   "REJECTED",
 ]);
+
+function ButtonSpinner() {
+  return <Loader2 className="mr-2 h-4 w-4 animate-spin" />;
+}
 
 export default function SapfApprovalsPage() {
   const popup = usePopup();
@@ -42,7 +46,9 @@ export default function SapfApprovalsPage() {
   };
 
   useEffect(() => {
-    refresh();
+    queueMicrotask(() => {
+      void refresh();
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -93,9 +99,13 @@ export default function SapfApprovalsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={refresh} variant="outline">
-              <RefreshCcw className="mr-2 h-4 w-4" />
-              Try again
+            <Button onClick={refresh} variant="outline" disabled={loading}>
+              {loading ? (
+                <ButtonSpinner />
+              ) : (
+                <RefreshCcw className="mr-2 h-4 w-4" />
+              )}
+              {loading ? "Loading..." : "Try again"}
             </Button>
           </CardContent>
         </Card>
@@ -113,8 +123,12 @@ export default function SapfApprovalsPage() {
           </p>
         </div>
         <Button onClick={refresh} variant="outline" disabled={loading}>
-          <RefreshCcw className="mr-2 h-4 w-4" />
-          Refresh
+          {loading ? (
+            <ButtonSpinner />
+          ) : (
+            <RefreshCcw className="mr-2 h-4 w-4" />
+          )}
+          {loading ? "Refreshing..." : "Refresh"}
         </Button>
       </div>
 

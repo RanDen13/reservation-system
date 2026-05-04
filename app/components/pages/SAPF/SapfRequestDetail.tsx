@@ -31,6 +31,7 @@ import { motion } from "framer-motion";
 import {
   CheckCircle,
   FileDown,
+  Loader2,
   MessageSquare,
   Paperclip,
   RefreshCcw,
@@ -49,6 +50,10 @@ import SapfReadonlyDetails from "./SapfReadonlyDetails";
 import { formatSapfDate, formatSapfTime } from "./sapfSchedule";
 
 const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
+
+function ButtonSpinner() {
+  return <Loader2 className="mr-2 h-4 w-4 animate-spin" />;
+}
 
 function formatFileSize(bytes: number) {
   if (!bytes) return "0 MB";
@@ -207,18 +212,27 @@ export function ConcernThreads({
   onRefresh: () => Promise<void>;
 }) {
   const popup = usePopup();
+  const [sendingThreadId, setSendingThreadId] = useState("");
   const visibleSteps = request.approvalSteps?.filter(
     (step: any) => step.concernThread,
   );
 
   const handleMessage = async (formData: FormData) => {
-    const result = await addConcernMessage(formData);
-    if (!result.success) {
-      popup.showError(result.message);
-      return;
+    const stepId = String(formData.get("stepId") || "");
+    if (sendingThreadId) return;
+
+    setSendingThreadId(stepId);
+    try {
+      const result = await addConcernMessage(formData);
+      if (!result.success) {
+        popup.showError(result.message);
+        return;
+      }
+      popup.showSuccess(result.message || "Message sent.");
+      await onRefresh();
+    } finally {
+      setSendingThreadId("");
     }
-    popup.showSuccess(result.message || "Message sent.");
-    await onRefresh();
   };
 
   if (!visibleSteps?.length) return null;
@@ -270,8 +284,15 @@ export function ConcernThreads({
               <form action={handleMessage} className="mt-3 flex gap-2">
                 <input type="hidden" name="requestId" value={request.id} />
                 <input type="hidden" name="stepId" value={step.id} />
-                <Input name="body" placeholder="Reply to this concern" />
-                <Button type="submit">Send</Button>
+                <Input
+                  name="body"
+                  placeholder="Reply to this concern"
+                  disabled={Boolean(sendingThreadId)}
+                />
+                <Button type="submit" disabled={Boolean(sendingThreadId)}>
+                  {sendingThreadId === step.id && <ButtonSpinner />}
+                  Send
+                </Button>
               </form>
             ) : (
               <p className="mt-3 text-xs text-muted-foreground">
@@ -313,20 +334,25 @@ function ReviewControls({
   if (!step) return null;
 
   const handleReview = async (formData: FormData) => {
+    if (submitting) return;
+
     setSubmitting(true);
-    const result = await reviewSapfRequest(formData);
-    setSubmitting(false);
-    if (!result.success) {
-      popup.showError(result.message);
-      return;
+    try {
+      const result = await reviewSapfRequest(formData);
+      if (!result.success) {
+        popup.showError(result.message);
+        return;
+      }
+      setSelectedAction(null);
+      setHasAttachments("");
+      setAttachmentTotal(0);
+      setAttachmentNames([]);
+      setAttachmentInputKey((key) => key + 1);
+      popup.showSuccess(result.message || "Review saved.");
+      await onRefresh();
+    } finally {
+      setSubmitting(false);
     }
-    setSelectedAction(null);
-    setHasAttachments("");
-    setAttachmentTotal(0);
-    setAttachmentNames([]);
-    setAttachmentInputKey((key) => key + 1);
-    popup.showSuccess(result.message || "Review saved.");
-    await onRefresh();
   };
 
   const approveFormId = `approve-form-${step.id}`;
@@ -530,6 +556,7 @@ function ReviewControls({
           type="button"
           className="w-full bg-emerald-600 hover:bg-emerald-700"
           onClick={() => setSelectedAction("approve")}
+          disabled={submitting}
         >
           <CheckCircle className="mr-2 h-4 w-4" />
           Approve
@@ -539,6 +566,7 @@ function ReviewControls({
           variant="outline"
           className="w-full"
           onClick={() => setSelectedAction("return")}
+          disabled={submitting}
         >
           <RefreshCcw className="mr-2 h-4 w-4" />
           Return
@@ -548,6 +576,7 @@ function ReviewControls({
           variant="destructive"
           className="w-full"
           onClick={() => setSelectedAction("reject")}
+          disabled={submitting}
         >
           <XCircle className="mr-2 h-4 w-4" />
           Reject
@@ -555,7 +584,7 @@ function ReviewControls({
       </div>
 
       {selectedAction && (
-        <ModalBase onClose={() => setSelectedAction(null)}>
+        <ModalBase onClose={() => !submitting && setSelectedAction(null)}>
           <Card className="w-[min(92vw,520px)]">
             <CardHeader>
               <CardTitle>{selectedActionLabel}</CardTitle>
@@ -656,6 +685,7 @@ function ReviewControls({
                         : ""
                     }
                   >
+                    {submitting && <ButtonSpinner />}
                     {submitting ? "Saving..." : selectedActionLabel}
                   </Button>
                 </div>
@@ -736,18 +766,23 @@ function SdsClearanceEditControls({
   );
 
   const handleSubmit = async (formData: FormData) => {
+    if (submitting) return;
+
     setSubmitting(true);
-    const result = await updateSdsClearance(formData);
-    setSubmitting(false);
-    if (!result.success) {
-      popup.showError(result.message);
-      return;
+    try {
+      const result = await updateSdsClearance(formData);
+      if (!result.success) {
+        popup.showError(result.message);
+        return;
+      }
+      setAttachmentTotal(0);
+      setAttachmentNames([]);
+      setAttachmentInputKey((key) => key + 1);
+      popup.showSuccess(result.message || "SDS clearance updated.");
+      await onRefresh();
+    } finally {
+      setSubmitting(false);
     }
-    setAttachmentTotal(0);
-    setAttachmentNames([]);
-    setAttachmentInputKey((key) => key + 1);
-    popup.showSuccess(result.message || "SDS clearance updated.");
-    await onRefresh();
   };
 
   return (
@@ -900,6 +935,7 @@ function SdsClearanceEditControls({
             disabled={submitting || attachmentLimitExceeded}
             className="bg-emerald-600 hover:bg-emerald-700"
           >
+            {submitting && <ButtonSpinner />}
             {submitting ? "Saving..." : "Update SDS Clearance"}
           </Button>
         </div>
@@ -929,15 +965,20 @@ function SdsEvaluationControls({
   if (!canEdit) return null;
 
   const handleSubmit = async (formData: FormData) => {
+    if (submitting) return;
+
     setSubmitting(true);
-    const result = await updateSdsEvaluation(formData);
-    setSubmitting(false);
-    if (!result.success) {
-      popup.showError(result.message);
-      return;
+    try {
+      const result = await updateSdsEvaluation(formData);
+      if (!result.success) {
+        popup.showError(result.message);
+        return;
+      }
+      popup.showSuccess(result.message || "Part 6 evaluation updated.");
+      await onRefresh();
+    } finally {
+      setSubmitting(false);
     }
-    popup.showSuccess(result.message || "Part 6 evaluation updated.");
-    await onRefresh();
   };
 
   return (
@@ -987,6 +1028,7 @@ function SdsEvaluationControls({
           </div>
           <div className="flex justify-end">
             <Button type="submit" disabled={submitting}>
+              {submitting && <ButtonSpinner />}
               {submitting ? "Saving..." : "Save Part 6"}
             </Button>
           </div>

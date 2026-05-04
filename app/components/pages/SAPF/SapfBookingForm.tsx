@@ -30,6 +30,7 @@ import {
   CalendarDays,
   ChevronsUpDown,
   Info,
+  Loader2,
   Paperclip,
   Plus,
   Save,
@@ -96,6 +97,10 @@ const PROGRAM_ALIASES: Record<string, (typeof PROGRAM_OPTIONS)[number]> = {
   "seminar/convention": "Seminar/Convention",
 };
 
+function ButtonSpinner() {
+  return <Loader2 className="mr-2 h-4 w-4 animate-spin" />;
+}
+
 function formatFileSize(bytes: number) {
   if (!bytes) return "0 MB";
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -103,6 +108,10 @@ function formatFileSize(bytes: number) {
 
 function userNameWithTitle(user: any) {
   return user.title ? `${user.name}, ${user.title}` : user.name;
+}
+
+function createSubmissionKey() {
+  return globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
 }
 
 function positionLabel(position: string) {
@@ -224,6 +233,8 @@ export default function SapfBookingForm({
   const [adviserSearch, setAdviserSearch] = useState("");
   const [signatoryPopoverOpen, setSignatoryPopoverOpen] = useState(false);
   const [signatorySearch, setSignatorySearch] = useState("");
+  const [savingIntent, setSavingIntent] = useState("");
+  const [submissionKey] = useState(createSubmissionKey);
   const isEditing = Boolean(initialRequest);
   const lockApprovalChain =
     Boolean(initialRequest) && initialRequest.status !== "DRAFT";
@@ -545,6 +556,8 @@ export default function SapfBookingForm({
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (savingIntent) return;
+
     const form = event.currentTarget;
     const formData = new FormData(form);
     const submitter = (event.nativeEvent as SubmitEvent)
@@ -552,11 +565,21 @@ export default function SapfBookingForm({
     if (submitter?.name) {
       formData.set(submitter.name, submitter.value);
     }
-    await handleSave(formData);
+
+    const intent = String(formData.get("intent") ?? "draft");
+    setSavingIntent(intent);
+    try {
+      await handleSave(formData);
+    } finally {
+      setSavingIntent("");
+    }
   };
 
   return (
     <form key={formKey} onSubmit={handleSubmit} className="space-y-6">
+      {!initialRequest?.id && (
+        <input type="hidden" name="submissionKey" value={submissionKey} />
+      )}
       {initialRequest?.id && (
         <input type="hidden" name="requestId" value={initialRequest.id} />
       )}
@@ -1441,18 +1464,33 @@ export default function SapfBookingForm({
       </Card>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-        <Button type="submit" name="intent" value="draft" variant="outline">
-          <Save className="mr-2 h-4 w-4" />
-          Save Draft
+        <Button
+          type="submit"
+          name="intent"
+          value="draft"
+          variant="outline"
+          disabled={Boolean(savingIntent)}
+        >
+          {savingIntent === "draft" ? (
+            <ButtonSpinner />
+          ) : (
+            <Save className="mr-2 h-4 w-4" />
+          )}
+          {savingIntent === "draft" ? "Saving..." : "Save Draft"}
         </Button>
         <Button
           type="submit"
           name="intent"
           value="submit"
           className="bg-emerald-600 hover:bg-emerald-700"
+          disabled={Boolean(savingIntent)}
         >
-          <Send className="mr-2 h-4 w-4" />
-          Submit Reservation
+          {savingIntent === "submit" ? (
+            <ButtonSpinner />
+          ) : (
+            <Send className="mr-2 h-4 w-4" />
+          )}
+          {savingIntent === "submit" ? "Submitting..." : "Submit Reservation"}
         </Button>
       </div>
     </form>

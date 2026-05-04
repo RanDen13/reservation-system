@@ -15,7 +15,7 @@ import {
   MotionPage,
   MotionSection,
 } from "@/app/components/ui/motion";
-import { CheckCircle, Clock, History, RefreshCcw } from "lucide-react";
+import { CheckCircle, Clock, History, Loader2, RefreshCcw } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { getSapfWorkspace } from "./SapfActions";
@@ -34,6 +34,10 @@ const followStatuses = new Set([
   "IN_REVIEW",
   "RETURNED_FOR_REVISION",
 ]);
+
+function ButtonSpinner() {
+  return <Loader2 className="mr-2 h-4 w-4 animate-spin" />;
+}
 
 function RequestList({
   requests,
@@ -88,7 +92,9 @@ export default function SapfBookingsPage() {
   };
 
   useEffect(() => {
-    refresh();
+    queueMicrotask(() => {
+      void refresh();
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -153,9 +159,13 @@ export default function SapfBookingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={refresh} variant="outline">
-              <RefreshCcw className="mr-2 h-4 w-4" />
-              Try again
+            <Button onClick={refresh} variant="outline" disabled={loading}>
+              {loading ? (
+                <ButtonSpinner />
+              ) : (
+                <RefreshCcw className="mr-2 h-4 w-4" />
+              )}
+              {loading ? "Loading..." : "Try again"}
             </Button>
           </CardContent>
         </Card>
@@ -174,8 +184,12 @@ export default function SapfBookingsPage() {
           </p>
         </div>
         <Button onClick={refresh} variant="outline" disabled={loading}>
-          <RefreshCcw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          Refresh
+          {loading ? (
+            <ButtonSpinner />
+          ) : (
+            <RefreshCcw className="mr-2 h-4 w-4" />
+          )}
+          {loading ? "Refreshing..." : "Refresh"}
         </Button>
       </MotionSection>
 

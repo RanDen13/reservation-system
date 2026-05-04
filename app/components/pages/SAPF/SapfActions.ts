@@ -4,6 +4,10 @@ import ActionResult from "@/app/components/ActionResult";
 import type { Prisma } from "@/generated/prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  notifyApproverForSapfReview,
+  notifyOfficerForSapfWorkflow,
+} from "@/lib/sapf-notification-email";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { v4 as uuid } from "uuid";
@@ -1284,6 +1288,24 @@ export async function saveSapfRequest(
           include: { approvalSteps: true },
         })
       : null;
+    const submissionKey = !requestId ? field(data, "submissionKey") : "";
+    const duplicateSubmission =
+      submissionKey && !existing
+        ? await prisma.sAPFRequest.findUnique({
+            where: { submissionKey },
+          })
+        : null;
+
+    if (duplicateSubmission?.officerId === user.id) {
+      return {
+        success: true,
+        data: jsonSafe(duplicateSubmission),
+        message:
+          duplicateSubmission.status === "DRAFT"
+            ? "Draft saved."
+            : "Reservation submitted successfully.",
+      };
+    }
 
     if (existing && existing.officerId !== user.id) {
       return {
@@ -1327,6 +1349,7 @@ export async function saveSapfRequest(
           data: {
             id: uuid(),
             requestNumber,
+            submissionKey: submissionKey || null,
             officerId: user.id,
             ...requestData,
             status: isSubmit ? ("IN_REVIEW" as any) : ("DRAFT" as any),
@@ -1489,6 +1512,22 @@ export async function saveSapfRequest(
           "APPROVAL",
           request.id,
         );
+        await notifyApproverForSapfReview({
+          requestId: request.id,
+          reviewerId: firstStep.reviewerId,
+          title:
+            existing?.status === "RETURNED_FOR_REVISION"
+              ? "Revised reservation ready for review"
+              : "New reservation request needs your review",
+          eyebrow:
+            existing?.status === "RETURNED_FOR_REVISION"
+              ? "Resubmitted for approval"
+              : "New booking submitted",
+          message:
+            existing?.status === "RETURNED_FOR_REVISION"
+              ? "The officer has revised this reservation and sent it back to your queue. Please review the updates and choose the next action."
+              : "A new reservation request has entered your approval queue. Please review the details and approve, reject, or return it for revision.",
+        });
       }
 
       if (conflict.pendingConflict) {
@@ -1514,6 +1553,24 @@ export async function saveSapfRequest(
         : "Draft saved.",
     };
   } catch (error) {
+    const submissionKey = field(data, "submissionKey");
+    if (submissionKey) {
+      const duplicateSubmission = await prisma.sAPFRequest.findUnique({
+        where: { submissionKey },
+      });
+
+      if (duplicateSubmission) {
+        return {
+          success: true,
+          data: jsonSafe(duplicateSubmission),
+          message:
+            duplicateSubmission.status === "DRAFT"
+              ? "Draft saved."
+              : "Reservation submitted successfully.",
+        };
+      }
+    }
+
     console.error("Reservation save failed:", error);
     return {
       success: false,
@@ -1877,6 +1934,18 @@ export async function reviewSapfRequest(
         "REJECTION",
         request.id,
       );
+      await notifyOfficerForSapfWorkflow({
+        requestId: request.id,
+        title: "was rejected",
+        eyebrow: "Request rejected",
+        headline: "Your reservation request was rejected",
+        message:
+          "An approver has rejected your reservation request. Review the note below for the reason and coordinate with the appropriate office if needed.",
+        statusLabel: "Rejected",
+        tone: "danger",
+        comment,
+        actorName: user.name,
+      });
       revalidatePath("/user/dashboard");
       return { success: true, message: "Request rejected." };
     }
@@ -1926,6 +1995,19 @@ export async function reviewSapfRequest(
         "REVISION",
         request.id,
       );
+      await notifyOfficerForSapfWorkflow({
+        requestId: request.id,
+        title: "needs revision",
+        eyebrow: "Revision requested",
+        headline: "Your reservation request needs revision",
+        message:
+          "An approver returned your reservation request for changes. Please review the note, update the request, and resubmit it for approval.",
+        statusLabel: "Revision Required",
+        tone: "warning",
+        comment,
+        actorName: user.name,
+        actionLabel: "Revise Reservation",
+      });
       revalidatePath("/user/dashboard");
       return { success: true, message: "Request returned for revision." };
     }
@@ -2087,7 +2169,31 @@ export async function reviewSapfRequest(
         "APPROVAL",
         request.id,
       );
+      await notifyApproverForSapfReview({
+        requestId: request.id,
+        reviewerId: nextReviewerId,
+        title: "Reservation request advanced to your queue",
+        eyebrow: "Approval action required",
+        message: `${step.label} has approved this reservation request. It is now waiting for your review and action.`,
+      });
     }
+
+    await notifyOfficerForSapfWorkflow({
+      requestId: request.id,
+      title: nextStep ? "moved forward" : "was fully approved",
+      eyebrow: nextStep ? "Approval progress update" : "Final approval complete",
+      headline: nextStep
+        ? "Your reservation request moved to the next approval step"
+        : "Your reservation request is fully approved",
+      message: nextStep
+        ? `${step.label} approved your reservation request. It has been forwarded to the next approver in the workflow.`
+        : "All required approvers have completed the workflow. Your approved reservation document is now available with verification.",
+      statusLabel: nextStep ? "Step Approved" : "Fully Approved",
+      tone: "success",
+      comment: comment || null,
+      actorName: user.name,
+      actionLabel: nextStep ? "Track Reservation" : "View Approved Request",
+    });
 
     revalidatePath("/user/dashboard");
     return {

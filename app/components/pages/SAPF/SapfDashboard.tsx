@@ -21,6 +21,7 @@ import {
   CheckCircle,
   Clock,
   History,
+  Loader2,
   MessageSquare,
   RefreshCcw,
 } from "lucide-react";
@@ -38,6 +39,10 @@ const activeStatuses = new Set([
 ]);
 
 const historyStatuses = new Set(["APPROVED", "REJECTED", "CANCELLED"]);
+
+function ButtonSpinner() {
+  return <Loader2 className="mr-2 h-4 w-4 animate-spin" />;
+}
 
 export default function SapfDashboard() {
   const popup = usePopup();
@@ -57,7 +62,9 @@ export default function SapfDashboard() {
   };
 
   useEffect(() => {
-    refresh();
+    queueMicrotask(() => {
+      void refresh();
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -103,9 +110,13 @@ export default function SapfDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={refresh} variant="outline">
-              <RefreshCcw className="mr-2 h-4 w-4" />
-              Try again
+            <Button onClick={refresh} variant="outline" disabled={loading}>
+              {loading ? (
+                <ButtonSpinner />
+              ) : (
+                <RefreshCcw className="mr-2 h-4 w-4" />
+              )}
+              {loading ? "Loading..." : "Try again"}
             </Button>
           </CardContent>
         </Card>
@@ -140,8 +151,12 @@ export default function SapfDashboard() {
           </p>
         </div>
         <Button onClick={refresh} variant="outline" disabled={loading}>
-          <RefreshCcw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          Refresh
+          {loading ? (
+            <ButtonSpinner />
+          ) : (
+            <RefreshCcw className="mr-2 h-4 w-4" />
+          )}
+          {loading ? "Refreshing..." : "Refresh"}
         </Button>
       </MotionSection>
 
