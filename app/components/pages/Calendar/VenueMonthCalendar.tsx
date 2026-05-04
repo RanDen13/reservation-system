@@ -272,6 +272,32 @@ export default function VenueMonthCalendar({
         </div>
       </div>
 
+      <div className="flex flex-wrap gap-2 border-b bg-muted/40 p-3">
+        {[
+          { label: "Pending", className: "bg-amber-500" },
+          { label: "Booked", className: "bg-emerald-500" },
+          { label: "Blocked", className: "bg-red-500" },
+          { label: "University-wide", className: "bg-violet-500" },
+        ].map((item) => (
+          <span
+            key={item.label}
+            className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground"
+          >
+            <span className={cn("h-2.5 w-2.5 rounded-full", item.className)} />
+            {item.label}
+          </span>
+        ))}
+        <span className="ml-auto text-xs text-muted-foreground">
+          {calendarView === "month"
+            ? `${visibleMonthItems.length} item${
+                visibleMonthItems.length === 1 ? "" : "s"
+              } this month`
+            : `${selectedDayItems.length} item${
+                selectedDayItems.length === 1 ? "" : "s"
+              } this day`}
+        </span>
+      </div>
+
       <AnimatePresence mode="wait">
       {calendarView === "month" ? (
         <motion.div
@@ -309,31 +335,6 @@ export default function VenueMonthCalendar({
       )}
       </AnimatePresence>
 
-      <div className="flex flex-wrap gap-2 border-t bg-muted/40 p-3">
-        {[
-          { label: "Pending", className: "bg-amber-500" },
-          { label: "Booked", className: "bg-emerald-500" },
-          { label: "Blocked", className: "bg-red-500" },
-          { label: "University-wide", className: "bg-violet-500" },
-        ].map((item) => (
-          <span
-            key={item.label}
-            className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground"
-          >
-            <span className={cn("h-2.5 w-2.5 rounded-full", item.className)} />
-            {item.label}
-          </span>
-        ))}
-        <span className="ml-auto text-xs text-muted-foreground">
-          {calendarView === "month"
-            ? `${visibleMonthItems.length} item${
-                visibleMonthItems.length === 1 ? "" : "s"
-              } this month`
-            : `${selectedDayItems.length} item${
-                selectedDayItems.length === 1 ? "" : "s"
-              } this day`}
-        </span>
-      </div>
     </motion.div>
   );
 }
