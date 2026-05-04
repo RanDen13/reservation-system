@@ -14,6 +14,7 @@ import { signIn } from "@/lib/auth-client";
 import { motion } from "framer-motion";
 import { ArrowLeft, Eye, EyeOff, KeyRound, Lock, Mail } from "lucide-react";
 import Link from "next/link";
+import Script from "next/script";
 import { useEffect, useMemo, useState } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { usePopup } from "../../Popup/PopupProvider";
@@ -25,6 +26,16 @@ const containerVariants = {
 
 const magicCodeLength = 10;
 const magicCodeGroupSize = 5;
+const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+
+declare global {
+  interface Window {
+    grecaptcha?: {
+      ready(callback: () => void): void;
+      execute(siteKey: string, options: { action: string }): Promise<string>;
+    };
+  }
+}
 
 function normalizeMagicCode(value: string) {
   return value
@@ -59,6 +70,23 @@ function signInErrorMessage(errorCode: string) {
   }
 }
 
+function getRecaptchaToken() {
+  if (!recaptchaSiteKey) return Promise.resolve("");
+
+  if (!window.grecaptcha) {
+    return Promise.reject(new Error("reCAPTCHA is still loading."));
+  }
+
+  return new Promise<string>((resolve, reject) => {
+    window.grecaptcha?.ready(() => {
+      window.grecaptcha
+        ?.execute(recaptchaSiteKey, { action: "login" })
+        .then(resolve)
+        .catch(reject);
+    });
+  });
+}
+
 const Login = () => {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -87,20 +115,33 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
 
-    await signIn.email(
-      {
-        email: loginEmail,
-        password: loginPassword,
-        callbackURL: "/user/dashboard",
-      },
-      {
-        onError: (ctx) => {
-          statusPopup.showError(ctx.error.message || "Login failed");
-        },
-      },
-    );
+    try {
+      const captchaToken = await getRecaptchaToken();
 
-    setLoading(false);
+      await signIn.email(
+        {
+          email: loginEmail,
+          password: loginPassword,
+          callbackURL: "/user/dashboard",
+        },
+        {
+          headers: captchaToken
+            ? {
+                "x-captcha-response": captchaToken,
+              }
+            : undefined,
+          onError: (ctx) => {
+            statusPopup.showError(ctx.error.message || "Login failed");
+          },
+        },
+      );
+    } catch (error) {
+      statusPopup.showError(
+        error instanceof Error ? error.message : "reCAPTCHA failed to run.",
+      );
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleGoogleSignIn() {
@@ -140,7 +181,14 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-muted/40 px-4 py-10 relative overflow-hidden">
+    <>
+      {recaptchaSiteKey && (
+        <Script
+          src={`https://www.google.com/recaptcha/api.js?render=${recaptchaSiteKey}`}
+          strategy="afterInteractive"
+        />
+      )}
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-muted/40 px-4 py-10 relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
@@ -390,7 +438,8 @@ const Login = () => {
           </motion.div>
         </motion.div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

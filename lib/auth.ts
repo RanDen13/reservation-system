@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { admin, magicLink } from "better-auth/plugins";
+import { admin, captcha, magicLink } from "better-auth/plugins";
 import { adminAc, userAc } from "better-auth/plugins/admin/access";
 import { randomInt } from "node:crypto";
 import { sendEmail } from "./email";
@@ -10,6 +10,7 @@ const appUrl =
   process.env.BETTER_AUTH_URL ||
   process.env.NEXT_PUBLIC_URL ||
   "http://localhost:3000";
+const recaptchaSecretKey = process.env.RECAPTCHA_SECRET_KEY;
 const magicCodeAlphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 const magicCodeLength = 10;
 const magicCodeGroupSize = 5;
@@ -82,6 +83,16 @@ export const auth = betterAuth({
         max: 5,
       },
     }),
+    ...(recaptchaSecretKey
+      ? [
+          captcha({
+            provider: "google-recaptcha",
+            secretKey: recaptchaSecretKey,
+            minScore: 0.5,
+            endpoints: ["/sign-in/email"],
+          }),
+        ]
+      : []),
   ],
   user: {
     additionalFields: {
