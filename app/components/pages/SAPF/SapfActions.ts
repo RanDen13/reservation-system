@@ -1536,7 +1536,14 @@ export async function cancelSapfRequest(
     }
 
     const requestId = field(data, "requestId");
-    const comment = field(data, "comment") || "Cancelled by officer.";
+    const comment = field(data, "comment");
+
+    if (!comment) {
+      return {
+        success: false,
+        message: "Cancellation reason is required.",
+      };
+    }
 
     const request = await prisma.sAPFRequest.findFirst({
       where: {
@@ -1569,6 +1576,7 @@ export async function cancelSapfRequest(
           status: "CANCELLED" as any,
           currentStepOrder: null,
           conflictWarning: false,
+          cancelledRemarks: comment,
         },
       });
       await tx.approvalStep.updateMany({

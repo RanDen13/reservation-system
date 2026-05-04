@@ -47,6 +47,7 @@ function signInErrorMessage(errorCode: string) {
       return "That magic code was not recognized. Check the code and try again.";
     case "EXPIRED_TOKEN":
       return "That magic code has expired. Request a new code and try again.";
+    case "signup_disabled":
     case "new_user_signup_disabled":
       return "This account must be created by the super admin first.";
     case "OAUTH_LINK_ERROR":

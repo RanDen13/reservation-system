@@ -1,5 +1,6 @@
 "use client";
 
+import ModalBase from "@/app/components/Popup/ModalBase";
 import { usePopup } from "@/app/components/Popup/PopupProvider";
 import { Button } from "@/app/components/ui/button";
 import {
@@ -15,6 +16,8 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/app/components/ui/tabs";
+import { Label } from "@/app/components/ui/label";
+import { Textarea } from "@/app/components/ui/textarea";
 import { ArrowLeft, FileDown, RefreshCcw, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -31,6 +34,9 @@ export default function SapfBookingDetailPage({
   const popup = usePopup();
   const [payload, setPayload] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showCancel, setShowCancel] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelling, setCancelling] = useState(false);
 
   const refresh = async () => {
     setLoading(true);
@@ -45,7 +51,9 @@ export default function SapfBookingDetailPage({
   };
 
   useEffect(() => {
-    refresh();
+    queueMicrotask(() => {
+      void refresh();
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestId]);
 
@@ -92,19 +100,27 @@ export default function SapfBookingDetailPage({
         !adviserApproved));
 
   const handleCancel = async () => {
-    const confirmed = await popup.showYesNo(
-      "Cancel this reservation? This will stop the approval flow and release the slot.",
-    );
-    if (!confirmed) return;
+    const reason = cancelReason.trim();
+    if (!reason) {
+      popup.showError("Enter a reason before cancelling this reservation.");
+      return;
+    }
 
+    setCancelling(true);
     const formData = new FormData();
     formData.set("requestId", request.id);
+    formData.set("comment", reason);
     const result = await cancelSapfRequest(formData);
+    setCancelling(false);
+
     if (!result.success) {
       popup.showError(result.message || "Failed to cancel reservation.");
       return;
     }
+
     popup.showSuccess(result.message || "Reservation cancelled.");
+    setShowCancel(false);
+    setCancelReason("");
     await refresh();
   };
 
@@ -151,9 +167,9 @@ export default function SapfBookingDetailPage({
           </Button>
           {canCancel && (
             <Button
-              onClick={handleCancel}
+              onClick={() => setShowCancel(true)}
               variant="destructive"
-              disabled={loading}
+              disabled={loading || cancelling}
             >
               <XCircle className="mr-2 h-4 w-4" />
               Cancel Reservation
@@ -197,6 +213,53 @@ export default function SapfBookingDetailPage({
           </TabsContent>
         )}
       </Tabs>
+
+      {showCancel && (
+        <ModalBase onClose={() => setShowCancel(false)}>
+          <Card className="w-full max-w-lg">
+            <CardHeader>
+              <CardTitle>Cancel Reservation</CardTitle>
+              <CardDescription>
+                This will stop the approval flow and release the slot.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="cancel-reason">
+                  Reason <span className="text-destructive">*</span>
+                </Label>
+                <Textarea
+                  id="cancel-reason"
+                  value={cancelReason}
+                  onChange={(event) => setCancelReason(event.target.value)}
+                  placeholder="Explain why this reservation needs to be cancelled."
+                  className="min-h-28"
+                  disabled={cancelling}
+                  required
+                />
+              </div>
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowCancel(false)}
+                  disabled={cancelling}
+                >
+                  Keep Reservation
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={handleCancel}
+                  disabled={cancelling || !cancelReason.trim()}
+                >
+                  {cancelling ? "Cancelling..." : "Cancel Reservation"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </ModalBase>
+      )}
     </div>
   );
 }
