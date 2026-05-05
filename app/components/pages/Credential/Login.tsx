@@ -15,6 +15,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Eye, EyeOff, KeyRound, Lock, Mail } from "lucide-react";
 import Link from "next/link";
 import Script from "next/script";
+import { env } from "next-runtime-env";
 import { useEffect, useMemo, useState } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { usePopup } from "../../Popup/PopupProvider";
@@ -26,7 +27,7 @@ const containerVariants = {
 
 const magicCodeLength = 10;
 const magicCodeGroupSize = 5;
-const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+const recaptchaSiteKey = env("NEXT_PUBLIC_RECAPTCHA_SITE_KEY")?.trim();
 
 declare global {
   interface Window {

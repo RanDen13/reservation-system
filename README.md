@@ -63,6 +63,8 @@ The app requires the following environment variables for proper operation:
 - `NEXT_PUBLIC_URL`: Alternative fallback URL
 - `BETTER_AUTH_SECRET`: Secret key for authentication (generate a random string)
 - `DATABASE_URL`: Path to SQLite database (e.g., `file:./data/dev.db`)
+- `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`: Public Google reCAPTCHA site key for email/password login
+- `RECAPTCHA_SECRET_KEY`: Secret Google reCAPTCHA key used by the auth server
 - `SMTP_*`: Email configuration variables
 
 ### Running with Docker CLI
@@ -76,6 +78,8 @@ docker run -d \
   -e NEXT_PUBLIC_URL=https://yourdomain.com \
   -e BETTER_AUTH_SECRET=your-secret-key \
   -e DATABASE_URL=file:./data/dev.db \
+  -e NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your-site-key \
+  -e RECAPTCHA_SECRET_KEY=your-recaptcha-secret-key \
   -v $(pwd)/data:/app/data \
   zerve:latest
 ```
