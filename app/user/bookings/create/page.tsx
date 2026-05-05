@@ -50,7 +50,9 @@ function hasReachedSds(request: any) {
 function canOfficerEditRequest(request: any) {
   if (["DRAFT", "RETURNED_FOR_REVISION"].includes(request.status)) return true;
   if (["SUBMITTED", "IN_REVIEW"].includes(request.status)) {
-    return !hasReachedSds(request);
+    return !request.approvalSteps?.some(
+      (step: any) => step.position === "ADVISER" && step.status === "APPROVED",
+    );
   }
   return false;
 }
@@ -114,7 +116,7 @@ const page = async ({
   const request = requestResult?.data?.request;
   if (request && role === "OFFICER" && !canOfficerEditRequest(request)) {
     return (
-      <ErrorCard message="This request has reached SDS. Request SDS approval before editing." />
+      <ErrorCard message="This request can only be edited before adviser approval or after it has been returned." />
     );
   }
 

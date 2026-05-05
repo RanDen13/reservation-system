@@ -1125,7 +1125,9 @@ function canOfficerEditSapfRequest(request: {
 }) {
   if (["DRAFT", "RETURNED_FOR_REVISION"].includes(request.status)) return true;
   if (["SUBMITTED", "IN_REVIEW"].includes(request.status)) {
-    return !hasReachedSds(request);
+    return !request.approvalSteps?.some(
+      (step) => step.position === "ADVISER" && step.status === "APPROVED",
+    );
   }
   return false;
 }
@@ -2030,9 +2032,8 @@ export async function saveSapfRequest(
     if (existing && isOfficerOwner && !canOfficerEditSapfRequest(existing)) {
       return {
         success: false,
-        message: hasReachedSds(existing)
-          ? "This request has reached SDS. Request SDS approval before editing."
-          : "This request can no longer be edited by the officer.",
+        message:
+          "This request can only be edited before adviser approval or after it has been returned.",
       };
     }
 

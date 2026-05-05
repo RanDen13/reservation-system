@@ -115,6 +115,9 @@ export default function SapfBookingDetailPage({
     (sdsStep.status !== "PENDING" ||
       (request.currentStepOrder ?? 0) >= sdsStep.stepOrder ||
       request.status === "APPROVED");
+  const adviserApproved = request.approvalSteps?.some(
+    (step: any) => step.position === "ADVISER" && step.status === "APPROVED",
+  );
   const pendingChangeRequest = request.changeRequests?.find(
     (item: any) => item.status === "PENDING",
   );
@@ -130,7 +133,8 @@ export default function SapfBookingDetailPage({
   const canEdit =
     me?.role === "OFFICER" &&
     (["DRAFT", "RETURNED_FOR_REVISION"].includes(request.status) ||
-      (["SUBMITTED", "IN_REVIEW"].includes(request.status) && !reachedSds));
+      (["SUBMITTED", "IN_REVIEW"].includes(request.status) &&
+        !adviserApproved));
   const canRequestEdit =
     me?.role === "OFFICER" &&
     reachedSds &&
